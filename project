@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(1.2)
+script_version(1.2.1)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -352,7 +352,7 @@ function main()
 	end)
 	lua_thread.create(strobe)
 
-	SCM('А спонсор етой обновы - Хераки Цуцуй.')
+	SCM('А спонсор етой обновы - Хераки Цуцуй. Если бы у него всё работа - мы бы ничего не обновляли.')
 	apply_custom_style()
 
 	while true do
@@ -3364,7 +3364,7 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 		return false
 	end
 
-	if string.find(title, 'Тюрьма') or string.find(title, 'ФБР') and dialogId == 175 then
+	if string.find(title, 'Тюрьма') or string.find(title, 'ФБР') or string.find(tutle, 'Управлении полиции') and dialogId == 175 then
 		if ini.set.autoweapon then
 			for i = 1, 12 do
 				if ini.weapon[InfoWeapon[i][3]] then

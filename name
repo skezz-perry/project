@@ -224,7 +224,7 @@ function main()
 	if not isSampLoaded() or not isSampfuncsLoaded() then return end
 	while not isSampAvailable() do wait(100) end
 	
-	autoupdate('https://raw.githubusercontent.com/skezz-perry/project/master/version', 'https://raw.githubusercontent.com/skezz-perry/project/master/project') 
+	autoupdate('https://raw.githubusercontent.com/skezz-perry/project/master/version', 'https://raw.githubusercontent.com/skezz-perry/project/master/name') 
 	
 	sampRegisterChatCommand('admins', command_admins)
 	sampRegisterChatCommand('r', command_r)
@@ -3540,9 +3540,14 @@ function autoupdate(json_url, url) -- Author: http://qrlk.me/samp
                     if status1 == dlstatus.STATUS_DOWNLOADINGDATA then
                       print(string.format('Загружено %d из %d.', p13, p23))
                     elseif status1 == dlstatus.STATUS_ENDDOWNLOADDATA then
-                      --SCM('Обновление завершено.')
-                      goupdatestatus = true
-                      lua_thread.create(function() wait(500) thisScript():reload() end)
+                      local f = io.open(thisScript().path, 'w')
+					  if f then
+						local text = f:read('*a')
+						f:write(u8:decode(text))
+						f:close()
+						goupdatestatus = true
+					    lua_thread.create(function() wait(500) thisScript():reload() end)
+					  end
                     end
                     if status1 == dlstatus.STATUSEX_ENDDOWNLOAD then
                       if goupdatestatus == nil then

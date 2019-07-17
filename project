@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(1.5)
+script_version(1.4)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -334,6 +334,8 @@ function main()
 			SCM('Вы не умирали.')
 		end
 	end)
+	
+	sampRegisterChatCommand('fix_text', decode())
 	
 	sampRegisterChatCommand('ainfo', function()
 		show_info.v = not show_info.v

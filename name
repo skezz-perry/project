@@ -4,7 +4,7 @@ end
 
 script_name('helper-for-mia')
 script_author('Unknown')
-script_version_number()
+script_version_number(1)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'

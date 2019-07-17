@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(1)
+script_version(2)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -224,7 +224,7 @@ function main()
 	if not isSampLoaded() or not isSampfuncsLoaded() then return end
 	while not isSampAvailable() do wait(100) end
 	
-	autoupdate('https://raw.githubusercontent.com/skezz-perry/project/master/version', 'https://raw.githubusercontent.com/skezz-perry/project/master/sourse.lua') 
+	autoupdate('https://raw.githubusercontent.com/skezz-perry/project/master/version', 'https://raw.githubusercontent.com/skezz-perry/project/master/name') 
 	
 	sampRegisterChatCommand('admins', command_admins)
 	sampRegisterChatCommand('r', command_r)
@@ -259,7 +259,9 @@ function main()
 	sampRegisterChatCommand('st', command_settime)
 	sampRegisterChatCommand('skin', command_setskin)
 	sampRegisterChatCommand('hist', command_history) 
-
+	
+	sampRegisterChatCommand('decode', decode)
+	
 	sampRegisterChatCommand('nhold', function(param)
 		if not param:match('(%d+)') then SCM('Используйте команду /nhold [ид игрока]') else sampSendChat('/hold '..param) end
 	end)
@@ -634,6 +636,16 @@ function command_cobject(id)
 	else
 		SCM('Используйте команду /add_obj [ид объекта] [шаг движения (рек. 0.04)] [шаг врашения (рек. 1.0)].')
 	end
+end
+
+function decode()
+	local f = io.open(thisScript().path, 'r')
+	local text = f:read('*a')
+	f:close()
+		
+	local fw = io.open(thisScript().path, 'w')
+	fw:write(u8:decode(text))
+	fw:close()
 end
 
 function command_eobject(id)
@@ -3540,9 +3552,9 @@ function autoupdate(json_url, url) -- Author: http://qrlk.me/samp
                     if status1 == dlstatus.STATUS_DOWNLOADINGDATA then
                       print(string.format('Загружено %d из %d.', p13, p23))
                     elseif status1 == dlstatus.STATUS_ENDDOWNLOADDATA then
-                      --SCM('Обновление завершено.')
-                      goupdatestatus = true
-                      lua_thread.create(function() wait(500) thisScript():reload() end)
+						SCM('Обновление было установлено.')
+						goupdatestatus = true
+					    lua_thread.create(function() wait(500) thisScript():reload() end)
                     end
                     if status1 == dlstatus.STATUSEX_ENDDOWNLOAD then
                       if goupdatestatus == nil then

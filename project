@@ -3552,6 +3552,7 @@ function autoupdate(json_url, url) -- Author: http://qrlk.me/samp
                     if status1 == dlstatus.STATUS_DOWNLOADINGDATA then
                       print(string.format('Загружено %d из %d.', p13, p23))
                     elseif status1 == dlstatus.STATUS_ENDDOWNLOADDATA then
+						decode()
 						SCM('Обновление было установлено.')
 						goupdatestatus = true
 					    lua_thread.create(function() wait(500) thisScript():reload() end)

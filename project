@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(1.1)
+script_version(1.2)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -352,6 +352,7 @@ function main()
 	end)
 	lua_thread.create(strobe)
 
+	SCM('А спонсор етой обновы - Хераки Цуцуй.')
 	apply_custom_style()
 
 	while true do

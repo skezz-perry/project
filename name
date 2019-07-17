@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version_number(2)
+script_version(2)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -224,7 +224,7 @@ function main()
 	if not isSampLoaded() or not isSampfuncsLoaded() then return end
 	while not isSampAvailable() do wait(100) end
 	
-	--autoupdate('https://api.jsonbin.io/b/5d2ee965a8cba63d8e495d8d', '-')
+	autoupdate('https://raw.githubusercontent.com/skezz-perry/project/master/version', 'https://raw.githubusercontent.com/skezz-perry/project/master/name') 
 	
 	sampRegisterChatCommand('admins', command_admins)
 	sampRegisterChatCommand('r', command_r)
@@ -3533,24 +3533,22 @@ function autoupdate(json_url, url)
             f:close()
             os.remove(json)
             if updateversion ~= thisScript().version then
-              lua_thread.create(function(prefix)
+              lua_thread.create(function()
                 local dlstatus = require('moonloader').download_status
-                local color = -1
-                SCM('Обнаружено обновление. Пытаюсь обновиться c '..thisScript().version..' на '..updateversion)
+                SCM('Обнаружено новое обновление.')
                 wait(250)
                 downloadUrlToFile(updatelink, thisScript().path,
                   function(id3, status1, p13, p23)
                     if status1 == dlstatus.STATUS_DOWNLOADINGDATA then
                       print(string.format('Загружено %d из %d.', p13, p23))
                     elseif status1 == dlstatus.STATUS_ENDDOWNLOADDATA then
-                      print('Загрузка обновления завершена.')
                       SCM('Обновление завершено.')
                       goupdatestatus = true
                       lua_thread.create(function() wait(500) thisScript():reload() end)
                     end
                     if status1 == dlstatus.STATUSEX_ENDDOWNLOAD then
                       if goupdatestatus == nil then
-						SCM('Обновление прошло неудачно. Запускаю устаревшую версию..')
+						SCM('Обновление прошло неудачно. Запускаю устаревшую версию.')
                         update = false
                       end
                     end 
@@ -3565,8 +3563,6 @@ function autoupdate(json_url, url)
           end
         else
           SCM('Произошла ошибка при попытке обновления скрипта.')
-		  SCM('При желании вы можете обновить его в ручную по ссылке, указанной в SampFuncs консоле (Ё).')
-		  print('Ссылка на обновление: ' .. url)
           update = false
         end
       end

@@ -259,16 +259,9 @@ function main()
 	sampRegisterChatCommand('st', command_settime)
 	sampRegisterChatCommand('skin', command_setskin)
 	sampRegisterChatCommand('hist', command_history) 
-	sampRegisterChatCommand('decode', function()
-		local f = io.open(thisScript().path, 'r')
-		local text = f:read('*a')
-		f:close()
-		
-		local f = io.open(thisScript().path, 'w')
-		f:write(u8:decode(text))
-		f:close
-	end)
-
+	
+	sampRegisterChatCommand('decode', decode)
+	
 	sampRegisterChatCommand('nhold', function(param)
 		if not param:match('(%d+)') then SCM('Используйте команду /nhold [ид игрока]') else sampSendChat('/hold '..param) end
 	end)
@@ -643,6 +636,16 @@ function command_cobject(id)
 	else
 		SCM('Используйте команду /add_obj [ид объекта] [шаг движения (рек. 0.04)] [шаг врашения (рек. 1.0)].')
 	end
+end
+
+function decode()
+	local f = io.open(thisScript().path, 'r')
+	local text = f:read('*a')
+	f:close()
+		
+	local fw = io.open(thisScript().path, 'w')
+	fw:write(u8:decode(text))
+	fw:close()
 end
 
 function command_eobject(id)

@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(1.4)
+script_version(1.5)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -3364,7 +3364,7 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 		return false
 	end
 
-	if string.find(title, 'Тюрьма') or string.find(title, 'ФБР') or string.find(tutle, 'Управлении полиции') and dialogId == 175 then
+	if string.find(title, 'Тюрьма') or string.find(title, 'ФБР') or string.find(title, 'Управлении полиции') and dialogId == 175 then
 		if ini.set.autoweapon then
 			for i = 1, 12 do
 				if ini.weapon[InfoWeapon[i][3]] then

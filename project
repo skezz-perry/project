@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(1.7)
+script_version(1.8)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -335,6 +335,21 @@ function main()
 		end
 	end)
 	
+	sampRegisterChatCommand('sms', function(value)
+		if string.match(value, '(%d+) (%S+)') then 
+			local number, text = string.match(value, '(%d+) (.+)')
+
+			if string.len(text) > 60 then
+				sampSendChat(string.format('/sms %d %s ..', number, string.sub(text, 0, 60)))
+				sampSendChat(string.format('/sms %d .. %s', number, string.sub(text, 61, string.len(text))))
+			else
+				sampSendChat(string.format('/sms %d %s', number, string.sub(text, 0, 60)))
+			end
+		else
+			sampAddChatMessage('Используйте команду /sms [номер телефона] [сообщение]', 0xFFCECECE)
+		end
+	end)
+	
 	sampRegisterChatCommand('ainfo', function()
 		show_info.v = not show_info.v
 	end)
@@ -352,7 +367,7 @@ function main()
 	end)
 	lua_thread.create(strobe)
 
-	SCM('А спонсор етой обновы - Хераки Цуцуй. Если бы у него всё работало - мы бы ничего не обновляли.')
+	SCM('А спонсор етой обновы нет. Поэтому обновы не будет.')
 	apply_custom_style()
 
 	while true do
@@ -502,38 +517,40 @@ function main()
 		end
 
 		if wasKeyPressed(KEY.VK_3) and isKeyDown(VK_RBUTTON) then
-			itsok = false
-			if isCharInAnyCar(playerPed) then
-				peds = getAllChars()
-				if peds ~= nil then
-					for _, hm in pairs(peds) do
-						if itsok == false and hm ~= nil then
-							local _ , id = sampGetPlayerIdByCharHandle(hm)
-							local _ , m = sampGetPlayerIdByCharHandle(PLAYER_PED)
-							if id ~= -1 and id ~= m and doesCharExist(hm) and sampIsPlayerConnected(id) then
-								local  _ , idofplayercar = sampGetPlayerIdByCharHandle(hm)
-								if IPC(idofplayercar) then
-									if sampGetDistance(PLAYER_PED, idofplayercar) <= 55 then
-										 if isCharInAnyCar(hm) then
-											if storeCarCharIsInNoSave(hm) ~= storeCarCharIsInNoSave(playerPed) then
-												local carh = storeCarCharIsInNoSave(hm)
-												if getDriverOfCar(carh) == hm then
-													sampSendChat('/m Внимание! Водитель ' .. tCarsName[getCarModel(carh) - 399] .. ' с номером ' .. idofplayercar .. '!')
-													wait(1500)
-													sampSendChat("/m Немедленно остановите транспортное средство и прижмитесь к обочине!")
-													wait(1000)
-													sampSendChat('/r ' .. ini.info.rteg .. ' 10-57 VICTOR за ' .. tCarsName[getCarModel(carh) - 399] .. ' с номером ' .. idofplayercar .. ' по ' .. calculateZone() .. ' (' .. kvadrat() .. ').')
-													itsok = true 
+			lua_thread.create(function()
+				itsok = false
+				if isCharInAnyCar(playerPed) then
+					peds = getAllChars()
+					if peds ~= nil then
+						for _, hm in pairs(peds) do
+							if itsok == false and hm ~= nil then
+								local _ , id = sampGetPlayerIdByCharHandle(hm)
+								local _ , m = sampGetPlayerIdByCharHandle(PLAYER_PED)
+								if id ~= -1 and id ~= m and doesCharExist(hm) and sampIsPlayerConnected(id) then
+									local  _ , idofplayercar = sampGetPlayerIdByCharHandle(hm)
+									if IPC(idofplayercar) then
+										if sampGetDistance(PLAYER_PED, idofplayercar) <= 55 then
+											 if isCharInAnyCar(hm) then
+												if storeCarCharIsInNoSave(hm) ~= storeCarCharIsInNoSave(playerPed) then
+													local carh = storeCarCharIsInNoSave(hm)
+													if getDriverOfCar(carh) == hm then
+														sampSendChat('/m Внимание! Водитель ' .. tCarsName[getCarModel(carh) - 399] .. ' с номером ' .. idofplayercar .. '!')
+														wait(1500)
+														sampSendChat("/m Немедленно остановите транспортное средство и прижмитесь к обочине!")
+														wait(1000)
+														sampSendChat('/r ' .. ini.info.rteg .. ' 10-57 VICTOR за ' .. tCarsName[getCarModel(carh) - 399] .. ' с номером ' .. idofplayercar .. ' по ' .. calculateZone() .. ' (' .. kvadrat() .. ').')
+														itsok = true 
+													end
 												end
-											end
-										 end
+											 end
+										end
 									end
 								end
 							end
 						end
 					end
 				end
-			end
+			end)
 		end
 		
 		if wasKeyPressed(KEY.VK_1) and not sampIsChatInputActive() and not sampIsDialogActive() and not cActive then
@@ -763,7 +780,7 @@ function command_history(id)
 end
 
 function command_setweather(id)
-	if string.match(id, '(%d+)') then
+	if string.match(id, '(%d+)') then 
 		if tonumber(id) > 0 and tonumber(id) <= 45 then
 			forceWeatherNow(id)
 			SCM('Вы установили ID погоды {FFCD00}' .. id)
@@ -879,34 +896,12 @@ function command_epk(text)
 		if text == 'list' then
 			show_epk.v = not show_epk.v
 		else
-			fepk = 'moonloader\\helper\\epk.txt'
-			for line in io.lines(fepk) do
+			for line in io.lines('moonloader\\helper\\epk.txt') do
 				if line:find(text) then
-					if string.len(line) < 115 then
-						SCM(' ' .. string.sub(line, 0, 115))
-						break
+					for i = 0, string.len(line) / 115 do
+						SCM(string.sub(line, i * 115, i * 115 + 115))
 					end
-
-					if string.len(line) >= 115 and string.len(line) < 230 then
-						SCM(' ' .. string.sub(line, 0, 115) .. '..')
-						SCM('.. ' .. string.sub(line, 115, 230))
-						break
-					end
-
-					if string.len(line) >= 230 and string.len(line) < 345 then
-						SCM(' ' .. string.sub(line, 0, 115) .. '..')
-						SCM('.. ' .. string.sub(line, 115, 230) .. '..')
-						SCM('.. ' .. string.sub(line, 230, 345))
-						break
-					end
-
-					if string.len(line) > 345 then
-						SCM(' ' .. string.sub(line, 0, 115) .. '..')
-						SCM('.. ' .. string.sub(line, 115, 230) .. '..')
-						SCM('.. ' .. string.sub(line, 230, 345))
-						SCM('.. ' .. string.sub(line, 345, string.len(line)))
-						break
-					end
+					break
 				end
 			end
 		end
@@ -919,34 +914,12 @@ function command_ustav(text)
 		if text == 'list' then
 			show_ustav.v = not show_ustav.v
 		else
-			fepk = 'moonloader\\helper\\ustav.txt'
-			for line in io.lines(fepk) do
+			for line in io.lines('moonloader\\helper\\ustav.txt') do
 				if line:find(text) then
-					if string.len(line) < 115 then
-						SCM(' ' .. string.sub(line, 0, 115))
-						break
+					for i = 0, string.len(line) / 115 do
+						SCM(string.sub(line, i * 115, i * 115 + 115))
 					end
-
-					if string.len(line) >= 115 and string.len(line) < 230 then
-						SCM(' ' .. string.sub(line, 0, 115) .. '..')
-						SCM('.. ' .. string.sub(line, 115, 230))
-						break
-					end
-
-					if string.len(line) >= 230 and string.len(line) < 345 then
-						SCM(' ' .. string.sub(line, 0, 115) .. '..')
-						SCM('.. ' .. string.sub(line, 115, 230) .. '..')
-						SCM('.. ' .. string.sub(line, 230, 345))
-						break
-					end
-
-					if string.len(line) > 345 then
-						SCM(' ' .. string.sub(line, 0, 115) .. '..')
-						SCM('.. ' .. string.sub(line, 115, 230) .. '..')
-						SCM('.. ' .. string.sub(line, 230, 345))
-						SCM('.. ' .. string.sub(line, 345, string.len(line)))
-						break
-					end
+					break
 				end
 			end
 		end
@@ -3392,7 +3365,7 @@ function sampev.onSendTakeDamage(playerId, damage, weapon, bodypart)
 		if IPC(playerId) then
 			logdmg[tonumber(table.maxn(logdmg)) + 1] = '{ffffff}You {CD5C5C}<< {' .. sampGetColor(playerId) .. '}' .. sampGetPlayerNickname(playerId) .. '[' .. playerId .. ']{ffffff} by ' .. sampGetWeaponName(weapon) .. ' [{4876FF}' .. weapon .. '{ffffff}] ' .. sampGetBodyPart(bodypart) .. ' [{4876FF}' .. bodypart .. '{ffffff}] DMG[{FFD700}' .. math.floor(damage) .. '{ffffff}] HP[{EE3B3B}' .. sampGetPlayerHealth(playerId) .. '{ffffff}] ARM[{778899}' .. sampGetPlayerArmor(playerId) .. '{ffffff}]'
 
-			if sampGetDistance(PLAYER_PED, playerId) <= 35 and sampGetPlayerColor(playerId) ~= 4294954240 then
+			if sampGetDistance(PLAYER_PED, playerId) <= 35 and sampGetPlayerColor(playerId) ~= 2236962 then
 				if TypeWeapon[tonumber(weapon)] == 2 then
 					SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 1.2 ЕПК нажмите сочетание клавиш ПКМ + 4.', sampGetPlayerNickname(playerId), playerId))
 					suspect_id = {playerId, 2, '1.2 ЕПК'}

@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(1.8)
+script_version(1.9)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -367,7 +367,7 @@ function main()
 	end)
 	lua_thread.create(strobe)
 
-	SCM('А спонсора етой обновы нет. Поэтому обновы не будет.')
+	SCM('А спонсор етой обновы нет. Поэтому обновы не будет.')
 	apply_custom_style()
 
 	while true do
@@ -3376,7 +3376,7 @@ function sampev.onSendTakeDamage(playerId, damage, weapon, bodypart)
 					local res, ped = sampGetCharHandleBySampPlayerId(playerId)
 					if res then
 						if isCharInAnyCar(ped) then
-						local carh = storeCarCharIsInNoSave(hm)
+						local carh = storeCarCharIsInNoSave(ped)
 							if getDriverOfCar(carh) == ped then
 								SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 7.9 ЕПК нажмите сочетание клавиш ПКМ + 4.', sampGetPlayerNickname(playerId), playerId))
 								suspect_id = {playerId, 1, '7.9 ЕПК'}

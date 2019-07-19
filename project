@@ -366,8 +366,7 @@ function main()
 		end
 	end)
 	lua_thread.create(strobe)
-
-	SCM('А спонсор етой обновы нет. Поэтому обновы не будет.')
+	
 	apply_custom_style()
 
 	while true do

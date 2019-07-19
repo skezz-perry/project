@@ -1,10 +1,11 @@
 script_name('helper-for-mia')
-script_version(1.9)
+script_version(1.10)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
 local mad               = require 'MoonAdditions'
 local KEY               = require 'vkeys'
+local rkeys             = require 'rkeys'
 local memory            = require 'memory'
 local imgui             = require 'imgui'
 --local pie               = require 'imgui_piemenu'
@@ -57,18 +58,18 @@ local tCarsType = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1
 
 local TypeWeapon = {1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 3, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1}
 
-local InfoWeapon = {{'Щит', false, 'shit', 1},
-	{'Дубинка', false, 'button', 1},
-	{'Бронежилет', false, 'armour', 1},
-	{'Маска', false, 'mask', 1},
-	{'SD pistol', true, 'sd', 250},
-	{'Desert Eagle', true, 'deagle', 250},
-	{'MP5', true, 'mp5', 400},
-	{'ShotGun', true, 'shotgun', 100},
-	{'Дымовые шашки', true, 'smoke', 25},
-	{'Sniper Rifle', true, 'sniper', 50},
-	{'M4', true, 'm4', 350},
-	{'AK-47', true, 'ak47', 350}
+local InfoWeapon = {{'Щит', false, 'shit', 'bshit', 1},
+	{'Дубинка', false, 'button', 'bbutton', 1},
+	{'Бронежилет', false, 'armour', 'barmour', 1},
+	{'Маска', false, 'mask', 'bmask', 1},
+	{'SD pistol', true, 'sd', 'bsd', 250},
+	{'Desert Eagle', true, 'deagle', 'bdeagle', 250},
+	{'MP5', true, 'mp5', 'bmp5', 400},
+	{'ShotGun', true, 'shotgun', 'bshotgun', 100},
+	{'Дымовые шашки', true, 'smoke', 'bsmoke', 25},
+	{'Sniper Rifle', true, 'sniper', 'bsniper', 50},
+	{'M4', true, 'm4', 'bm4', 350},
+	{'AK-47', true, 'ak47', 'bak47', 350}
 }
 
 local commands = {
@@ -145,14 +146,10 @@ local ini = inicfg.load({
 		camera               = false,
 		stopad               = false,
 		strobes              = false,
-		weapon               = false,
 		radio                = false,
 		autopass             = false,
-		antifbi              = false,
 		sniperpd             = false,
-		upleader             = false,
-		autoweapon           = false,
-		doblebullet          = false
+		autoweapon           = false
 	},
 	weapon = {
 		shit                 = false,
@@ -160,13 +157,21 @@ local ini = inicfg.load({
 		armour               = false,
 		mask                 = false,
 		sd                   = false,
+		bsd                  = 1,
 		deagle               = false,
+		bdeagle              = 1,
 		mp5                  = false,
+		bmp5                 = 1,
 		shotgun              = false,
+		bshotgun             = 1,
 		smoke                = false,
+		bsmoke               = 1,
 		sniper               = false,
+		bsniper              = 1,
 		m4                   = false,
-		ak47                 = false
+		bm4                  = 1,
+		ak47                 = false,
+		bak47                = 1
 	}
 })
 
@@ -179,6 +184,7 @@ local info_scene         = {}
 local logchat            = {}
 local logdmg             = {}
 local dreason            = {}
+local keys               = {}
 local param_cmd          = 0
 local suspect_id         = {}
 local show_player        = ''
@@ -186,6 +192,7 @@ local showtimer          = false
 local autopass           = false
 local cActive            = false
 local follow_state       = false
+local timerActive        = false
 local show_menu          = imgui.ImBool(false)
 local piemenu            = imgui.ImBool(false)
 local show_help          = imgui.ImBool(false)
@@ -209,15 +216,12 @@ local male				 = imgui.ImBool(ini.info.male)
 local female             = imgui.ImBool(ini.info.female)
 local pcamera            = imgui.ImBool(ini.set.camera)
 local pstopad            = imgui.ImBool(ini.set.stopad)
-local pweapon            = imgui.ImBool(ini.set.weapon)
+local pmasktimer         = imgui.ImBool(ini.set.masktimer)
 local pstrobes           = imgui.ImBool(ini.set.strobes)
 local pradio             = imgui.ImBool(ini.set.radio)
 local pautopass          = imgui.ImBool(ini.set.autopass)
-local pantifbi           = imgui.ImBool(ini.set.antifbi)
 local psniperpd          = imgui.ImBool(ini.set.sniperpd)
-local pupleader          = imgui.ImBool(ini.set.upleader)
 local pautoweapon        = imgui.ImBool(ini.set.autoweapon)
-local pdoblebullet       = imgui.ImBool(ini.set.doblebullet)
 local editor             = imgui.ImBool(false)
 
 function main()
@@ -354,6 +358,12 @@ function main()
 		show_info.v = not show_info.v
 	end)
 	
+	sampRegisterChatCommand('update', command_update)
+	
+	keys[1] = rkeys.registerHotKey({KEY.VK_MENU, KEY.VK_3}, true, function ()
+		SCM('Был нажат хот кей')
+	end)
+	
 	sampRegisterChatCommand('strobes', function()
 		if isCharInAnyCar(PLAYER_PED) and ini.set.strobes  then
 			local car = storeCarCharIsInNoSave(PLAYER_PED)
@@ -366,7 +376,7 @@ function main()
 		end
 	end)
 	lua_thread.create(strobe)
-	
+
 	apply_custom_style()
 
 	while true do
@@ -631,6 +641,32 @@ function command_report(text)
 	end
 end
 
+function decode()
+	local f = io.open(thisScript().path, 'r')
+	local text = f:read('*a')
+	f:close()
+		
+	local fw = io.open(thisScript().path, 'w')
+	fw:write(u8:decode(text))
+	fw:close()
+end
+
+function command_update()
+	local update_info = [[{ffffff}Добавлена новая команда /update, благодаря которой можно узнать информацию о последнем обновлении.
+	
+Убран ряд функций, указанных в основном меню, а именно:
+• Анти-взлом дома FBI;
+• Отыгровка-оружия;
+• Улучшенный список лидеров (функция не убрана, убрано лишь возможность включить / отключить её).
+
+Обновленно авто-взятие оружия, теперь можно указать множитель патрон, которые хотите получить.
+Примечание: патроны, полученные таким способом нельзя положить в шкаф.
+
+Добавлен таймер маски, который можно активировать в основном меню.]]
+
+sampShowDialog(10005, '{FFCD00}Обновление', update_info, 'Закрыть', '', 0)
+end
+
 function command_cobject(id)
 	if string.match(id, '(%d+) (.+) (.+)') then
 		id, smove, srotate = string.match(id, '(%d+) (.+) (.+)')
@@ -651,16 +687,6 @@ function command_cobject(id)
 	else
 		SCM('Используйте команду /add_obj [ид объекта] [шаг движения (рек. 0.04)] [шаг врашения (рек. 1.0)].')
 	end
-end
-
-function decode()
-	local f = io.open(thisScript().path, 'r')
-	local text = f:read('*a')
-	f:close()
-		
-	local fw = io.open(thisScript().path, 'w')
-	fw:write(u8:decode(text))
-	fw:close()
 end
 
 function command_eobject(id)
@@ -1500,8 +1526,8 @@ function imgui.OnDrawFrame()
 					if imgui.Checkbox(u8'Объявления от СМИ', pstopad) then ini.set.stopad = pstopad.v; inicfg.save(ini) end
 					if imgui.Checkbox(u8'Стробоскопы', pstrobes) then ini.set.strobes = pstrobes.v; inicfg.save(ini) end
 					if imgui.Checkbox(u8'Изменённая рация', pradio) then ini.set.radio = pradio.v; inicfg.save(ini) end
+					if imgui.Checkbox(u8'Таймер маски', pmasktimer) then ini.set.masktimer = pmasktimer.v; inicfg.save(ini) end
 					if imgui.Checkbox(u8'Авто-проверка паспорта', pautopass) then ini.set.autopass = pautopass.v; inicfg.save(ini) end
-					if imgui.Checkbox(u8'Анти-взлом дома FBI', pantifbi) then ini.set.antifbi = pantifbi.v; inicfg.save(ini) end
 					if imgui.Checkbox(u8'Авто-взятие оружия', pautoweapon) then ini.set.autoweapon = pautoweapon.v; inicfg.save(ini) end
 					if pautoweapon.v then
 						if imgui.Button(u8'Настроить авто-взятие оружия') then
@@ -1509,8 +1535,6 @@ function imgui.OnDrawFrame()
 						end
 					end
 					if imgui.Checkbox(u8'Снайперская винтовка в PD', psniperpd) then ini.set.sniperpd = psniperpd.v; inicfg.save(ini) end
-					if imgui.Checkbox(u8'Улучшенный список лидеров', pupleader) then ini.set.upleader = pupleader.v; inicfg.save(ini) end
-					if imgui.Checkbox(u8'Отыгровки оружия', pweapon) then ini.set.weapon = pweapon.v; inicfg.save(ini) end
 					if imgui.Checkbox(u8'Отыгровка камеры', pcamera) then ini.set.camera = pcamera.v; inicfg.save(ini) end
 				imgui.EndChild()
 			elseif show_item.v == 1 then
@@ -1699,16 +1723,16 @@ function imgui.OnDrawFrame()
 				'{fteg} | Префикс в общую волну | ' .. ini.info.fteg,
 				'{myid} | Ваш ID | ' .. id,
 				'{id} | ID игрока | <ID игрока>',
+				'{frac_id} | Организация игрока | <Организация игрока>',
+				'{color_id} | Цвет клиста игрока | <Цвет клиста игрока>',
+				'{name_id} | Имя игрока | <Имя игрока>',
+				'{ping_id} | Пинг игрока | <Пинг игрока>',
+				'{score_id} | Уровень игрока | <Уровень игрока>',
 				'{hello} | Приветствие | ' .. sampGetHelloByTime(),
 				'{area} | Район | '.. calculateZone(),
 				'{kvadrat} | Квадрат на карте | ' .. kvadrat(),
 				'{time} | Текущее время | ' .. os.date('%X'),
 				'{date} | Текущая дата | ' .. os.date('%x'),
-				'{frac_id} | Организация игрока | <Организация игрока>',
-				'{color_id} | Цвет клиста игрока | <Цвет клиста игрока>}',
-				'{name_id} | Имя игрока | <Имя игрока>',
-				'{ping_id} | Пинг игрока | <Пинг игрока>',
-				'{score_id} | Уровень игрока | <Уровень игрока>',
 				'text: | Сообщение в обычный чат | <Сообщение>',
 				'send: | Серв. сообщение | <Сообщение>',
 				'sleep: | Задержка | <Задержка>'
@@ -1743,32 +1767,39 @@ function imgui.OnDrawFrame()
 		end
 		
 		if show_weapon.v then
-			imgui.SetNextWindowSize(imgui.ImVec2(400, 440))
+			imgui.SetNextWindowSize(imgui.ImVec2(400, 335))
 			imgui.Begin(u8'ОРУЖИЕ | HELPER FOR MIA', nil, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 				for i, val in pairs(InfoWeapon) do
-					imgui.BeginChild('##name' .. val[3], imgui.ImVec2(385, 30), true)
-						imgui.Text(u8(string.format('%s', val[1])))
-						
-						imgui.SameLine()
-						
+					imgui.BeginChild('##name_weapon', imgui.ImVec2(190, 300), true)
 						if ini.weapon[val[3]] then
-							if imgui.Button(u8'Убрать ##' .. val[3], imgui.ImVec2(100, 20)) then
+							if imgui.Button(u8(val[1] .. ' • Убрать'), imgui.ImVec2(175, 20)) then
 								ini.weapon[val[3]] = not ini.weapon[val[3]]
 								inicfg.save(ini)
 							end
 						else
-							if imgui.Button(u8'Добавить ##' .. val[3], imgui.ImVec2(100, 20)) then
+							if imgui.Button(u8(val[1] .. ' • Добавить'), imgui.ImVec2(175, 20)) then
 								ini.weapon[val[3]] = not ini.weapon[val[3]]
 								inicfg.save(ini)
 							end
 						end
-						
-						if val[2] and work then
-							imgui.SameLine()
-							imgui.PushItemWidth(130)
-							imgui.SliderInt('##' .. val[3], imgui.ImInt(0), 0, 5)
+					imgui.EndChild()
+					
+					imgui.SameLine()
+					
+					imgui.BeginChild('##slider_weapon', imgui.ImVec2(190, 300), true)
+						if val[2] then
+							imgui.PushItemWidth(140)
+							if imgui.SliderInt('[' .. val[5] * ini.weapon[val[4]] .. ']##' .. val[3], imgui.ImInt(ini.weapon[val[4]]), 1, 2) then
+								if ini.weapon[val[4]] == 1 then 
+									ini.weapon[val[4]] = 2
+								elseif ini.weapon[val[4]] == 2 then
+									ini.weapon[val[4]] = 1
+								end
+								inicfg.save(ini) 
+							end
+						else
+							imgui.Button(u8'Не настривается', imgui.ImVec2(175, 20))
 						end
-						
 					imgui.EndChild()
 				end
 			imgui.End()
@@ -1993,6 +2024,31 @@ function sampGetHelloByTime()
 	else
 		return 'Здравствуйте'
 	end
+end
+
+function startMaskTimer()
+	lua_thread.create(function()
+		timerActive = true
+		local offMaskTime = os.clock() * 1000 + 600000
+		sampTextdrawCreate(102, "00:00", 610, 435)
+		while sampTextdrawIsExists(102) do
+			local remainingTime = math.floor((offMaskTime - os.clock() * 1000 ) / 1000)
+			local seconds = remainingTime % 60
+			local minutes = math.floor(remainingTime / 60)
+			if sampTextdrawIsExists(102) then
+				if seconds >= 10 then
+					sampTextdrawSetString(102, minutes .. ":" .. seconds, 610, 435)
+				else
+					sampTextdrawSetString(102, minutes .. ":0" .. seconds, 610, 435)
+				end
+				if seconds < 0 or minutes < 0 then
+					sampTextdrawDelete(102)
+				end
+			end
+			wait(100)
+		end
+		timerActive = false
+	end)
 end
 
 function sampGetDistance(ped1, id)
@@ -3330,25 +3386,19 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 		return false
 	end
 
-	if string.find(title, 'Параметры дома') and antifbi then
-		sampSendDialogResponse(dialogId, 1, 1, -1)
-		antifbi = false
-		return false
-	end
-
 	if string.find(title, 'Тюрьма') or string.find(title, 'ФБР') or string.find(title, 'Управлении полиции') and dialogId == 175 then
 		if ini.set.autoweapon then
 			for i = 1, 12 do
 				if ini.weapon[InfoWeapon[i][3]] then
-					if i ~= 4 then sampSendDialogResponse(175, 1, i - 1, -1) end
-					if i > 4 and ini.set.doblebullet then sampSendDialogResponse(175, 1, i - 1, -1) end
+					sampSendDialogResponse(175, 1, i - 1, -1)
+					if i > 4 and ini.weapon[InfoWeapon[i][4]] == 2 then sampSendDialogResponse(175, 1, i - 1, -1) end
 				end
 			end
 		end
 
 		if ini.set.sniperpd and ini.set.autoweapon then
 			sampSendDialogResponse(175, 1, 9, -1)
-			if ini.set.doblebullet then sampSendDialogResponse(175, 1, 9, -1) end
+			if ini.weapon[InfoWeapon[i][4]] == 2 then sampSendDialogResponse(175, 1, 9, -1) end
 		end
 	end
 end
@@ -3405,6 +3455,25 @@ function sampev.onSendDeathNotification(reas, id)
 		dreason[2] = os.date('%H')
 		dreason[3] = os.date('%M')
 		dreason[4] = os.date('%S')
+	end
+end
+
+function sampev.onSetPlayerColor(playerId, color)
+	local result, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
+	if playerId == id and ini.set.masktimer then
+		lua_thread.create(function()
+			if color ~= 572662272 and timerActive then
+				sampTextdrawDelete(102)
+			elseif color == 572662272 and timerActive then
+				sampTextdrawDelete(102)
+				while timerActive do
+					wait(100)
+				end
+				startMaskTimer()
+			elseif color == 572662272 and not timerActive then
+				startMaskTimer()
+			end
+		end)
 	end
 end
 
@@ -3523,7 +3592,7 @@ function autoupdate(json_url, url) -- Author: http://qrlk.me/samp
                       print(string.format('Загружено %d из %d.', p13, p23))
                     elseif status1 == dlstatus.STATUS_ENDDOWNLOADDATA then
 						decode()
-						SCM('Игровой помощник для МВД был автоматически обновлён до новейшей версии.')
+						SCM('Игровой помощник для МВД был автоматически обновлён до новейшей версии. Подробнее /update.')
 						goupdatestatus = true
 					    lua_thread.create(function() wait(500) thisScript():reload() end)
                     end
@@ -3550,4 +3619,10 @@ function autoupdate(json_url, url) -- Author: http://qrlk.me/samp
     end
   )
   while update ~= false do wait(100) end
+end
+
+function rkeys.onHotKey(id, keys)
+    if sampIsChatInputActive() or sampIsDialogActive() or isSampfuncsConsoleActive() then
+        return false
+    end
 end

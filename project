@@ -3562,6 +3562,7 @@ function autoupdate(json_url, url) -- Author: http://qrlk.me/samp
                       print(string.format('Загружено %d из %d.', p13, p23))
                     elseif status1 == dlstatus.STATUS_ENDDOWNLOADDATA then
 						decode()
+						wait(1000)
 						SCM('Игровой помощник для МВД был автоматически обновлён до новейшей версии. Подробнее /update.')
 						goupdatestatus = true
 					    lua_thread.create(function() wait(500) thisScript():reload() end)

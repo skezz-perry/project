@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(2.3)
+script_version(2.4)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -374,6 +374,8 @@ function main()
 	lua_thread.create(strobe)
 
 	apply_custom_style()
+	
+	SCM('А спонсор етой обновы - Annet Machiavelli, теперь мы можем смотреть на диалог по другому!')
 
 	while true do
 		wait(0)
@@ -648,7 +650,7 @@ function decode()
 end
 
 function command_update()
-	local update_info = '{ffffff}Добавлена новая команда /update, благодаря которой можно узнать информацию о последнем обновлении.\n\nУбран ряд функций, указанных в основном меню, а именно:\n• Анти-взлом дома FBI;\n• Отыгровка-оружия;\n• Улучшенный список лидеров (функция не убрана, убрано лишь возможность включить / отключить её).\n\nОбновленно авто-взятие оружия, теперь можно указать множитель патрон, которые хотите получить.\nПримечание: патроны, полученные таким способом, нельзя положить в шкаф.\n\nДобавлен таймер маски, который можно активировать в основном меню.'
+	local update_info = '{ffffff}Временно убран таймер на доработку.\n\nИзмененно отображение участников группы (/group)'
 
 sampShowDialog(10005, '{FFCD00}Обновление', update_info, 'Закрыть', '', 0)
 end
@@ -1490,7 +1492,7 @@ function imgui.OnDrawFrame()
 					if imgui.Checkbox(u8'Объявления от СМИ', pstopad) then ini.set.stopad = pstopad.v; inicfg.save(ini) end
 					if imgui.Checkbox(u8'Стробоскопы', pstrobes) then ini.set.strobes = pstrobes.v; inicfg.save(ini) end
 					if imgui.Checkbox(u8'Изменённая рация', pradio) then ini.set.radio = pradio.v; inicfg.save(ini) end
-					if imgui.Checkbox(u8'Таймер маски', pmasktimer) then ini.set.masktimer = pmasktimer.v; inicfg.save(ini) end
+					--if imgui.Checkbox(u8'Таймер маски', pmasktimer) then ini.set.masktimer = pmasktimer.v; inicfg.save(ini) end
 					if imgui.Checkbox(u8'Авто-проверка паспорта', pautopass) then ini.set.autopass = pautopass.v; inicfg.save(ini) end
 					if imgui.Checkbox(u8'Авто-взятие оружия', pautoweapon) then ini.set.autoweapon = pautoweapon.v; inicfg.save(ini) end
 					if pautoweapon.v then
@@ -3209,7 +3211,7 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 	end
 
 	if string.find(title, 'В подразделении') then
-		lines = '{FFFFFF}Имя	{FFFFFF}Ранг и должность	{FFFFFF}Телефон	{FFFFFF}Дополнительно'
+		local lines = '{FFFFFF}Имя	{FFFFFF}Ранг и должность	{FFFFFF}Телефон	{FFFFFF}Дополнительно'
 		for s in string.gmatch(text, "[^\n]+") do
 			if string.match(s, '(%d+). (.+)	(%d+) ранг. (.+)	(%d+)	(.+)') then
 				local num, name, rang, namerang, number, state = string.match(s, '(%d+). (.+)	(%d+) ранг. (.+)	(%d+)	(.+)')
@@ -3225,6 +3227,43 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 		return false
 	end
 
+	if string.find(title, 'Участники группы') then
+		local line = '{FFFFFF}Имя\t{FFFFFF}Должность\t{FFFFFF}Дополнительно'
+		local all = 0
+		local online = 0
+		
+		for s in string.gmatch(text, "[^\n]+") do
+			local name
+			local rang
+			
+			if string.match(s, '{3399ff}(%S+)') then
+				name = string.match(s, '{3399ff}(.+)')
+				rang = '{3399ff}Основатель'
+			elseif string.match(s, '{00cc66}(%S+)') then
+				name = string.match(s, '{00cc66}(.+)')
+				rang = '{00cc66}Руководитель'
+			else
+				name = s
+				rang = 'Участник'
+			end
+			
+			local id = sampGetPlayerIdByNickname(name)
+			if id == 'offline' then
+				line = string.format('%s\n{696969}%s\t{696969}%s\t{ff5c33}Оффлайн', line, name, rang)
+			else
+				line = string.format('%s\n{%s}%s[%d]\t%s\t{00cc99}Онлайн', line, sampGetColor(id), name, id, rang)
+				online = online + 1
+			end
+			
+			all = all + 1
+		end
+		
+		local captions = string.format('{ffffff}Всего участников группы {FFCD00}%d чел. {00CC66}(онлайн %d)', all, online)
+		sampShowDialog(dialogId, captions, line, 'Подробнее', 'Закрыть', 5)
+		sampSetDialogClientside()
+		return false
+	end
+	
 	if string.find(title,'Связь с администрацией') and act then
 		sampSendDialogResponse(dialogId, 1, 0, report)
 		act = false
@@ -3391,7 +3430,7 @@ end
 
 function sampev.onSetPlayerColor(playerId, color)
 	local result, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-	if playerId == id and ini.set.masktimer then
+	if playerId == id and work then
 		lua_thread.create(function()
 			if color ~= 572662272 and timerActive then
 				sampTextdrawDelete(102)

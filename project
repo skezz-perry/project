@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(2.4)
+script_version(2.5)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -73,6 +73,7 @@ local InfoWeapon = {{'Щит', false, 'shit', 'bshit', 1},
 }
 
 local commands = {
+	'/update | Информация о последнем обновлении',
 	'/admins | Открыть админ-список',
 	'/r | Отправить сообщению в обычную рацию',
 	'/rn | Отправить сообщение в nRP чат обычной рации',
@@ -650,7 +651,7 @@ function decode()
 end
 
 function command_update()
-	local update_info = '{ffffff}Временно убран таймер на доработку.\n\nИзмененно отображение участников группы (/group)'
+	local update_info = '{ffffff}Временно убран таймер на доработку.\n\nИзмененно отображение участников группы (/group)\n\nДобавлен специальный крестик для скрытия imgui-окон.'
 
 sampShowDialog(10005, '{FFCD00}Обновление', update_info, 'Закрыть', '', 0)
 end
@@ -1436,7 +1437,7 @@ end
 function imgui.OnDrawFrame()
 	if show_menu.v then
 		imgui.SetNextWindowSize(imgui.ImVec2(600, 500))
-		imgui.Begin(u8'ОСНОВНОЕ МЕНЮ | HELPER FOR MIA', nil, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
+		imgui.Begin(u8'ОСНОВНОЕ МЕНЮ | HELPER FOR MIA', show_menu, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 			if imgui.Button(u8'Настройки', imgui.ImVec2(140, 20)) then show_item.v = 0 end
 			imgui.SameLine()
 			if imgui.Button(u8'Администрация', imgui.ImVec2(145, 20)) then show_item.v = 1 end
@@ -1704,7 +1705,7 @@ function imgui.OnDrawFrame()
 			}
 			
 			imgui.SetNextWindowSize(imgui.ImVec2(550, 430))
-			imgui.Begin(u8'ФУНКЦИИ | HELPER FOR MIA', nil, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
+			imgui.Begin(u8'ФУНКЦИИ | HELPER FOR MIA', show_help, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 				imgui.Separator()
 				imgui.Columns(3)
 				imgui.SetColumnWidth(-1, 150)
@@ -1733,7 +1734,7 @@ function imgui.OnDrawFrame()
 		
 		if show_weapon.v then
 			imgui.SetNextWindowSize(imgui.ImVec2(400, 335))
-			imgui.Begin(u8'ОРУЖИЕ | HELPER FOR MIA', nil, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
+			imgui.Begin(u8'ОРУЖИЕ | HELPER FOR MIA', show_weapon, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 				for i, val in pairs(InfoWeapon) do
 					imgui.BeginChild('##name_weapon', imgui.ImVec2(190, 300), true)
 						if ini.weapon[val[3]] then
@@ -1773,7 +1774,7 @@ function imgui.OnDrawFrame()
 	
 	if show_info.v then
 		imgui.SetNextWindowSize(imgui.ImVec2(900, 460))
-		imgui.Begin(u8'All info', nil, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
+		imgui.Begin(u8'All info', show_info, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 			imgui.BeginChild('##enter_info', imgui.ImVec2(150, 420), true, imgui.WindowFlags.VerticalScrollbar)
 				if imgui.Button('Players', imgui.ImVec2(130, 20)) then show_item.v = 0 end
 				if imgui.Button('Vehicles', imgui.ImVec2(130, 20)) then show_item.v = 1 end
@@ -1871,7 +1872,7 @@ function imgui.OnDrawFrame()
 	
 	if show_epk.v then
 		imgui.SetNextWindowSize(imgui.ImVec2(900, 460))
-		imgui.Begin(u8'ЕПК | HELPER FOR MIA', nil, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize + imgui.WindowFlags.HorizontalScrollbar)
+		imgui.Begin(u8'ЕПК | HELPER FOR MIA', show_epk, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize + imgui.WindowFlags.HorizontalScrollbar)
 			imgui.PushItemWidth(200)
 			imgui.InputText(u8'Введите часть статьи или её номер', search_place)
 			for val in io.lines('moonloader//helper//epk.txt') do
@@ -1886,7 +1887,7 @@ function imgui.OnDrawFrame()
 	
 	if show_ustav.v then
 		imgui.SetNextWindowSize(imgui.ImVec2(900, 460))
-		imgui.Begin(u8'Устав МВД | HELPER FOR MIA', nil, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize + imgui.WindowFlags.HorizontalScrollbar)
+		imgui.Begin(u8'Устав МВД | HELPER FOR MIA', show_ustav, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize + imgui.WindowFlags.HorizontalScrollbar)
 			imgui.PushItemWidth(200)
 			imgui.InputText(u8'Введите часть статьи или её номер', search_place)
 			for val in io.lines('moonloader//helper//ustav.txt') do

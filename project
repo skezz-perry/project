@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(2.2)
+script_version(2.3)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -91,7 +91,6 @@ local commands = {
 	'/takelic | Изъять или понизить уровень лицензии на вождение',
 	'/putpl | Посадить подозреваемого в автомобиль',
 	'/search | Обыскать подозреваемого',
-	'/patrol | Отправить доклад о патруле',
 	'/hack | Взломать дверь дома',
 	'/invite | Принять игрока в организацию',
 	'/uninvite | Уволить игрока из организации',
@@ -148,7 +147,6 @@ local ini = inicfg.load({
 		strobes              = false,
 		radio                = false,
 		autopass             = false,
-		sniperpd             = false,
 		autoweapon           = false
 	},
 	weapon = {
@@ -220,7 +218,6 @@ local pmasktimer         = imgui.ImBool(ini.set.masktimer)
 local pstrobes           = imgui.ImBool(ini.set.strobes)
 local pradio             = imgui.ImBool(ini.set.radio)
 local pautopass          = imgui.ImBool(ini.set.autopass)
-local psniperpd          = imgui.ImBool(ini.set.sniperpd)
 local pautoweapon        = imgui.ImBool(ini.set.autoweapon)
 local editor             = imgui.ImBool(false)
 
@@ -247,7 +244,6 @@ function main()
 	sampRegisterChatCommand('takelic', command_takelic)
 	sampRegisterChatCommand('putpl', command_putpl)
 	sampRegisterChatCommand('search', command_search)
-	sampRegisterChatCommand('patrol', command_patrol)
 	sampRegisterChatCommand('follow', command_follow)
 	sampRegisterChatCommand('hack', command_hack)
 	sampRegisterChatCommand('invite', command_invite)
@@ -835,28 +831,6 @@ function command_ud()
 			wait(1000); sampSendChat('/me закрыла удостоверение и убрала его обратно')
 		end
 	end)
-end
-
-function command_patrol(id)
-	if string.match(id, '(%d+)') then
-		local _, pid = sampGetPlayerIdByCharHandle(PLAYER_PED)
-		local res, state, _ = sampGetPatrolState()
-		if res then
-			if tonumber(id) == 1 then
-				sampSendChat('/r ' .. ini.info.rteg .. ' ' .. state .. '-' .. pid .. ' to DISP, начинаю патруль, 10-20 ' .. calculateZone() .. ' (' .. kvadrat() .. '), RFR.')
-			elseif tonumber(id) == 2 then
-				sampSendChat('/r ' .. ini.info.rteg .. ' ' .. state .. '-' .. pid .. ' to DISP, продолжаю патрулирование, 10-20 ' .. calculateZone() .. ' (' .. kvadrat() .. '), RFR.')
-			elseif tonumber(id) == 3 then
-				sampSendChat('/r ' .. ini.info.rteg .. ' ' .. state .. '-' .. pid .. ' to DISP, заканчиваю патруль, 10-20 ' .. calculateZone() .. ' (' .. kvadrat() .. '), nRFR.')
-			else
-				SCM('Данный ID состояние патруля неизвестен.')
-			end
-		else
-			SCM('Вы не находитесь в патрульном автомобиле.')
-		end
-	else
-		SCM('Используйте команду /patrol [ид патруля].')
-	end
 end
 
 function command_pas(id)
@@ -1524,7 +1498,6 @@ function imgui.OnDrawFrame()
 							show_weapon.v = not show_weapon.v
 						end
 					end
-					if imgui.Checkbox(u8'Снайперская винтовка в PD', psniperpd) then ini.set.sniperpd = psniperpd.v; inicfg.save(ini) end
 					if imgui.Checkbox(u8'Отыгровка камеры', pcamera) then ini.set.camera = pcamera.v; inicfg.save(ini) end
 				imgui.EndChild()
 			elseif show_item.v == 1 then
@@ -2925,33 +2898,6 @@ function SCM(text)
 	if text ~= nil then sampAddChatMessage('Helper for MIA • {FFFFFF}' .. text, 0xFF4169E1) end
 end
 
-function sampGetPatrolState()
-	if isCharInModel(PLAYER_PED, 523) then
-		return true, 'M', 'MARY'
-	elseif isCharInModel(PLAYER_PED, 596) then
-		return true, 'L', 'LINCOLN'
-	elseif isCharInModel(PLAYER_PED, 597) then
-		return true, 'L', 'LINCOLN'
-	elseif isCharInModel(PLAYER_PED, 598) then
-		return true, 'L', 'LINCOLN'
-	elseif isCharInModel(PLAYER_PED, 599) then
-		return true, 'L', 'LINCOLN'		
-	elseif isCharInModel(PLAYER_PED, 427) then
-		return true, 'C', 'CHARLIE'
-	elseif isCharInModel(PLAYER_PED, 601) then
-		return true, 'C', 'CHARLIE'
-	elseif isCharInModel(PLAYER_PED, 490) then
-		return true, 'C', 'CHARLIE'
-	elseif isCharInModel(PLAYER_PED, 415) then
-		return true, 'H', 'HENRY'
-	elseif isCharInModel(PLAYER_PED, 487) then
-		return true, 'AIR', 'AIR'
-	elseif isCharInModel(PLAYER_PED, 497) then
-		return true, 'AIR', 'AIR'
-	end
-	return false
-end
-
 function ItemActive(text)
 	if text ~= nil then
 		if imgui.IsItemHovered() then
@@ -3316,7 +3262,7 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 		return false
 	end
 
-	if string.find(title, 'Лидеры') and ini.set.upleader then
+	if string.find(title, 'Лидеры') then
 		local dline = 'Имя\tОрганизация\tДолжность\tСтатус\n'
 		local all = 0
 		local online = 0
@@ -3384,11 +3330,6 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 					if i > 4 and ini.weapon[InfoWeapon[i][4]] == 2 then sampSendDialogResponse(175, 1, i - 1, -1) end
 				end
 			end
-		end
-
-		if ini.set.sniperpd and ini.set.autoweapon then
-			sampSendDialogResponse(175, 1, 9, -1)
-			if ini.weapon[InfoWeapon[i][4]] == 2 then sampSendDialogResponse(175, 1, 9, -1) end
 		end
 	end
 end

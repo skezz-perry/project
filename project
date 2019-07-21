@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(2.6)
+script_version(2.7)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -661,7 +661,7 @@ function decode()
 end
 
 function command_update()
-	local update_info = '{ffffff}Временно убран таймер на доработку.\n\nИзмененно отображение участников группы (/group)\n\nДобавлен специальный крестик для скрытия imgui-окон.\n\nДобавлен таймер маски.'
+	local update_info = '{ffffff}Измененно отображение участников группы (/group)\n\nДобавлен специальный крестик для скрытия imgui-окон.\n\nДобавлен таймер маски.\n\nИзменена система выдачи розыска, теперь, когда преступник слишком далеко, то система будет ждать, пока дистанцию сократится и уже потом выдаст розыск.\nПримечание: если подозреваемый покинет зону видимости (выйдет из зоны стрима), то система пректатит ждать, пока дистанция сократится и придётся заново вести /su.'
 
 sampShowDialog(10005, '{FFCD00}Обновление', update_info, 'Закрыть', '', 0)
 end
@@ -1390,22 +1390,42 @@ function command_su(param)
 	if string.match(param, '(%d+) (%d+) (%S+)') then
 		local id, stars, reason = string.match(param, '(%d+) (%d+) (.+)')
 		if IPC(id) then
-			if sampGetDistance(PLAYER_PED, id) < 70 then
-				lua_thread.create(function()
+			lua_thread.create(function()
+				if sampGetCharHandleBySampPlayerId(id) then
 					if ini.info.male then
 						sampSendChat('/me сняв рацию с плеча, передал диспетчеру информацию о подозреваемом')
-						wait(1000)
 					else
 						sampSendChat('/me сняв рацию с плеча, передала диспетчеру информацию о подозреваемом')
-						wait(1000)
 					end
-					sampSendChat('/su ' .. id .. ' ' .. stars .. ' ' .. reason)
-					wait(1500)
-					sampSendChat('/do ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. ' был объявлен в розыск по причине: ' .. reason .. '.')
-				end)
-			else
-				SCM('Данный игрок находится слишком далеко от Вас.')
-			end
+					
+					wait(1000)
+					
+					if sampGetDistance(PLAYER_PED, id) <= 65 then
+						sampSendChat('/su ' .. id .. ' ' .. stars .. ' ' .. reason)
+						wait(1500)
+						sampSendChat('/do ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. ' был объявлен в розыск по причине: ' .. reason .. '.')
+					else
+						SCM('Подозреваемый слишком далеко, розыск выдастся сразу же, как будет возможность.')
+						while sampGetDistance(PLAYER_PED, id) > 65 do
+							wait(0)
+						
+							local result, ped = sampGetCharHandleBySampPlayerId(id)
+							if not result then 
+								SCM('Подозревамый пропал из зоны видимости.')
+								break 
+							end
+						end
+						
+						if sampGetDistance(PLAYER_PED, id) <= 65 then
+							sampSendChat('/su ' .. id .. ' ' .. stars .. ' ' .. reason)
+							wait(1500)
+							sampSendChat('/do ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. ' был объявлен в розыск по причине: ' .. reason .. '.')
+						end
+					end
+				else
+					SCM('Данный игрок находится слишком далеко от Вас.')
+				end
+			end)
 		else
 			SCM('Вы ввели неверный ид игрока (игрок не авторизован)')
 		end
@@ -3111,7 +3131,7 @@ function sampev.onServerMessage(color, text)
 	if color == 13369599 and text:find('Отправил') and not ini.set.stopad then return false end
 
 	if text:find('  Объявление проверил сотрудник СМИ (.+)') and not ini.set.stopad then return false end
-
+	
 	if color == 869033727 and text:find('[R]') and ini.set.radio then
 		text = string.sub(text, 5)
 		text = string.gsub(text, '_', ' ')
@@ -3195,7 +3215,7 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 		sampSendDialogResponse(dialogId, 1, 5, -1)
 		return false
 	end
-
+	
 	if string.find(title, 'В подразделении') then
 		local lines = '{FFFFFF}Имя	{FFFFFF}Ранг и должность	{FFFFFF}Телефон	{FFFFFF}Дополнительно'
 		for s in string.gmatch(text, "[^\n]+") do

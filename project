@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(2.7)
+script_version(2.8)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -661,7 +661,7 @@ function decode()
 end
 
 function command_update()
-	local update_info = '{ffffff}Измененно отображение участников группы (/group).\n\nДобавлен специальный крестик для скрытия imgui-окон.\n\nДобавлен таймер маски.\n\nИзменена система выдачи розыска, теперь, когда преступник слишком далеко, то система будет ждать, пока дистанция сократится и уже потом выдаст розыск.\nПримечание: если подозреваемый покинет зону видимости (выйдет из зоны стрима), то система пректатит ждать, пока дистанция сократится и придётся заново вести /su.'
+	local update_info = '{ffffff}Измененно отображение участников группы (/group)\n\nДобавлен специальный крестик для скрытия imgui-окон.\n\nДобавлен таймер маски.\n\nИзменена система выдачи розыска, теперь, когда преступник слишком далеко, то система будет ждать, пока дистанция сократится и уже потом выдаст розыск.\nПримечание: если подозреваемый покинет зону видимости (выйдет из зоны стрима), то система пректатит ждать, пока дистанция сократится и придётся заново вести /su.'
 
 sampShowDialog(10005, '{FFCD00}Обновление', update_info, 'Закрыть', '', 0)
 end
@@ -1390,42 +1390,49 @@ function command_su(param)
 	if string.match(param, '(%d+) (%d+) (%S+)') then
 		local id, stars, reason = string.match(param, '(%d+) (%d+) (.+)')
 		if IPC(id) then
-			lua_thread.create(function()
-				if sampGetCharHandleBySampPlayerId(id) then
-					if ini.info.male then
-						sampSendChat('/me сняв рацию с плеча, передал диспетчеру информацию о подозреваемом')
-					else
-						sampSendChat('/me сняв рацию с плеча, передала диспетчеру информацию о подозреваемом')
-					end
-					
-					wait(1000)
-					
-					if sampGetDistance(PLAYER_PED, id) <= 65 then
-						sampSendChat('/su ' .. id .. ' ' .. stars .. ' ' .. reason)
-						wait(1500)
-						sampSendChat('/do ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. ' был объявлен в розыск по причине: ' .. reason .. '.')
-					else
-						SCM('Подозреваемый слишком далеко, розыск выдастся сразу же, как будет возможность.')
-						while sampGetDistance(PLAYER_PED, id) > 65 do
-							wait(0)
-						
-							local result, ped = sampGetCharHandleBySampPlayerId(id)
-							if not result then 
-								SCM('Подозревамый пропал из зоны видимости.')
-								break 
-							end
+			if sampGetPlayerColor(id) ~= 2236962 then
+				lua_thread.create(function()
+					if sampGetCharHandleBySampPlayerId(id) then
+						if ini.info.male then
+							sampSendChat('/me сняв рацию с плеча, передал диспетчеру информацию о подозреваемом')
+						else
+							sampSendChat('/me сняв рацию с плеча, передала диспетчеру информацию о подозреваемом')
 						end
 						
-						if sampGetDistance(PLAYER_PED, id) <= 65 then
+						wait(1000)
+						
+						if sampGetDistance(PLAYER_PED, id) <= 60 then
 							sampSendChat('/su ' .. id .. ' ' .. stars .. ' ' .. reason)
 							wait(1500)
 							sampSendChat('/do ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. ' был объявлен в розыск по причине: ' .. reason .. '.')
+						else
+							SCM('Подозреваемый слишком далеко, розыск выдастся сразу же, как будет возможность.')
+							while sampGetDistance(PLAYER_PED, id) > 60 do
+								wait(0)
+							
+								local result, ped = sampGetCharHandleBySampPlayerId(id)
+								if not result then 
+									SCM('Подозревамый пропал из зоны видимости.')
+									break
+								elseif sampGetPlayerColor(id) == 2236962  then
+									SCM('Подозреваемый надел на лицо маску, невозможно выдать розыск.')
+									break
+								end
+							end
+							
+							if sampGetDistance(PLAYER_PED, id) <= 60 then
+								sampSendChat('/su ' .. id .. ' ' .. stars .. ' ' .. reason)
+								wait(1500)
+								sampSendChat('/do ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. ' был объявлен в розыск по причине: ' .. reason .. '.')
+							end
 						end
+					else
+						SCM('Данный игрок находится слишком далеко от Вас.')
 					end
-				else
-					SCM('Данный игрок находится слишком далеко от Вас.')
-				end
-			end)
+				end)
+			else
+				SCM('Подозреваемый находится в маске.')
+			end
 		else
 			SCM('Вы ввели неверный ид игрока (игрок не авторизован)')
 		end

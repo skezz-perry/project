@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(2.8)
+script_version(2.9)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -13,6 +13,7 @@ local encoding          = require 'encoding'
 local color             = require "colorise"
 local inicfg            = require 'inicfg'
 local ffi               = require "ffi"
+local faicons           = require 'fa-icons'
 local getBonePosition   = ffi.cast("int (__thiscall*)(void*, float*, int, bool)", 0x5E4280)
 lsampev, sampev         = pcall(require, 'lib.samp.events')
 encoding.default        = 'CP1251'
@@ -75,10 +76,10 @@ local InfoWeapon = {{'Щит', false, 'shit', 'bshit', 1},
 local commands = {
 	'/update | Информация о последнем обновлении',
 	'/admins | Открыть админ-список',
-	'/r | Отправить сообщению в обычную рацию',
-	'/rn | Отправить сообщение в nRP чат обычной рации',
-	'/f | Отправить сообщение в общую волну',
-	'/fn | Отправить сообщение в nRP чат общей волны',
+	'/r | Сообщение в обычныю рацию',
+	'/rn | NRP-chat обычной рации',
+	'/f | Сообщение в общую волну',
+	'/fn | NRP-chat общей волны',
 	'/cuff | Надеть наручники на подозреваемого',
 	'/uncuff | Снять наручники с подозреваемого',
 	'/arrest | Отправить подозреваемого в департамент',
@@ -89,25 +90,25 @@ local commands = {
 	'/follow | Начать прослушивание',
 	'/hold | Тащить игрока за собой',
 	'/ticket | Выписать штраф нарушителю',
-	'/takelic | Изъять или понизить уровень лицензии на вождение',
+	'/takelic | Изъять лицензию на вождение',
 	'/putpl | Посадить подозреваемого в автомобиль',
 	'/search | Обыскать подозреваемого',
 	'/hack | Взломать дверь дома',
 	'/invite | Принять игрока в организацию',
 	'/uninvite | Уволить игрока из организации',
-	'/rang | Изменить ранг игрока в большую или меньшию сторону',
-	'/changeskin | Изменить организационную внешность игрока',
+	'/rang | Изменить ранг игрока',
+	'/changeskin | Изменить внешность игрока',
 	'/ud | Показать удостоверение',
 	'/pas | Запросить документы у игрока',
 	'/ainfo | Открыть информационное меню',
 	'/rkinfo | Получить информацию о RK',
 	'/rep | Быстрая отправка сообщения в репорт',
-	'/епк | Найти информацию о ЕПК по пункту или части пункта',
-	'/устав | Найти информацию о УМВД по пункту или части пункта',
+	'/епк | Найти информацию о ЕПК',
+	'/устав | Найти информацию о УМВД',
 	'/sw | Изменить погоду',
 	'/st | Изменить время',
 	'/skin | Установить визуальный скин для игрока',
-	'/hist | Окрыть историю изменения ников игрока по его ID',
+	'/hist | Открыть history игрока по его ID',
 	'/add_obj | Добавить объект',
 	'/edit_obj | Изменить объект',
 	'/del_obj | Удалить объект',
@@ -212,7 +213,6 @@ local search_place       = imgui.ImBuffer(1000)
 local text_cmd           = imgui.ImBuffer(9999)
 local admins             = imgui.ImBuffer(9999)
 local male				 = imgui.ImBool(ini.info.male)
-local female             = imgui.ImBool(ini.info.female)
 local pcamera            = imgui.ImBool(ini.set.camera)
 local pstopad            = imgui.ImBool(ini.set.stopad)
 local pmasktimer         = imgui.ImBool(ini.set.masktimer)
@@ -1473,101 +1473,145 @@ end
 
 function imgui.OnDrawFrame()
 	if show_menu.v then
-		imgui.SetNextWindowSize(imgui.ImVec2(600, 500))
-		imgui.Begin(u8'ОСНОВНОЕ МЕНЮ | HELPER FOR MIA', show_menu, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
-			if imgui.Button(u8'Настройки', imgui.ImVec2(140, 20)) then show_item.v = 0 end
+		local w, h = getScreenResolution()
+		imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
+		imgui.SetNextWindowSize(imgui.ImVec2(700, 600))
+		imgui.Begin(u8'##menu', show_menu, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
+
+			imgui.BeginChild('##button_block', imgui.ImVec2(250, 565), true, imgui.WindowFlags.VerticalScrollbar)
+				imgui.CenterTextColoredRGB('HELPER FOR MIA')
+				
+				imgui.Text('')
+				
+				if imgui.Button(u8'Настройки', imgui.ImVec2(235, 30))     then show_item.v = 0 end
+				if imgui.Button(u8'Администрация', imgui.ImVec2(235, 30)) then show_item.v = 1 end
+				if imgui.Button(u8'Информация', imgui.ImVec2(235, 30))    then show_item.v = 2 end
+				if imgui.Button(u8'Доп. команды', imgui.ImVec2(235, 30))  then show_item.v = 3 end
+				
+				imgui.Text('')
+				
+				imgui.CenterTextColoredRGB('All rights reserved © 2019')
+				
+			imgui.EndChild()
+			
 			imgui.SameLine()
-			if imgui.Button(u8'Администрация', imgui.ImVec2(145, 20)) then show_item.v = 1 end
-			imgui.SameLine()
-			if imgui.Button(u8'Информация', imgui.ImVec2(145, 20)) then show_item.v = 2 end
-			imgui.SameLine()
-			if imgui.Button(u8'Доп.команды', imgui.ImVec2(140, 20)) then show_item.v = 3 end
-
-			imgui.Text('')
-
-			if show_item.v == 0 then
-				imgui.BeginChild('##information_rp', imgui.ImVec2(290, 410), true, imgui.WindowFlags.VerticalScrollbar)
-					imgui.PushItemWidth(140)
-					imgui.Text(u8'        Имя и фамилия             Личный номер')
-					if imgui.InputText('##set_name', pname) then ini.info.name = u8:decode(pname.v); inicfg.save(ini) end
-					ItemActive('Текущее значение вашего имени и фамилии: ' .. ini.info.name)
-					imgui.SameLine()
-					if imgui.InputText('##set_number', pnumber) then ini.info.number = u8:decode(pnumber.v); inicfg.save(ini) end
-					ItemActive('Текущее значение вашего личного номера: №000' .. ini.info.number)
-
-					imgui.Text(u8'           Должность                 Подразделение')
-					if imgui.InputText('##set_rang', prang) then ini.info.rang = u8:decode(prang.v); inicfg.save(ini) end
-					ItemActive('Текущее значение вашей должности: ' .. ini.info.rang)
-					imgui.SameLine()
-					if imgui.InputText('##set_frac', pfrac) then ini.info.frac = u8:decode(pfrac.v); inicfg.save(ini) end
-					ItemActive('Текущее значение вашего подразделения: ' .. ini.info.frac)
-
-					imgui.Text(u8'       Префикс рации               Доп. префикс')
-					if imgui.InputText('##set_rteg', rteg) then ini.info.rteg = u8:decode(rteg.v); inicfg.save(ini) end
-					ItemActive('Текущее значение вашего префикса в рацию: ' .. ini.info.rteg)
-					imgui.SameLine()
-					if imgui.InputText('##set_fteg', fteg) then ini.info.fteg = u8:decode(fteg.v); inicfg.save(ini) end
-					ItemActive('Текущее значение вашего префикса в общую волну: ' .. ini.info.fteg)
+			
+			imgui.BeginChild('##another_block', imgui.ImVec2(430, 565), true, imgui.WindowFlags.VerticalScrollbar)
+				
+				if show_item.v == 0 then
+					
+					imgui.CenterTextColoredRGB('ОСНОВНЫЕ НАСТРОЙКИ')
+					
 					imgui.Text('')
-					if imgui.Checkbox(u8'Мужской', male) then
-						if male.v then female.v = false else female.v = true end
-						ini.info.male = male.v
-						ini.info.female = female.v
+					
+					imgui.PushItemWidth(200)
+					if imgui.InputText(u8'Имя и фамилия', pname) then
+						ini.info.name = u8:decode(pname.v)
 						inicfg.save(ini)
 					end
-					imgui.SameLine()
-					if imgui.Checkbox(u8'Женский', female) then
-						if female.v then male.v = false else male.v = true end
-						ini.info.male = male.v
-						ini.info.female = female.v
+					if imgui.InputText(u8'Должность', prang) then
+						ini.info.rang = u8:decode(prang.v)
 						inicfg.save(ini)
 					end
-				imgui.EndChild()
-
-				imgui.SameLine()
-
-				imgui.BeginChild('##information_another', imgui.ImVec2(290, 410), true, imgui.WindowFlags.VerticalScrollbar)
-					if imgui.Checkbox(u8'Объявления от СМИ', pstopad) then ini.set.stopad = pstopad.v; inicfg.save(ini) end
-					if imgui.Checkbox(u8'Стробоскопы', pstrobes) then ini.set.strobes = pstrobes.v; inicfg.save(ini) end
-					if imgui.Checkbox(u8'Изменённая рация', pradio) then ini.set.radio = pradio.v; inicfg.save(ini) end
-					if imgui.Checkbox(u8'Таймер маски', pmasktimer) then ini.set.masktimer = pmasktimer.v; inicfg.save(ini) end
-					if imgui.Checkbox(u8'Авто-проверка паспорта', pautopass) then ini.set.autopass = pautopass.v; inicfg.save(ini) end
-					if imgui.Checkbox(u8'Авто-взятие оружия', pautoweapon) then ini.set.autoweapon = pautoweapon.v; inicfg.save(ini) end
+					if imgui.InputText(u8'Подразделение', pfrac) then
+						ini.info.frac = u8:decode(pfrac.v)
+						inicfg.save(ini)
+					end
+					if imgui.InputText(u8'Личный номер', pnumber) then
+						ini.info.number = u8:decode(pnumber.v)
+						inicfg.save(ini)
+					end
+					if imgui.InputText(u8'Префикс в основную рацию', rteg) then
+						ini.info.rteg = u8:decode(rteg.v)
+						inicfg.save(ini)
+					end
+					if imgui.InputText(u8'Префикс в общую волну', fteg) then
+						ini.info.fteg = u8:decode(fteg.v)
+						inicfg.save(ini)
+					end
+					
+					imgui.Text('')
+					
+					imgui.Separator()
+					
+					imgui.Text('')
+					
+					imgui.CenterTextColoredRGB('ДОПОЛНИТЕЛЬНЫЕ НАСТРОЙКИ')
+					
+					imgui.Text('')
+					
+					if imgui.Checkbox(u8'Режим женских отыгровок', male) then 
+						ini.info.male = not male.v
+						inicfg.save(ini) 
+					end
+					if imgui.Checkbox(u8'Объявления от СМИ', pstopad) then 
+						ini.set.stopad = pstopad.v
+						inicfg.save(ini) 
+					end
+					if imgui.Checkbox(u8'Стробоскопы', pstrobes) then 
+						ini.set.strobes = pstrobes.v
+						inicfg.save(ini) 
+					end
+					if imgui.Checkbox(u8'Изменённая рация', pradio) then 
+						ini.set.radio = pradio.v
+						inicfg.save(ini) 
+					end
+					if imgui.Checkbox(u8'Таймер маски', pmasktimer) then 
+						ini.set.masktimer = pmasktimer.v
+						inicfg.save(ini) 
+					end
+					if imgui.Checkbox(u8'Отыгровка камеры', pcamera) then 
+						ini.set.camera = pcamera.v
+						inicfg.save(ini) 
+					end
+					if imgui.Checkbox(u8'Авто-проверка паспорта', pautopass) then 
+						ini.set.autopass = pautopass.v
+						inicfg.save(ini) 
+					end
+					if imgui.Checkbox(u8'Авто-взятие оружия', pautoweapon) then 
+						ini.set.autoweapon = pautoweapon.v
+						inicfg.save(ini) 
+					end
+					
 					if pautoweapon.v then
 						if imgui.Button(u8'Настроить авто-взятие оружия') then
 							show_weapon.v = not show_weapon.v
 						end
 					end
-					if imgui.Checkbox(u8'Отыгровка камеры', pcamera) then ini.set.camera = pcamera.v; inicfg.save(ini) end
-				imgui.EndChild()
-			elseif show_item.v == 1 then
-				imgui.BeginChild('##admin_settings', imgui.ImVec2(380, 410), true, imgui.WindowFlags.VerticalScrollbar)
-					if editor.v then
-						imgui.PushItemWidth(385)
-						imgui.InputTextMultiline('##admins', admins, imgui.ImVec2(-1, imgui.GetTextLineHeight() * 28))
-					else
-						imgui.Text(admins.v)
+				end
+				
+				if show_item.v == 1 then
+					imgui.CenterTextColoredRGB('СПИСОК АДМИНИСТРАЦИИ')
+					
+					imgui.Text('')
+					
+					if imgui.Button(u8'Подгрузить', imgui.ImVec2(135, 20)) then
+						local line = ''
+						for val in io.lines('moonloader//helper//Admins.txt') do line = string.format('%s %s\n', line, val) end
+						admins.v = u8(line)
 					end
-				imgui.EndChild()
-
-				imgui.SameLine()
-
-				imgui.BeginChild('##admin_button', imgui.ImVec2(200, 410), true, imgui.WindowFlags.VerticalScrollbar)
-					if imgui.Button(u8'Подгрузить', imgui.ImVec2(190, 20)) then
-						d = ''
-						for i in io.lines('moonloader//helper//Admins.txt') do d = d .. i .. '\n' end
-						admins.v = u8(d)
+					imgui.SameLine()
+					if imgui.Button(u8'Редактировать', imgui.ImVec2(135, 20)) then
+						editor.v = not editor.v
 					end
-				  if imgui.Button(u8'Редактировать', imgui.ImVec2(190, 20)) then editor.v = not editor.v end
-					if imgui.Button(u8'Сохранить', imgui.ImVec2(190, 20)) then
+					imgui.SameLine()
+					if imgui.Button(u8'Сохранить', imgui.ImVec2(135, 20)) then
 						local filew = io.open('moonloader//helper//Admins.txt', 'w')
 						filew:write(u8:decode(admins.v))
 						filew:close()
 					end
-				imgui.EndChild()
+					
+					imgui.Text('')
+					
+					if editor.v then
+						imgui.PushItemWidth(420)
+						imgui.InputTextMultiline('##admins', admins, imgui.ImVec2(-1, imgui.GetTextLineHeight() * 33))
+					else
+						imgui.Text(admins.v)
+					end
+				end
 				
-			elseif show_item.v == 2 then
-				imgui.BeginChild('##command_info', imgui.ImVec2(585, 410), true, imgui.WindowFlags.VerticalScrollbar)
+				if show_item.v == 2 then
 					imgui.Columns(2)
 					imgui.SetColumnWidth(-1, 150)
 					imgui.Text(u8'КОМАНДА') 
@@ -1583,10 +1627,9 @@ function imgui.OnDrawFrame()
 						imgui.Text(string.format('%s', u8(info)))
 						imgui.Separator()
 					end
-				imgui.EndChild()
+				end
 				
-			elseif show_item.v == 3 then
-				imgui.BeginChild('##command_settings', imgui.ImVec2(585, 410), true, imgui.WindowFlags.VerticalScrollbar)
+				if show_item.v == 3 then
 					imgui.Text(u8'Команда: /')
 					imgui.SameLine()
 					imgui.PushItemWidth(130)
@@ -1601,7 +1644,6 @@ function imgui.OnDrawFrame()
 						if param_cmd > 0 then param_cmd = param_cmd - 1 end
 					end
 					ItemActive('Кол-во параметров в команде ' .. param_cmd .. '/1')
-					imgui.SameLine()
 					if imgui.Button(u8'Найти') then
 						if name_cmd.v ~= '' then
 							if io.open('moonloader//helper//commands//' .. name_cmd.v .. '.txt') then
@@ -1711,9 +1753,9 @@ function imgui.OnDrawFrame()
 					local resultext = resultext:gsub('text: ', u8('Сообщение в чат	'))
 					local resultext = resultext:gsub('send: ', u8('Серв. сообщение	'))
 					imgui.Text(resultext)
-				imgui.EndChild()
-			end
-			imgui.CenterTextColoredRGB('All rights reserved © 2019')
+				end
+				
+			imgui.EndChild()
 		imgui.End()
 		
 		if show_help.v then
@@ -2924,12 +2966,12 @@ function ItemActive(text)
 end
 
 function apply_custom_style()
-    imgui.SwitchContext()
+	imgui.SwitchContext()
 	local style = imgui.GetStyle()
 	local colors = style.Colors
 	local clr = imgui.Col
 	local ImVec4 = imgui.ImVec4
-
+	
 	style.WindowRounding = 2.0
 	style.WindowTitleAlign = imgui.ImVec2(0.5, 0.84)
 	style.ChildWindowRounding = 2.0
@@ -2939,49 +2981,48 @@ function apply_custom_style()
 	style.ScrollbarRounding = 0
 	style.GrabMinSize = 8.0
 	style.GrabRounding = 1.0
-	colors[clr.Text]                   = ImVec4(1.00, 1.00, 1.00, 1.00)
-	colors[clr.TextDisabled]           = ImVec4(0.50, 0.50, 0.50, 1.00)
-	colors[clr.WindowBg]               = ImVec4(0.06, 0.06, 0.06, 0.94)
-	colors[clr.ChildWindowBg]          = ImVec4(1.00, 1.00, 1.00, 0.00)
-	colors[clr.PopupBg]                = ImVec4(0.08, 0.08, 0.08, 0.94)
-	colors[clr.ComboBg]                = colors[clr.PopupBg]
-	colors[clr.Border]                 = ImVec4(0.43, 0.43, 0.50, 0.50)
-	colors[clr.BorderShadow]           = ImVec4(0.00, 0.00, 0.00, 0.00)
-	colors[clr.FrameBg]                = ImVec4(0.16, 0.29, 0.48, 0.54)
-	colors[clr.FrameBgHovered]         = ImVec4(0.26, 0.59, 0.98, 0.40)
-	colors[clr.FrameBgActive]          = ImVec4(0.26, 0.59, 0.98, 0.67)
-	colors[clr.TitleBg]                = ImVec4(0.04, 0.04, 0.04, 1.00)
-	colors[clr.TitleBgActive]          = ImVec4(0.16, 0.29, 0.48, 1.00)
-	colors[clr.TitleBgCollapsed]       = ImVec4(0.00, 0.00, 0.00, 0.51)
-	colors[clr.MenuBarBg]              = ImVec4(0.14, 0.14, 0.14, 1.00)
-	colors[clr.ScrollbarBg]            = ImVec4(0.02, 0.02, 0.02, 0.53)
-	colors[clr.ScrollbarGrab]          = ImVec4(0.31, 0.31, 0.31, 1.00)
-	colors[clr.ScrollbarGrabHovered]   = ImVec4(0.41, 0.41, 0.41, 1.00)
-	colors[clr.ScrollbarGrabActive]    = ImVec4(0.51, 0.51, 0.51, 1.00)
-	colors[clr.CheckMark]              = ImVec4(0.26, 0.59, 0.98, 1.00)
-	colors[clr.SliderGrab]             = ImVec4(0.24, 0.52, 0.88, 1.00)
-	colors[clr.SliderGrabActive]       = ImVec4(0.26, 0.59, 0.98, 1.00)
-	colors[clr.Button]                 = ImVec4(0.26, 0.59, 0.98, 0.40)
-	colors[clr.ButtonHovered]          = ImVec4(0.26, 0.59, 0.98, 1.00)
-	colors[clr.ButtonActive]           = ImVec4(0.06, 0.53, 0.98, 1.00)
-	colors[clr.Header]                 = ImVec4(0.26, 0.59, 0.98, 0.31)
-	colors[clr.HeaderHovered]          = ImVec4(0.26, 0.59, 0.98, 0.80)
-	colors[clr.HeaderActive]           = ImVec4(0.26, 0.59, 0.98, 1.00)
-	colors[clr.Separator]              = colors[clr.Border]
-	colors[clr.SeparatorHovered]       = ImVec4(0.26, 0.59, 0.98, 0.78)
-	colors[clr.SeparatorActive]        = ImVec4(0.26, 0.59, 0.98, 1.00)
-	colors[clr.ResizeGrip]             = ImVec4(0.26, 0.59, 0.98, 0.25)
-	colors[clr.ResizeGripHovered]      = ImVec4(0.26, 0.59, 0.98, 0.67)
-	colors[clr.ResizeGripActive]       = ImVec4(0.26, 0.59, 0.98, 0.95)
-	colors[clr.CloseButton]            = ImVec4(0.41, 0.41, 0.41, 0.50)
-	colors[clr.CloseButtonHovered]     = ImVec4(0.98, 0.39, 0.36, 1.00)
-	colors[clr.CloseButtonActive]      = ImVec4(0.98, 0.39, 0.36, 1.00)
-	colors[clr.PlotLines]              = ImVec4(0.61, 0.61, 0.61, 1.00)
-	colors[clr.PlotLinesHovered]       = ImVec4(1.00, 0.43, 0.35, 1.00)
-	colors[clr.PlotHistogram]          = ImVec4(0.90, 0.70, 0.00, 1.00)
-	colors[clr.PlotHistogramHovered]   = ImVec4(1.00, 0.60, 0.00, 1.00)
-	colors[clr.TextSelectedBg]         = ImVec4(0.26, 0.59, 0.98, 0.35)
-	colors[clr.ModalWindowDarkening]   = ImVec4(0.80, 0.80, 0.80, 0.35)
+
+	colors[clr.Text]                  = ImVec4(0.00, 0.00, 0.00, 0.51)
+	colors[clr.TextDisabled]          = ImVec4(0.24, 0.24, 0.24, 1.00)
+	colors[clr.WindowBg]              = ImVec4(1.00, 1.00, 1.00, 1.00)
+	colors[clr.ChildWindowBg]         = ImVec4(0.96, 0.96, 0.96, 1.00)
+	colors[clr.PopupBg]               = ImVec4(0.92, 0.92, 0.92, 1.00)
+	colors[clr.Border]                = ImVec4(0.86, 0.86, 0.86, 1.00)
+	colors[clr.BorderShadow]          = ImVec4(0.00, 0.00, 0.00, 0.00)
+	colors[clr.FrameBg]               = ImVec4(0.88, 0.88, 0.88, 1.00)
+	colors[clr.FrameBgHovered]        = ImVec4(0.82, 0.82, 0.82, 1.00)
+	colors[clr.FrameBgActive]         = ImVec4(0.76, 0.76, 0.76, 1.00)
+	colors[clr.TitleBg]               = ImVec4(0.00, 0.45, 1.00, 0.82)
+	colors[clr.TitleBgCollapsed]      = ImVec4(0.00, 0.45, 1.00, 0.82)
+	colors[clr.TitleBgActive]         = ImVec4(0.00, 0.45, 1.00, 0.82)
+	colors[clr.MenuBarBg]             = ImVec4(0.00, 0.37, 0.78, 1.00)
+	colors[clr.ScrollbarBg]           = ImVec4(0.00, 0.00, 0.00, 0.00)
+	colors[clr.ScrollbarGrab]         = ImVec4(0.00, 0.35, 1.00, 0.78)
+	colors[clr.ScrollbarGrabHovered]  = ImVec4(0.00, 0.33, 1.00, 0.84)
+	colors[clr.ScrollbarGrabActive]   = ImVec4(0.00, 0.31, 1.00, 0.88)
+	colors[clr.ComboBg]               = ImVec4(0.92, 0.92, 0.92, 1.00)
+	colors[clr.CheckMark]             = ImVec4(0.00, 0.49, 1.00, 0.59)
+	colors[clr.SliderGrab]            = ImVec4(0.00, 0.49, 1.00, 0.59)
+	colors[clr.SliderGrabActive]      = ImVec4(0.00, 0.39, 1.00, 0.71)
+	colors[clr.Button]                = ImVec4(0.00, 0.49, 1.00, 0.35)
+	colors[clr.ButtonHovered]         = ImVec4(0.00, 0.49, 1.00, 0.71)
+	colors[clr.ButtonActive]          = ImVec4(0.00, 0.49, 1.00, 0.78)
+	colors[clr.Header]                = ImVec4(0.00, 0.49, 1.00, 0.78)
+	colors[clr.HeaderHovered]         = ImVec4(0.00, 0.49, 1.00, 0.71)
+	colors[clr.HeaderActive]          = ImVec4(0.00, 0.49, 1.00, 0.78)
+	colors[clr.ResizeGrip]            = ImVec4(0.00, 0.39, 1.00, 0.59)
+	colors[clr.ResizeGripHovered]     = ImVec4(0.00, 0.27, 1.00, 0.59)
+	colors[clr.ResizeGripActive]      = ImVec4(0.00, 0.25, 1.00, 0.63)
+	colors[clr.CloseButton]           = ImVec4(1.00, 1.00, 1.00, 1.00)
+	colors[clr.CloseButtonHovered]    = ImVec4(0.98, 0.39, 0.36, 1.00)
+	colors[clr.CloseButtonActive]     = ImVec4(0.98, 0.39, 0.36, 1.00)
+	colors[clr.PlotLines]             = ImVec4(0.00, 0.39, 1.00, 0.75)
+	colors[clr.PlotLinesHovered]      = ImVec4(0.00, 0.39, 1.00, 0.75)
+	colors[clr.PlotHistogram]         = ImVec4(0.00, 0.39, 1.00, 0.75)
+	colors[clr.PlotHistogramHovered]  = ImVec4(0.00, 0.35, 0.92, 0.78)
+	colors[clr.TextSelectedBg]        = ImVec4(0.00, 0.47, 1.00, 0.59)
+	colors[clr.Separator]             = colors[clr.Border]
+	colors[clr.ModalWindowDarkening]  = ImVec4(0.20, 0.20, 0.20, 0.35)
 end
 
 function imgui.CenterTextColoredRGB(text)

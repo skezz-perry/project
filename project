@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(3.1)
+script_version(3.2)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -13,7 +13,6 @@ local encoding          = require 'encoding'
 local color             = require "colorise"
 local inicfg            = require 'inicfg'
 local ffi               = require "ffi"
-local faicons           = require 'fa-icons'
 local getBonePosition   = ffi.cast("int (__thiscall*)(void*, float*, int, bool)", 0x5E4280)
 lsampev, sampev         = pcall(require, 'lib.samp.events')
 encoding.default        = 'CP1251'

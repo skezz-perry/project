@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(3.2)
+script_version(3.3)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -8,6 +8,7 @@ local KEY               = require 'vkeys'
 local rkeys             = require 'rkeys'
 local memory            = require 'memory'
 local imgui             = require 'imgui'
+local game_keys         = require 'game.keys'
 --local pie               = require 'imgui_piemenu'
 local encoding          = require 'encoding'
 local color             = require "colorise"
@@ -121,7 +122,8 @@ local commands = {
 	'ПКМ + 3 | Потребовать автомобиль остановится',
 	'ПКМ + 4 | Объявить игрока в розыск',
 	'1 | Включить Sceletal WallHack',
-	'Alt | Включить стробоскопы'
+	'Alt | Включить стробоскопы',
+	'L | Открыть или закрыть свою машину'
 }
 
 local frac = {
@@ -192,6 +194,7 @@ local autopass           = false
 local cActive            = false
 local follow_state       = false
 local timerActive        = false
+local skillplus          = false
 local show_menu          = imgui.ImBool(false)
 local piemenu            = imgui.ImBool(false)
 local show_help          = imgui.ImBool(false)
@@ -211,7 +214,7 @@ local name_cmd           = imgui.ImBuffer(256)
 local search_place       = imgui.ImBuffer(1000)
 local text_cmd           = imgui.ImBuffer(9999)
 local admins             = imgui.ImBuffer(9999)
-local male				 = imgui.ImBool(ini.info.male)
+local male				 = imgui.ImBool(not ini.info.male)
 local pcamera            = imgui.ImBool(ini.set.camera)
 local pstopad            = imgui.ImBool(ini.set.stopad)
 local pmasktimer         = imgui.ImBool(ini.set.masktimer)
@@ -259,6 +262,7 @@ function main()
 	sampRegisterChatCommand('st', command_settime)
 	sampRegisterChatCommand('skin', command_setskin)
 	sampRegisterChatCommand('hist', command_history) 
+	sampRegisterChatCommand('skill+', command_skillplus)
 	
 	sampRegisterChatCommand('nhold', function(param)
 		if not param:match('(%d+)') then SCM('Используйте команду /nhold [ид игрока]') else sampSendChat('/hold '..param) end
@@ -410,6 +414,10 @@ function main()
 			imgui.Process = true
 		else
 			imgui.Process = false
+		end
+		
+		if wasKeyPressed(KEY.VK_L) and not sampIsChatInputActive() and not sampIsDialogActive() then
+			sampSendChat('/lock 1')
 		end
 		
 		if wasKeyPressed(KEY.VK_F12) then
@@ -649,6 +657,32 @@ function command_report(text)
 	end
 end
 
+function command_skillplus()
+	if skillplus then
+		skillplus = false
+		SCM('STOP')
+	else
+		skillplus = true
+		
+		SCM('START')
+		
+		lua_thread.create(function()
+			while skillplus do
+				wait(0)
+			
+				local wait_up = math.random(3300, 3600)
+				local wait_down = math.random(1300, 1600)
+			
+				setVirtualKeyDown(VK_UP, true)
+				wait(tonumber(wait_up))
+				setVirtualKeyDown(VK_UP, false)
+				wait(tonumber(wait_down))
+			end
+			SCM('THE END')
+		end)
+	end
+end
+
 function decode()
 	local f = io.open(thisScript().path, 'r')
 	local text = f:read('*a')
@@ -660,7 +694,7 @@ function decode()
 end
 
 function command_update()
-	local update_info = '{ffffff}Измененно отображение участников группы (/group)\n\nДобавлен специальный крестик для скрытия imgui-окон.\n\nДобавлен таймер маски.\n\nИзменена система выдачи розыска, теперь, когда преступник слишком далеко, то система будет ждать, пока дистанция сократится и уже потом выдаст розыск.\nПримечание: если подозреваемый покинет зону видимости (выйдет из зоны стрима), то система пректатит ждать, пока дистанция сократится и придётся заново вести /su.\n\nБыл обновёлн дизайн imgui-окон.'
+	local update_info = '{ffffff}Был обновёлн дизайн imgui-окон.\n\nС помощью кнопки L теперь можно закрыть или открыть свой автомобиль (/lock 1).'
 
 sampShowDialog(10005, '{FFCD00}Обновление', update_info, 'Закрыть', '', 0)
 end
@@ -1482,10 +1516,12 @@ function imgui.OnDrawFrame()
 				
 				imgui.Text('')
 				
-				if imgui.Button(u8'Настройки', imgui.ImVec2(235, 30))     then show_item.v = 0 end
-				if imgui.Button(u8'Администрация', imgui.ImVec2(235, 30)) then show_item.v = 1 end
-				if imgui.Button(u8'Информация', imgui.ImVec2(235, 30))    then show_item.v = 2 end
-				if imgui.Button(u8'Доп. команды', imgui.ImVec2(235, 30))  then show_item.v = 3 end
+				if imgui.Button(u8'Настройки', imgui.ImVec2(235, 30))      then show_item.v = 0 end
+				if imgui.Button(u8'Доп. настройки', imgui.ImVec2(235, 30)) then show_item.v = 1 end
+				if imgui.Button(u8'Администрация', imgui.ImVec2(235, 30))  then show_item.v = 2 end
+				if imgui.Button(u8'Информация', imgui.ImVec2(235, 30))     then show_item.v = 3 end
+				if imgui.Button(u8'Доп. команды', imgui.ImVec2(235, 30))   then show_item.v = 4 end
+				if imgui.Button(u8'Кастомизация', imgui.ImVec2(235, 30))   then show_item.v = 5 end
 				
 				imgui.Text('')
 				
@@ -1580,13 +1616,18 @@ function imgui.OnDrawFrame()
 				end
 				
 				if show_item.v == 1 then
+					imgui.CenterTextColoredRGB('В разработке...')
+					imgui.CenterTextColoredRGB('Coming soon <3')
+				end
+				
+				if show_item.v == 2 then
 					imgui.CenterTextColoredRGB('СПИСОК АДМИНИСТРАЦИИ')
 					
 					imgui.Text('')
 					
 					if imgui.Button(u8'Подгрузить', imgui.ImVec2(135, 20)) then
 						local line = ''
-						for val in io.lines('moonloader//helper//Admins.txt') do line = string.format('%s %s\n', line, val) end
+						for val in io.lines('moonloader//helper//Admins.txt') do line = string.format('%s%s\n', line, val) end
 						admins.v = u8(line)
 					end
 					imgui.SameLine()
@@ -1610,7 +1651,7 @@ function imgui.OnDrawFrame()
 					end
 				end
 				
-				if show_item.v == 2 then
+				if show_item.v == 3 then
 					imgui.Columns(2)
 					imgui.SetColumnWidth(-1, 150)
 					imgui.Text(u8'КОМАНДА') 
@@ -1628,22 +1669,26 @@ function imgui.OnDrawFrame()
 					end
 				end
 				
-				if show_item.v == 3 then
+				if show_item.v == 4 then
 					imgui.Text(u8'Команда: /')
 					imgui.SameLine()
-					imgui.PushItemWidth(130)
+					imgui.PushItemWidth(150)
 					imgui.InputText('', name_cmd)
+					
 					imgui.SameLine()
-					if imgui.Button(u8'+', imgui.ImVec2(20, 20)) then
-						if param_cmd < 1 then param_cmd = param_cmd + 1 end
+					
+					if param_cmd == 1 then
+						if imgui.Button(u8'Убрать параметр', imgui.ImVec2(150, 20)) then
+							param_cmd = 0
+						end
+					else
+						if imgui.Button(u8'Добавить параметр', imgui.ImVec2(150, 20)) then
+							param_cmd = 1
+						end
 					end
+					
 					ItemActive('Кол-во параметров в команде ' .. param_cmd .. '/1')
-					imgui.SameLine()
-					if imgui.Button(u8'-', imgui.ImVec2(20, 20)) then
-						if param_cmd > 0 then param_cmd = param_cmd - 1 end
-					end
-					ItemActive('Кол-во параметров в команде ' .. param_cmd .. '/1')
-					if imgui.Button(u8'Найти') then
+					if imgui.Button(u8'Найти', imgui.ImVec2(80, 20)) then
 						if name_cmd.v ~= '' then
 							if io.open('moonloader//helper//commands//' .. name_cmd.v .. '.txt') then
 								cmd_text = ''
@@ -1658,8 +1703,10 @@ function imgui.OnDrawFrame()
 							end
 						end
 					end
+					
 					imgui.SameLine()
-					if imgui.Button(u8'Создать') then
+					
+					if imgui.Button(u8'Создать', imgui.ImVec2(80, 20)) then
 						if name_cmd.v ~= '' and not string.match(name_cmd.v, '[(%s+)]') then
 							if not io.open('moonloader//helper//commands//' .. name_cmd.v .. '.txt') then
 								local file = 'moonloader//helper//commands//' .. name_cmd.v .. '.txt'
@@ -1678,8 +1725,10 @@ function imgui.OnDrawFrame()
 							end
 						end
 					end
+					
 					imgui.SameLine()
-					if imgui.Button(u8'Сохранить') then
+					
+					if imgui.Button(u8'Сохранить', imgui.ImVec2(75, 20)) then
 						if name_cmd.v ~= '' and not string.match(name_cmd.v, '[(%s+)]') then
 							if io.open('moonloader//helper//commands//' .. name_cmd.v .. '.txt') then
 								local file = 'moonloader//helper//commands//' .. name_cmd.v .. '.txt'
@@ -1690,43 +1739,62 @@ function imgui.OnDrawFrame()
 							end
 						end
 					end
+					
 					imgui.SameLine()
-					if imgui.Button(u8'Функции') then
+					
+					if imgui.Button(u8'Функции', imgui.ImVec2(80, 20)) then
 						show_help.v = not show_help.v
 					end
+					
 					imgui.SameLine()
-					if imgui.Button(u8'Очистить') then
+					
+					if imgui.Button(u8'Очистить', imgui.ImVec2(80, 20)) then
 						text_cmd.v = ''
 						name_cmd.v = ''
 						param_cmd = 0
 					end
+					
 					imgui.InputTextMultiline('##TextForCmd', text_cmd, imgui.ImVec2(-1, imgui.GetTextLineHeight() * 14))
-					if imgui.Button(u8'Пример #1') then
+					if imgui.Button(u8'Пример #1', imgui.ImVec2(100, 20)) then
 						name_cmd.v = 'show1'
 						param_cmd = 1
 						text_cmd.v = u8'text: {hello}, {name_id}, вы находитесь в федеральном розыске!'
 					end
+					
 					imgui.SameLine()
-					if imgui.Button(u8'Пример #2') then
+					
+					if imgui.Button(u8'Пример #2', imgui.ImVec2(100, 20)) then
 						name_cmd.v = 'show2'
 						param_cmd = 0
 						text_cmd.v = u8'text: /r [Оповещение] {rang} находится в опасности! 10-20 {area} ({kvadrat}).\nsleep: 1000\ntext: /su {myid} 1 GPS-on'
 					end
+					
 					imgui.SameLine()
-					if imgui.Button(u8'Пример #3') then
+					
+					if imgui.Button(u8'Пример #3', imgui.ImVec2(100, 20)) then
 						name_cmd.v = 'show3'
 						param_cmd = 0
 						text_cmd.v = u8'send: Текущее время: {time}\nsend: Текущая дата: {date}\nsend: Как бы да, всё...'
 					end
+					
 					imgui.SameLine()
-					if imgui.Button(u8'HARD-Пример #4') then
+					
+					if imgui.Button(u8'Пример #4', imgui.ImVec2(100, 20)) then
 						name_cmd.v = 'show4'
 						param_cmd = 1
 						text_cmd.v = u8'text: /me взявшись за маску, стянул её с лица {name_id}\nsleep: 1000\ntext: /n {name_id}, пропиши /unmask.\nsleep: 150\nsend: Если етот мистер {color_id}{name_id}{ffffff} не снимит маску, то используй команду /rep {id} nRP!'
 					end
+					
 					imgui.Text('')
+					
 					imgui.Separator()
-					imgui.CenterTextColoredRGB('Результат')
+					
+					imgui.Text('')
+					
+					imgui.CenterTextColoredRGB('РЕЗУЛЬТАТ')
+					
+					imgui.Text('')
+					
 					local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 					local resultext = text_cmd.v
 					local resultext = resultext:gsub('{param=(%d+)}', '')
@@ -1752,6 +1820,11 @@ function imgui.OnDrawFrame()
 					local resultext = resultext:gsub('text: ', u8('Сообщение в чат	'))
 					local resultext = resultext:gsub('send: ', u8('Серв. сообщение	'))
 					imgui.Text(resultext)
+				end
+				
+				if show_item.v == 5 then
+					imgui.CenterTextColoredRGB('В разработке...')
+					imgui.CenterTextColoredRGB('Coming soon <3')
 				end
 				
 			imgui.EndChild()
@@ -1871,7 +1944,7 @@ function imgui.OnDrawFrame()
 						if res then
 							imgui.BeginChild('##info_player' .. i, imgui.ImVec2(710, 30), true, imgui.WindowFlags.VerticalScrollbar)
 								if sampIsPlayerPaused(id) then afk = '{ff0000}* ' else afk = '{00ff00}* ' end
-								imgui.TextColoredRGB(afk .. '{' .. sampGetColor(id) .. '}' .. sampGetPlayerNickname(id) .. '{FFFFFF}[' .. id .. ']' .. ' HP[{FA8072}' .. sampGetPlayerHealth(id) .. '{FFFFFF}] ARM[{8B7E66}' .. sampGetPlayerArmor(id) .. '{FFFFFF}] WEAP[{6495ED}' .. getCurrentCharWeapon(val) .. '{FFFFFF}] DIST[{4876FF}' .. math.floor(sampGetDistance(PLAYER_PED, id)) .. '{FFFFFF}] SPEED[{6495ED}' .. math.floor(getCharSpeed(val) * 2.02) .. '{FFFFFF}] CAR[{6495ED}' .. isPlayerCar(val) .. '{FFFFFF}] PING[{9ACD32}' .. sampGetPlayerPing(id) ..'{FFFFFF}] SCORE[{FFD700}' .. sampGetPlayerScore(id) .. '{FFFFFF}] ANIM[' .. sampGetPlayerAnimationId(id) .. ']')
+								imgui.TextColoredRGB(afk .. '{' .. string.gsub(sampGetColor(id), 'FFFFFF', '828282') .. '}' .. sampGetPlayerNickname(id) .. '{828282}[' .. id .. ']' .. ' HP[{FA8072}' .. sampGetPlayerHealth(id) .. '{828282}] ARM[{8B7E66}' .. sampGetPlayerArmor(id) .. '{828282}] WEAP[{6495ED}' .. getCurrentCharWeapon(val) .. '{828282}] DIST[{4876FF}' .. math.floor(sampGetDistance(PLAYER_PED, id)) .. '{828282}] SPEED[{6495ED}' .. math.floor(getCharSpeed(val) * 2.02) .. '{828282}] CAR[{6495ED}' .. isPlayerCar(val) .. '{828282}] PING[{9ACD32}' .. sampGetPlayerPing(id) ..'{828282}] SCORE[{FFD700}' .. sampGetPlayerScore(id) .. '{828282}] ANIM[' .. sampGetPlayerAnimationId(id) .. ']')
 							imgui.EndChild()
 						end
 					end
@@ -1893,13 +1966,13 @@ function imgui.OnDrawFrame()
 									if vfilt.v then
 										if ped ~= nil and res then
 											imgui.BeginChild('##info_cars' .. i, imgui.ImVec2(710, 30), true, imgui.WindowFlags.VerticalScrollbar)
-												imgui.TextColoredRGB('{FFFFFF}' .. getNameOfVehicleModel(id) .. '[' .. id .. '][' .. sid .. '] HP[{FA8072}' .. getCarHealth(val) .. '{FFFFFF}] SPEED[{6495ED}' .. math.floor(getCarSpeed(val) * 2.02) .. '{FFFFFF}] • {' .. sampGetColor(pid) .. '}' .. sampGetPlayerNickname(pid) .. '[' .. pid .. ']{ffffff} ' .. afk)
+												imgui.TextColoredRGB('{828282}' .. getNameOfVehicleModel(id) .. '[' .. id .. '][' .. sid .. '] HP[{FA8072}' .. getCarHealth(val) .. '{828282}] SPEED[{6495ED}' .. math.floor(getCarSpeed(val) * 2.02) .. '{828282}] • {' .. sampGetColor(pid) .. '}' .. sampGetPlayerNickname(pid) .. '[' .. pid .. ']{828282} ' .. afk)
 											imgui.EndChild()
 										end
 									else
-										if ped ~= nil and res then drv = '{' .. sampGetColor(pid) .. '}' .. sampGetPlayerNickname(pid) .. '[' .. pid .. ']{ffffff}' else drv = 'No driver' end
+										if ped ~= nil and res then drv = '{' .. sampGetColor(pid) .. '}' .. sampGetPlayerNickname(pid) .. '[' .. pid .. ']{828282}' else drv = 'No driver' end
 										imgui.BeginChild('##info_cars' .. i, imgui.ImVec2(710, 30), true, imgui.WindowFlags.VerticalScrollbar)
-											imgui.TextColoredRGB('{FFFFFF}' .. getNameOfVehicleModel(id) .. '[' .. id .. '][' .. sid .. '] HP[{FA8072}' .. getCarHealth(val) .. '{FFFFFF}] SPEED[{6495ED}' .. math.floor(getCarSpeed(val) * 2.02) .. '{FFFFFF}] • ' .. drv)
+											imgui.TextColoredRGB('{828282}' .. getNameOfVehicleModel(id) .. '[' .. id .. '][' .. sid .. '] HP[{FA8072}' .. getCarHealth(val) .. '{828282}] SPEED[{6495ED}' .. math.floor(getCarSpeed(val) * 2.02) .. '{828282}] • ' .. drv)
 										imgui.EndChild()
 									end
 							end
@@ -1932,7 +2005,7 @@ function imgui.OnDrawFrame()
 				imgui.BeginChild('##info_logs', imgui.ImVec2(730, 420), true, imgui.WindowFlags.VerticalScrollbar)
 					if imgui.Button(u8'Очистить') then logchat = nil; logchat = {} end
 					for i, val in pairs(logchat) do
-						imgui.TextColoredRGB(val)
+						imgui.TextColoredRGB(string.gsub(val, '{ffffff}', ''))
 					end
 				imgui.EndChild()
 			end
@@ -1941,7 +2014,7 @@ function imgui.OnDrawFrame()
 				imgui.BeginChild('##info_logs', imgui.ImVec2(730, 420), true, imgui.WindowFlags.VerticalScrollbar)
 					if imgui.Button(u8'Очистить') then logdmg = nil; logdmg = {} end
 					for i, val in pairs(logdmg) do
-						imgui.TextColoredRGB(val)
+						imgui.TextColoredRGB(string.gsub(val, '{ffffff}', ''))
 					end
 				imgui.EndChild()
 			end
@@ -3173,7 +3246,7 @@ function imgui.ToggleButton(str_id, bool)
 end
 
 function sampev.onServerMessage(color, text)
-	logchat[tonumber(table.maxn(logchat)) + 1] = '{ffffff}CHAT\t   [' .. os.date('%H') .. ':' .. os.date('%M') .. ':' .. os.date('%S') .. '] ' .. text
+	logchat[tonumber(table.maxn(logchat)) + 1] = 'CHAT\t   [' .. os.date('%H') .. ':' .. os.date('%M') .. ':' .. os.date('%S') .. '] ' .. text
 
 	if color == 13369599 and text:find('Отправил') and not ini.set.stopad then return false end
 

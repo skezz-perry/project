@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(3.3)
+script_version(3.4)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -15,6 +15,7 @@ local color             = require "colorise"
 local inicfg            = require 'inicfg'
 local ffi               = require "ffi"
 local getBonePosition   = ffi.cast("int (__thiscall*)(void*, float*, int, bool)", 0x5E4280)
+imgui.HotKey            = require('imgui_addons').HotKey
 lsampev, sampev         = pcall(require, 'lib.samp.events')
 encoding.default        = 'CP1251'
 u8                      = encoding.UTF8
@@ -132,6 +133,8 @@ local frac = {
 	color = {'{0000ff}', '{ccff00}', '{ff6600}', '{996633}', '{ff6666}', '{993366}', '{007575}', '{bb0000}', '{009900}', '{cc00ff}', '{ffcd00}', '{00ccff}', '{6666ff}', '{ffffff}', '{ffffff}', '{ffffff}'},
 }
 
+local FrameBg = imgui.ImVec4(1.0, 1.0, 1.0, 1.0)
+
 local ini = inicfg.load({
 	info = {
 		name                 = '',
@@ -185,7 +188,6 @@ local info_scene         = {}
 local logchat            = {}
 local logdmg             = {}
 local dreason            = {}
-local keys               = {}
 local param_cmd          = 0
 local suspect_id         = {}
 local show_player        = ''
@@ -358,11 +360,11 @@ function main()
 		show_info.v = not show_info.v
 	end)
 	
-	sampRegisterChatCommand('update', command_update)
-	
-	keys[1] = rkeys.registerHotKey({KEY.VK_MENU, KEY.VK_3}, true, function ()
-		SCM('Был нажат хот кей')
+	sampRegisterChatCommand('mh', function()
+		show_menu.v = not show_menu.v
 	end)
+	
+	sampRegisterChatCommand('update', command_update)
 	
 	sampRegisterChatCommand('strobes', function()
 		if isCharInAnyCar(PLAYER_PED) and ini.set.strobes  then
@@ -376,7 +378,7 @@ function main()
 		end
 	end)
 	lua_thread.create(strobe)
-
+	
 	apply_custom_style()
 	local sX, sY = getScreenResolution()
 	clock_textdraw = mad.textdraw.new('', sX - 70, sY - 40)
@@ -389,8 +391,6 @@ function main()
 	clock_textdraw:set_text_color(245, 245, 245, 250)
 	clock_textdraw:set_shadow_color(30, 30, 30, 250)
 	
-	SCM('А спонсор етой обновы - Annet Machiavelli, теперь мы можем смотреть на диалог по другому!')
-
 	while true do
 		wait(0)
 
@@ -1517,11 +1517,10 @@ function imgui.OnDrawFrame()
 				imgui.Text('')
 				
 				if imgui.Button(u8'Настройки', imgui.ImVec2(235, 30))      then show_item.v = 0 end
-				if imgui.Button(u8'Доп. настройки', imgui.ImVec2(235, 30)) then show_item.v = 1 end
-				if imgui.Button(u8'Администрация', imgui.ImVec2(235, 30))  then show_item.v = 2 end
-				if imgui.Button(u8'Информация', imgui.ImVec2(235, 30))     then show_item.v = 3 end
-				if imgui.Button(u8'Доп. команды', imgui.ImVec2(235, 30))   then show_item.v = 4 end
-				if imgui.Button(u8'Кастомизация', imgui.ImVec2(235, 30))   then show_item.v = 5 end
+				if imgui.Button(u8'Администрация', imgui.ImVec2(235, 30))  then show_item.v = 1 end
+				if imgui.Button(u8'Информация', imgui.ImVec2(235, 30))     then show_item.v = 2 end
+				if imgui.Button(u8'Доп. команды', imgui.ImVec2(235, 30))   then show_item.v = 3 end
+				if imgui.Button(u8'Кастомизация', imgui.ImVec2(235, 30))   then show_item.v = 4 end
 				
 				imgui.Text('')
 				
@@ -1616,11 +1615,6 @@ function imgui.OnDrawFrame()
 				end
 				
 				if show_item.v == 1 then
-					imgui.CenterTextColoredRGB('В разработке...')
-					imgui.CenterTextColoredRGB('Coming soon <3')
-				end
-				
-				if show_item.v == 2 then
 					imgui.CenterTextColoredRGB('СПИСОК АДМИНИСТРАЦИИ')
 					
 					imgui.Text('')
@@ -1651,7 +1645,7 @@ function imgui.OnDrawFrame()
 					end
 				end
 				
-				if show_item.v == 3 then
+				if show_item.v == 2 then
 					imgui.Columns(2)
 					imgui.SetColumnWidth(-1, 150)
 					imgui.Text(u8'КОМАНДА') 
@@ -1669,7 +1663,7 @@ function imgui.OnDrawFrame()
 					end
 				end
 				
-				if show_item.v == 4 then
+				if show_item.v == 3 then
 					imgui.Text(u8'Команда: /')
 					imgui.SameLine()
 					imgui.PushItemWidth(150)
@@ -1822,8 +1816,9 @@ function imgui.OnDrawFrame()
 					imgui.Text(resultext)
 				end
 				
-				if show_item.v == 5 then
-					imgui.CenterTextColoredRGB('В разработке...')
+				if show_item.v == 4 then
+					imgui.CenterTextColoredRGB('В вечной разработке...')
+					ItemActive('Ето гавно будет работать, но когда это будет известно лишь...')
 					imgui.CenterTextColoredRGB('Coming soon <3')
 				end
 				
@@ -3053,7 +3048,7 @@ function apply_custom_style()
 	style.ScrollbarRounding = 0
 	style.GrabMinSize = 8.0
 	style.GrabRounding = 1.0
-
+	
 	colors[clr.Text]                  = ImVec4(0.00, 0.00, 0.00, 0.51)
 	colors[clr.TextDisabled]          = ImVec4(0.24, 0.24, 0.24, 1.00)
 	colors[clr.WindowBg]              = ImVec4(1.00, 1.00, 1.00, 1.00)

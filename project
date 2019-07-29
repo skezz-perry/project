@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(3.5)
+script_version(3.6)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -189,8 +189,9 @@ local info_scene         = {}
 local logchat            = {}
 local logdmg             = {}
 local dreason            = {}
-local param_cmd          = 0
 local suspect_id         = {}
+local param_cmd          = 0
+local last_sms           = 0
 local show_player        = ''
 local showtimer          = false
 local autopass           = false
@@ -266,6 +267,7 @@ function main()
 	sampRegisterChatCommand('skin', command_setskin)
 	sampRegisterChatCommand('hist', command_history) 
 	sampRegisterChatCommand('skill+', command_skillplus)
+	sampRegisterChatCommand('asms', command_asms)
 	
 	sampRegisterChatCommand('nhold', function(param)
 		if not param:match('(%d+)') then SCM('Используйте команду /nhold [ид игрока]') else sampSendChat('/hold '..param) end
@@ -317,7 +319,7 @@ function main()
 	sampRegisterChatCommand('nchangeskin', function(param) 
 		if not param:match('(%d+)') then SCM('Используйте команду /nchangeskin [ид игрока]') else sampSendChat('/changeskin '..param) end 
 	end)
-
+	
 	sampRegisterChatCommand('add_obj', command_cobject)
 	sampRegisterChatCommand('del_obj', command_dobject)
 	sampRegisterChatCommand('edit_obj', command_eobject)
@@ -633,19 +635,19 @@ function main()
 end
 
 function command_r(text)
-	if not string.match(text, '(.+)') then SCM('Используйте команду /r [текст]') else sampSendChat('/r ' .. ini.info.rteg .. ' ' .. text) end
+	if not string.match(text, '(.+)') then SCM('Используйте команду /r [текст].') else sampSendChat('/r ' .. ini.info.rteg .. ' ' .. text) end
 end
 
 function command_rn(text) 
-	if not string.match(text, '(.+)') then SCM('Используйте команду /rn [текст]') else sampSendChat('/r (( ' .. text .. ' ))') end
+	if not string.match(text, '(.+)') then SCM('Используйте команду /rn [текст].') else sampSendChat('/r (( ' .. text .. ' ))') end
 end
 
 function command_f(text)
-	if not string.match(text, '(.+)') then SCM('Используйте команду /f [текст]') else sampSendChat('/f ' .. ini.info.fteg .. ' ' .. text) end
+	if not string.match(text, '(.+)') then SCM('Используйте команду /f [текст].') else sampSendChat('/f ' .. ini.info.fteg .. ' ' .. text) end
 end
 
 function command_fn(text)
-	if not string.match(text, '(.+)') then SCM('Используйте команду /fn [текст]') else sampSendChat('/f (( ' .. text .. ' ))') end
+	if not string.match(text, '(.+)') then SCM('Используйте команду /fn [текст].') else sampSendChat('/f (( ' .. text .. ' ))') end
 end
 
 function command_report(text)
@@ -655,6 +657,18 @@ function command_report(text)
 		report = text
 		act = true
 		sampSendChat('/mn')
+	end
+end
+
+function command_asms(text)
+	if string.match(text, '(%S+)') then
+		if last_sms ~= 0 then
+			sampSendChat(string.format('/sms %d %s', last_sms, text))
+		else
+			SCM('Ранее вам никто не отправлял SMS-сообщения.')
+		end
+	else
+		SCM('Используйте команду /asms [текст].')
 	end
 end
 
@@ -695,7 +709,7 @@ function decode()
 end
 
 function command_update()
-	local update_info = '{ffffff}Был обновёлн дизайн imgui-окон.\n\nС помощью кнопки L теперь можно закрыть или открыть свой автомобиль (/lock 1).'
+	local update_info = '{ffffff}Добавлена команда /asms.'
 
 sampShowDialog(10005, '{FFCD00}Обновление', update_info, 'Закрыть', '', 0)
 end
@@ -1522,6 +1536,10 @@ function imgui.OnDrawFrame()
 				if imgui.Button(u8'Информация', imgui.ImVec2(235, 30))     then show_item.v = 2 end
 				if imgui.Button(u8'Доп. команды', imgui.ImVec2(235, 30))   then show_item.v = 3 end
 				if imgui.Button(u8'Кастомизация', imgui.ImVec2(235, 30))   then show_item.v = 4 end
+				if imgui.Button(u8'Перезагрузить', imgui.ImVec2(235, 30))  then
+					show_menu.v = not show_menu.v
+					lua_thread.create(function() wait(1000) thisScript():reload() end)
+				end
 				
 				imgui.Text('')
 				
@@ -2294,7 +2312,7 @@ function kvadrat()
         [16] = "С",
         [17] = "Т",
         [18] = "У",
-        [19] = "Ф",
+        [19] = "Ф", 
         [20] = "Х",
         [21] = "Ц",
         [22] = "Ч",
@@ -2306,7 +2324,12 @@ function kvadrat()
     Y = math.ceil((Y * - 1 + 3000) / 250)
     Y = KV[Y]
     local KVX = (Y.."-"..X)
-    return KVX
+	
+	if KVX ~= nil then
+		return KVX
+	else
+		return 0
+	end
 end
 
 function sampGetBodyPart(id)
@@ -3321,8 +3344,13 @@ function sampev.onServerMessage(color, text)
 		local name, id = string.match(text, '(.+)[^%d](%d+)[^%d] был обнаружен в районе')
 		if IPC(id) then
 			SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 2.1 ЕПК нажмите сочетание клавиш ПКМ + 4.', sampGetPlayerNickname(id), id))
-			suspect_id = {id, 1, '2.1 ЕПК'}
+			suspect_id = {id, 1, '2.1 ЕПК', sampGetPlayerNickname(id)}
 		end
+	end
+	
+	if text:match('SMS.[%s](.+)[%s].[%s]Отправитель.[%s](.+)[%s].т.(%d+).') then
+		local text, name, number = text:match('SMS.[%s](.+)[%s].[%s]Отправитель.[%s](.+)[%s].т.(%d+).')
+		last_sms = number
 	end
 end
 
@@ -3504,29 +3532,38 @@ end
 function sampev.onSendTakeDamage(playerId, damage, weapon, bodypart)
 	if playerId ~= nil and damage ~= nil and weapon ~= nil and bodypart ~= nil then
 		if IPC(playerId) then
-			logdmg[tonumber(table.maxn(logdmg)) + 1] = '{ffffff}You {CD5C5C}<< {' .. sampGetColor(playerId) .. '}' .. sampGetPlayerNickname(playerId) .. '[' .. playerId .. ']{ffffff} by ' .. sampGetWeaponName(weapon) .. ' [{4876FF}' .. weapon .. '{ffffff}] ' .. sampGetBodyPart(bodypart) .. ' [{4876FF}' .. bodypart .. '{ffffff}] DMG[{FFD700}' .. math.floor(damage) .. '{ffffff}] HP[{EE3B3B}' .. sampGetPlayerHealth(playerId) .. '{ffffff}] ARM[{778899}' .. sampGetPlayerArmor(playerId) .. '{ffffff}]'
+			local name = sampGetPlayerNickname(playerId)
+			logdmg[tonumber(table.maxn(logdmg)) + 1] = '{ffffff}You {CD5C5C}<< {' .. sampGetColor(playerId) .. '}' .. name .. '[' .. playerId .. ']{ffffff} by ' .. sampGetWeaponName(weapon) .. ' [{4876FF}' .. weapon .. '{ffffff}] ' .. sampGetBodyPart(bodypart) .. ' [{4876FF}' .. bodypart .. '{ffffff}] DMG[{FFD700}' .. math.floor(damage) .. '{ffffff}] HP[{EE3B3B}' .. sampGetPlayerHealth(playerId) .. '{ffffff}] ARM[{778899}' .. sampGetPlayerArmor(playerId) .. '{ffffff}]'
 
 			if sampGetDistance(PLAYER_PED, playerId) <= 35 and sampGetPlayerColor(playerId) ~= 2236962 then
 				if TypeWeapon[tonumber(weapon)] == 2 then
-					SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 1.2 ЕПК нажмите сочетание клавиш ПКМ + 4.', sampGetPlayerNickname(playerId), playerId))
-					suspect_id = {playerId, 2, '1.2 ЕПК'}
+					if suspect_id[4] ~= name and suspect_id[3] ~= '1.2 ЕПК' then
+						SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 1.2 ЕПК нажмите сочетание клавиш ПКМ + 4.', sampGetPlayerNickname(playerId), playerId))
+						suspect_id = {playerId, 2, '1.2 ЕПК', name}
+					end
 				elseif TypeWeapon[tonumber(weapon)] == 3 then
-					SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 1.3 ЕПК нажмите сочетание клавиш ПКМ + 4.', sampGetPlayerNickname(playerId), playerId))
-					suspect_id = {playerId, 5, '1.3 ЕПК'}
+					if suspect_id[4] ~= name  and suspect_id[3] ~= '1.3 ЕПК' then
+						SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 1.3 ЕПК нажмите сочетание клавиш ПКМ + 4.', sampGetPlayerNickname(playerId), playerId))
+						suspect_id = {playerId, 5, '1.3 ЕПК', name}
+					end
 				elseif tonumber(weapon) == 49 then
 					local res, ped = sampGetCharHandleBySampPlayerId(playerId)
 					if res then
 						if isCharInAnyCar(ped) then
 						local carh = storeCarCharIsInNoSave(ped)
 							if getDriverOfCar(carh) == ped then
-								SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 7.9 ЕПК нажмите сочетание клавиш ПКМ + 4.', sampGetPlayerNickname(playerId), playerId))
-								suspect_id = {playerId, 1, '7.9 ЕПК'}
+								if suspect_id[4] ~= name and suspect_id[3] ~= '7.9 ЕПК' then
+									SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 7.9 ЕПК нажмите сочетание клавиш ПКМ + 4.', sampGetPlayerNickname(playerId), playerId))
+									suspect_id = {playerId, 1, '7.9 ЕПК', name}
+								end
 							end
 						end
 					end
 				else
-					SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 1.1 ЕПК нажмите сочетание клавиш ПКМ + 4.', sampGetPlayerNickname(playerId), playerId))
-					suspect_id = {playerId, 1, '1.1 ЕПК'}
+					if suspect_id[4] ~= name  and suspect_id[3] ~= '1.1 ЕПК' then
+						SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 1.1 ЕПК нажмите сочетание клавиш ПКМ + 4.', sampGetPlayerNickname(playerId), playerId))
+						suspect_id = {playerId, 1, '1.1 ЕПК', name}
+					end
 				end
 			end
 		end

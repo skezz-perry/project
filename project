@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(3.7)
+script_version(3.8)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -181,6 +181,7 @@ local ini = inicfg.load({
 local color_red          = '{CD5C5C}'
 local color_orange       = '{F4A460}'
 local color_green        = '{00CD66}'
+local test_code          = 'тест'
 local skin_table         = {}
 local lgov               = {}
 local info_scene         = {}
@@ -656,7 +657,7 @@ function decode()
 end
 
 function command_update()
-	local update_info = '{ffffff}Добавлена команда /asms.'
+	local update_info = '{ffffff}Добавлена команда /asms.\nДобавлена возможность декодировать скрипт в случае ошибки (NumPad3 => Decode).'
 
 sampShowDialog(10005, '{FFCD00}Обновление', update_info, 'Закрыть', '', 0)
 end
@@ -888,36 +889,28 @@ function command_search(id)
 end
 
 function command_epk(text)
-	if not string.match(text, '(.+)') then SCM('Используйте команду /епк [текст]')
+	if not string.match(text, '(.+)') then show_epk.v = not show_epk.v
 	else
-		if text == 'list' then
-			show_epk.v = not show_epk.v
-		else
-			for line in io.lines('moonloader\\helper\\epk.txt') do
-				if line:find(text) then
-					for i = 0, string.len(line) / 115 do
-						SCM(string.sub(line, i * 115, i * 115 + 115))
-					end
-					break
+		for line in io.lines('moonloader\\helper\\epk.txt') do
+			if line:find(text) then
+				for i = 0, string.len(line) / 115 do
+					SCM(string.sub(line, i * 115, i * 115 + 114))
 				end
+				break
 			end
 		end
 	end
 end
 
 function command_ustav(text)
-	if not string.match(text, '(.+)') then SCM('Используйте команду /устав [текст]')
+	if not string.match(text, '(.+)') then show_ustav.v = not show_ustav.v
 	else
-		if text == 'list' then
-			show_ustav.v = not show_ustav.v
-		else
-			for line in io.lines('moonloader\\helper\\ustav.txt') do
-				if line:find(text) then
-					for i = 0, string.len(line) / 115 do
-						SCM(string.sub(line, i * 115, i * 115 + 115))
-					end
-					break
+		for line in io.lines('moonloader\\helper\\ustav.txt') do
+			if line:find(text) then
+				for i = 0, string.len(line) / 115 do
+					SCM(string.sub(line, i * 115, i * 115 + 114))
 				end
+				break
 			end
 		end
 	end

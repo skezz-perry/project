@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(3.8)
+script_version(3.9)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -175,6 +175,13 @@ local ini = inicfg.load({
 		bm4                  = 1,
 		ak47                 = false,
 		bak47                = 1
+	},
+	gnews = {
+		gfisrt               = '/gnews МВД | Хочешь быстрый карьерный рост? Большие премии? Тогда тебе в LSPD!',
+		gsecond              = '/gnews МВД | Cобеседование пройдёт около департамента полиции Лос-Сантоса.',
+		gthree               = '/gnews МВД | При себе иметь паспорт c 3-х летней пропиской и комплект лицензий.',
+		gone                 = '/gnews МВД | Напоминаю про электронные заявления в полицейский департамент ЛС.',
+		gtwo                 = '/gnews МВД | Напоминаю, проходит собеседование в LSPD около департамента.'
 	}
 })
 
@@ -188,6 +195,7 @@ local info_scene         = {}
 local logchat            = {}
 local logdmg             = {}
 local dreason            = {}
+local gnews              = {}
 local suspect_id         = {}
 local param_cmd          = 0
 local last_sms           = 0
@@ -267,6 +275,7 @@ function main()
 	sampRegisterChatCommand('hist', command_history) 
 	sampRegisterChatCommand('skill+', command_skillplus)
 	sampRegisterChatCommand('asms', command_asms)
+	sampRegisterChatCommand('gov', command_gov)
 	
 	sampRegisterChatCommand('nhold', function(param)
 		if not param:match('(%d+)') then SCM('Используйте команду /nhold [ид игрока]') else sampSendChat('/hold '..param) end
@@ -617,6 +626,73 @@ function command_asms(text)
 		end
 	else
 		SCM('Используйте команду /asms [текст].')
+	end
+end
+
+function command_gov(id)
+	if string.match(id, '(%d+)') then
+		if gnews[1] ~= nil then
+			local timed = getTimeByPeriod(tonumber(gnews[1]), tonumber(gnews[2]), tonumber(gnews[3]), 5)
+			if sampGetPassedTimeByPeriod(tonumber(gnews[1]), tonumber(gnews[2]), tonumber(gnews[3]), 5) then
+				if tonumber(id) == 1 then
+					lua_thread.create(function()
+						sampSendChat(ini.gnews.gfirst)
+						wait(1000)
+						sampSendChat(ini.gnews.gsecond)
+						wait(1000)
+						sampSendChat(ini.gnews.gthree)
+						
+						gnews = {os.date('%H'), os.date('%M'), os.date('%S')}
+					end)
+				elseif tonumber(id) == 2 then
+					sampSendChat(ini.gnews.gtwo)
+					
+					gnews = {os.date('%H'), os.date('%M'), os.date('%S')}
+				elseif tonumber(id) == 3 then
+					sampSendChat(ini.gnews.gone)
+					
+					gnews = {os.date('%H'), os.date('%M'), os.date('%S')}
+				else
+					SCN('Неизвестный ид новости.')
+				end
+			else
+				SCM(string.format('В данный момент Вы {ff5c33}не можете{ffffff} отправить гос. новость.', gnews[1]))
+			end
+		else
+			if tonumber(id) == 1 then
+				lua_thread.create(function()
+					sampSendChat(ini.gnews.gfirst)
+					wait(1000)
+					sampSendChat(ini.gnews.gsecond)
+					wait(1000)
+					sampSendChat(ini.gnews.gthree)
+					
+					gnews = {os.date('%H'), os.date('%M'), os.date('%S')}
+				end)
+			elseif tonumber(id) == 2 then
+				sampSendChat(ini.gnews.gtwo)
+				
+				gnews = {os.date('%H'), os.date('%M'), os.date('%S')}
+			elseif tonumber(id) == 3 then
+				sampSendChat(ini.gnews.gone)
+				
+				gnews = {os.date('%H'), os.date('%M'), os.date('%S')}
+			else
+				SCM('Неизвестный ид новости.')
+			end
+		end
+	else
+		if gnews[1] ~= nil then
+			local timed = getTimeByPeriod(tonumber(gnews[1]), tonumber(gnews[2]), tonumber(gnews[3]), 5)
+			if sampGetPassedTimeByPeriod(tonumber(gnews[1]), tonumber(gnews[2]), tonumber(gnews[3]), 5) then
+				SCM('Используйте команду /gov [ид новости]. Вы {00cc99}можете{ffffff} отправить гос. новость.')
+			else
+				SCM('Используйте команду /gov [ид новости]. Вы {ff5c33}не можете{ffffff} отправить гос. новость.')
+				SCM(string.format('Вы сможете отправить гос. новость в %d ч. %d мин. %d сек.', timed[1], timed[2], timed[3]))
+			end
+		else
+			SCM('Используйте команду /gov [ид новости]. Вы {00cc99}можете{ffffff} отправить гос. новость.')
+		end
 	end
 end
 

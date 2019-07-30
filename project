@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(3.9)
+script_version(4.1)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -8,7 +8,7 @@ local KEY               = require 'vkeys'
 local rkeys             = require 'rkeys'
 local memory            = require 'memory'
 local imgui             = require 'imgui'
---local pie               = require 'imgui_piemenu'
+local pie               = require 'imgui_piemenu'
 local encoding          = require 'encoding'
 local color             = require "colorise"
 local inicfg            = require 'inicfg'
@@ -90,6 +90,7 @@ local commands = {
 	'/hold | Тащить игрока за собой',
 	'/ticket | Выписать штраф нарушителю',
 	'/takelic | Изъять лицензию на вождение',
+	'/rights | Зачитать права игроку',
 	'/putpl | Посадить подозреваемого в автомобиль',
 	'/search | Обыскать подозреваемого',
 	'/hack | Взломать дверь дома',
@@ -97,6 +98,7 @@ local commands = {
 	'/uninvite | Уволить игрока из организации',
 	'/rang | Изменить ранг игрока',
 	'/changeskin | Изменить внешность игрока',
+	'/gov | Отправить гос. новость',
 	'/ud | Показать удостоверение',
 	'/pas | Запросить документы у игрока',
 	'/ainfo | Открыть информационное меню',
@@ -121,7 +123,8 @@ local commands = {
 	'ПКМ + 2 | Открыть шлагбаум',
 	'ПКМ + 3 | Потребовать автомобиль остановится',
 	'ПКМ + 4 | Объявить игрока в розыск',
-	'1 | Включить Sceletal WallHack',
+	'ПКМ + Z | Быстрое меню (взаимод. с игроком)',
+	'Z | Быстрое меню',
 	'Alt | Включить стробоскопы',
 	'L | Открыть или закрыть свою машину'
 }
@@ -152,7 +155,8 @@ local ini = inicfg.load({
 		strobes              = false,
 		radio                = false,
 		autopass             = false,
-		autoweapon           = false
+		autoweapon           = false,
+		lowrp                = false
 	},
 	weapon = {
 		shit                 = false,
@@ -177,11 +181,12 @@ local ini = inicfg.load({
 		bak47                = 1
 	},
 	gnews = {
-		gfisrt               = '/gnews МВД | Хочешь быстрый карьерный рост? Большие премии? Тогда тебе в LSPD!',
-		gsecond              = '/gnews МВД | Cобеседование пройдёт около департамента полиции Лос-Сантоса.',
-		gthree               = '/gnews МВД | При себе иметь паспорт c 3-х летней пропиской и комплект лицензий.',
-		gone                 = '/gnews МВД | Напоминаю про электронные заявления в полицейский департамент ЛС.',
-		gtwo                 = '/gnews МВД | Напоминаю, проходит собеседование в LSPD около департамента.'
+		gfisrt               = 'МВД | Хочешь быстрый карьерный рост? Большие премии? Тогда тебе в LSPD!',
+		gsecond              = 'МВД | Cобеседование пройдёт около департамента полиции Лос-Сантоса.',
+		gthree               = 'МВД | При себе иметь паспорт c 3-х летней пропиской и комплект лицензий.',
+		gone                 = 'МВД | Напоминаю про электронные заявления в полицейский департамент ЛС.',
+		gtwo                 = 'МВД | Напоминаю, проходит собеседование в LSPD около департамента.',
+		gend                 = 'МВД | Собеседование в LSPD закончено, спасибо за внимание.'
 	}
 })
 
@@ -215,6 +220,12 @@ local show_ustav         = imgui.ImBool(false)
 local show_weapon        = imgui.ImBool(false)
 local vfilt              = imgui.ImBool(false)
 local show_item          = imgui.ImInt(0)
+local pgfirst            = imgui.ImBuffer(u8(ini.gnews.gfisrt))
+local pgsecond           = imgui.ImBuffer(u8(ini.gnews.gsecond))
+local pgthree            = imgui.ImBuffer(u8(ini.gnews.gthree))
+local pgone              = imgui.ImBuffer(u8(ini.gnews.gone))
+local pgtwo              = imgui.ImBuffer(u8(ini.gnews.gtwo))
+local pgend              = imgui.ImBuffer(u8(ini.gnews.gend))
 local pname              = imgui.ImBuffer(256)
 local prang              = imgui.ImBuffer(256)
 local pfrac              = imgui.ImBuffer(256)
@@ -233,6 +244,7 @@ local pstrobes           = imgui.ImBool(ini.set.strobes)
 local pradio             = imgui.ImBool(ini.set.radio)
 local pautopass          = imgui.ImBool(ini.set.autopass)
 local pautoweapon        = imgui.ImBool(ini.set.autoweapon)
+local plowrp             = imgui.ImBool(ini.set.lowrp)
 local editor             = imgui.ImBool(false)
 
 function main()
@@ -257,6 +269,7 @@ function main()
 	sampRegisterChatCommand('ticket', command_ticket)
 	sampRegisterChatCommand('takelic', command_takelic)
 	sampRegisterChatCommand('putpl', command_putpl)
+	sampRegisterChatCommand('rights', command_rights)
 	sampRegisterChatCommand('search', command_search)
 	sampRegisterChatCommand('follow', command_follow)
 	sampRegisterChatCommand('hack', command_hack)
@@ -391,6 +404,7 @@ function main()
 	lua_thread.create(strobe)
 	
 	apply_custom_style()
+	
 	local sX, sY = getScreenResolution()
 	clock_textdraw = mad.textdraw.new('', sX - 70, sY - 40)
 	clock_textdraw.style = mad.font_style.PRICEDOWN
@@ -516,15 +530,18 @@ function main()
 			end 
 		end
 		
-		--[[if wasKeyPressed(KEY.VK_Z) then
-			res, ped = getCharPlayerIsTargeting(PLAYER_HANDLE)
+		if wasKeyPressed(KEY.VK_Z) and not sampIsChatInputActive() and not sampIsDialogActive() then
+			local res, ped = getCharPlayerIsTargeting(PLAYER_HANDLE)
 			if res then
 				_, targetid = sampGetPlayerIdByCharHandle(ped)
 				piemenu.v = not piemenu.v
 			elseif piemenu.v then
 				piemenu.v = false
+			else
+				targetid = nil
+				piemenu.v = not piemenu.v
 			end
-        end--]]
+        end
 
 		if isCharInAnyCar(PLAYER_PED) and ini.set.strobes then
 
@@ -607,6 +624,12 @@ function command_fn(text)
 	if not string.match(text, '(.+)') then SCM('Используйте команду /fn [текст].') else sampSendChat('/f (( ' .. text .. ' ))') end
 end
 
+function command_update()
+	local update_info = '{ffffff}Добавлена команда /rights, с помощью которой можно зачитать права.\nДобавлена команда /gov, для отправки гос. новостей\n\nДобавлено быстрое меню, активация Z или ПКМ + Z (взаимод. с игроком)\n\nДобавлены мелкие RP-отыгровки:\n• Открытие / Закрытие дверей в спецблок.\n• Использование маски.\n• Использование аптечки.\n\nВ меню настроек добавлена кнопка для восстановления кодировки.'
+
+	sampShowDialog(10005, '{FFCD00}Обновление', update_info, 'Закрыть', '', 0)
+end
+
 function command_report(text)
 	if not string.match(text, '(.+)') then
 		SCM('Используйте команду /rep [текст].')
@@ -636,21 +659,21 @@ function command_gov(id)
 			if sampGetPassedTimeByPeriod(tonumber(gnews[1]), tonumber(gnews[2]), tonumber(gnews[3]), 5) then
 				if tonumber(id) == 1 then
 					lua_thread.create(function()
-						sampSendChat(ini.gnews.gfirst)
+						sampSendChat('/gnews ' .. ini.gnews.gfirst)
 						wait(1000)
-						sampSendChat(ini.gnews.gsecond)
+						sampSendChat('/gnews ' .. ini.gnews.gsecond)
 						wait(1000)
-						sampSendChat(ini.gnews.gthree)
-						
+						sampSendChat('/gnews ' .. ini.gnews.gthree)
 						gnews = {os.date('%H'), os.date('%M'), os.date('%S')}
 					end)
 				elseif tonumber(id) == 2 then
-					sampSendChat(ini.gnews.gtwo)
-					
+					sampSendChat('/gnews ' .. ini.gnews.gtwo)
 					gnews = {os.date('%H'), os.date('%M'), os.date('%S')}
 				elseif tonumber(id) == 3 then
-					sampSendChat(ini.gnews.gone)
-					
+					sampSendChat('/gnews ' .. ini.gnews.gend)
+					gnews = {os.date('%H'), os.date('%M'), os.date('%S')}
+				elseif tonumber(id) == 4 then
+					sampSendChat('/gnews ' .. ini.gnews.gone)
 					gnews = {os.date('%H'), os.date('%M'), os.date('%S')}
 				else
 					SCN('Неизвестный ид новости.')
@@ -661,24 +684,24 @@ function command_gov(id)
 		else
 			if tonumber(id) == 1 then
 				lua_thread.create(function()
-					sampSendChat(ini.gnews.gfirst)
+					sampSendChat('/gnews ' .. ini.gnews.gfirst)
 					wait(1000)
-					sampSendChat(ini.gnews.gsecond)
+					sampSendChat('/gnews ' .. ini.gnews.gsecond)
 					wait(1000)
-					sampSendChat(ini.gnews.gthree)
-					
+					sampSendChat('/gnews ' .. ini.gnews.gthree)
 					gnews = {os.date('%H'), os.date('%M'), os.date('%S')}
 				end)
 			elseif tonumber(id) == 2 then
-				sampSendChat(ini.gnews.gtwo)
-				
+				sampSendChat('/gnews ' .. ini.gnews.gtwo)
 				gnews = {os.date('%H'), os.date('%M'), os.date('%S')}
 			elseif tonumber(id) == 3 then
-				sampSendChat(ini.gnews.gone)
-				
+				sampSendChat('/gnews ' .. ini.gnews.gend)
+				gnews = {os.date('%H'), os.date('%M'), os.date('%S')}
+			elseif tonumber(id) == 4 then
+				sampSendChat('/gnews ' .. ini.gnews.gone)
 				gnews = {os.date('%H'), os.date('%M'), os.date('%S')}
 			else
-				SCM('Неизвестный ид новости.')
+				SCN('Неизвестный ид новости.')
 			end
 		end
 	else
@@ -732,10 +755,18 @@ function decode()
 	fw:close()
 end
 
-function command_update()
-	local update_info = '{ffffff}Добавлена команда /asms.\nДобавлена возможность декодировать скрипт в случае ошибки (NumPad3 => Decode).'
-
-sampShowDialog(10005, '{FFCD00}Обновление', update_info, 'Закрыть', '', 0)
+function command_rights()
+	lua_thread.create(function()
+		sampSendChat('Вы имеете право хранить молчание. ')
+		wait(1500)
+		sampSendChat('Всё, что вы скажете, может и будет использовано против вас в суде. ')
+		wait(1500)
+		sampSendChat('Ваш адвокат может присутствовать при допросе. ')
+		wait(1500)
+		sampSendChat('Если вы не можете оплатить услуги адвоката, он будет предоставлен вам государством.')
+		wait(1500)
+		sampSendChat('Вы понимаете свои права?')
+	end)
 end
 
 function command_cobject(id)
@@ -1103,7 +1134,6 @@ function command_follow()
 			end
 		end
 	end)
-	follow_state = not follow_state
 end
 
 function command_rang(param)
@@ -1552,6 +1582,7 @@ function imgui.OnDrawFrame()
 				if imgui.Button(u8'Информация', imgui.ImVec2(235, 30))     then show_item.v = 2 end
 				if imgui.Button(u8'Доп. команды', imgui.ImVec2(235, 30))   then show_item.v = 3 end
 				if imgui.Button(u8'Кастомизация', imgui.ImVec2(235, 30))   then show_item.v = 4 end
+				if imgui.Button(u8'Панель лидера', imgui.ImVec2(235, 30))  then show_item.v = 5 end
 				if imgui.Button(u8'Перезагрузить', imgui.ImVec2(235, 30))  then
 					show_menu.v = not show_menu.v
 					lua_thread.create(function() wait(1000) thisScript():reload() end)
@@ -1633,6 +1664,10 @@ function imgui.OnDrawFrame()
 						ini.set.camera = pcamera.v
 						inicfg.save(ini) 
 					end
+					if imgui.Checkbox(u8'Мелкие отыгровки', plowrp) then 
+						ini.set.lowrp = plowrp.v
+						inicfg.save(ini) 
+					end
 					if imgui.Checkbox(u8'Авто-проверка паспорта', pautopass) then 
 						ini.set.autopass = pautopass.v
 						inicfg.save(ini) 
@@ -1647,6 +1682,13 @@ function imgui.OnDrawFrame()
 							show_weapon.v = not show_weapon.v
 						end
 					end
+					
+					imgui.Text('')
+					
+					if imgui.Button('DONT PRESS!') then
+						decode()
+					end
+					ItemActive('Данная кнопка нужна для того, чтобы восстановить кодировку скрипта.\nЕсли же у вас нету иероглифов, то слетит весь текст в скрипте.')
 				end
 				
 				if show_item.v == 1 then
@@ -1857,6 +1899,56 @@ function imgui.OnDrawFrame()
 					imgui.CenterTextColoredRGB('Coming soon <3')
 				end
 				
+				
+				if show_item.v == 5 then
+					imgui.CenterTextColoredRGB('ГОСУДАРСТВЕННЫЕ НОВОСТИ')
+					
+					imgui.Text('')
+					
+					imgui.CenterTextColoredRGB('ID 1 | Новость о начале собеседования (3 строки)')
+					imgui.PushItemWidth(415)
+					imgui.InputText('##gnews1', pgfirst)
+					imgui.InputText('##gnews2', pgsecond)
+					imgui.InputText('##gnews3', pgthree)
+					
+					imgui.Text('')
+					
+					imgui.CenterTextColoredRGB('ID 2 | Новость о продолжении собеседования (1 строка)')
+					imgui.InputText('##gnews4', pgtwo)
+					
+					imgui.Text('')
+					
+					imgui.CenterTextColoredRGB('ID 3 | Новость о окончании собеседования (1 строка)')
+					imgui.InputText('##gnews5', pgend)
+					
+					imgui.Text('')
+					
+					imgui.CenterTextColoredRGB('ID 4 | Новость о заявлениях на портале (1 строка)')
+					imgui.InputText('##gnews6', pgone)
+					
+					imgui.Text('')
+					
+					if imgui.Button(u8'Сохранить') then
+						ini.gnews.gfirst = u8:decode(pgfirst.v)
+						ini.gnews.gsecond = u8:decode(pgsecond.v)
+						ini.gnews.gthree = u8:decode(pgthree.v)
+						ini.gnews.gtwo = u8:decode(pgtwo.v)
+						ini.gnews.gone = u8:decode(pgone.v)
+						ini.gnews.gend = u8:decode(pgend.v)
+						inicfg.save(ini)
+					end
+					
+					imgui.SameLine()
+					
+					if imgui.Button(u8'Стандартные значения') then
+						pgfirst.v   = u8'МВД | Хочешь быстрый карьерный рост? Большие премии? Тогда тебе в LSPD!'
+						pgsecond.v  = u8'МВД | Cобеседование пройдёт около департамента полиции Лос-Сантоса.'
+						pgthree.v   = u8'МВД | При себе иметь паспорт c 3-х летней пропиской и комплект лицензий.'
+						pgone.v     = u8'МВД | Напоминаю про электронные заявления в полицейский департамент ЛС.'
+						pgtwo.v     = u8'МВД | Напоминаю, проходит собеседование в LSPD около департамента.'
+						pgend.v     = u8'МВД | Собеседование в LSPD закончено, спасибо за внимание.'
+					end
+				end
 			imgui.EndChild()
 		imgui.End()
 		
@@ -2084,26 +2176,66 @@ function imgui.OnDrawFrame()
 	if piemenu.v then
         imgui.OpenPopup('PieMenu')
         if pie.BeginPiePopup('PieMenu', 0) then
-			if pie.PieMenuItem(u8'cuff') then
-				command_cuff(targetid)
-			end
+			if targetid ~= nil then
+				if pie.BeginPieMenu(u8'player') then
+					if pie.PieMenuItem(u8'pass') then
+						sampSendChat('/pass ' .. targetid)
+						piemenu.v = not piemenu.v
+					end
+					
+					if pie.PieMenuItem(u8'licenses') then
+						sampSendChat('/lic ' .. targetid)
+						piemenu.v = not piemenu.v
+					end
+					
+					if pie.PieMenuItem(u8'wbook') then
+						sampSendChat('/wbook ' .. targetid)
+						piemenu.v = not piemenu.v
+					end
+					
+					if pie.PieMenuItem(u8'history') then
+						command_history(targetid)
+						piemenu.v = not piemenu.v
+					end
+					pie.EndPieMenu()
+				end
 
-			if pie.PieMenuItem(u8'putpl') then
-				command_putpl(targetid)
+				if pie.PieMenuItem(u8'cuff') then
+					command_cuff(targetid)
+					piemenu.v = not piemenu.v
+				end
+				
+				if pie.PieMenuItem(u8'hold') then
+					command_hold(targetid)
+					piemenu.v = not piemenu.v
+				end
+				
+				if pie.PieMenuItem(u8'putpl') then
+					command_putpl(targetid)
+					piemenu.v = not piemenu.v
+				end
+			else
+				if pie.PieMenuItem(u8'mn') then
+					sampSendChat('/mn')
+					piemenu.v = not piemenu.v
+				end
+				
+				if pie.PieMenuItem(u8'rights') then
+					command_rights()
+					piemenu.v = not piemenu.v
+				end
+				
+				if pie.PieMenuItem(u8'follow') then
+					command_follow()
+					piemenu.v = not piemenu.v
+				end
+				
+				if pie.PieMenuItem(u8'admins') then
+					command_admins()
+					piemenu.v = not piemenu.v
+				end
 			end
-
-			if pie.PieMenuItem(u8'hold') then
-				command_hold(targetid)
-			end
-
-			if pie.PieMenuItem(u8'skip') then
-				command_skip(targetid)
-			end
-
-			if pie.PieMenuItem(u8'search') then
-				command_search(targetid)
-			end
-        pie.EndPiePopup()
+			pie.EndPiePopup()
         end
     end
 end
@@ -3063,7 +3195,7 @@ function apply_custom_style()
 	style.GrabMinSize = 8.0
 	style.GrabRounding = 1.0
 	
-	colors[clr.Text]                  = ImVec4(0.00, 0.00, 0.00, 0.51)
+	colors[clr.Text]                  = ImVec4(0.00, 0.00, 0.00, 0.85)
 	colors[clr.TextDisabled]          = ImVec4(0.24, 0.24, 0.24, 1.00)
 	colors[clr.WindowBg]              = ImVec4(1.00, 1.00, 1.00, 1.00)
 	colors[clr.ChildWindowBg]         = ImVec4(0.96, 0.96, 0.96, 1.00)
@@ -3342,6 +3474,40 @@ function sampev.onServerMessage(color, text)
 		local text, name, number = text:match('SMS.[%s](.+)[%s].[%s]Отправитель.[%s](.+)[%s].т.(%d+).')
 		last_sms = number
 	end
+	
+	if text:find('Вы закрыли двери в спецблок') and ini.set.lowrp then
+		if ini.info.male then
+			sampSendChat('/me проведя картой по считывающему устройству, закрыл дверь в спецблок')
+		else
+			sampSendChat('/me проведя картой по считывающему устройству, закрыла дверь в спецблок')
+		end
+	end
+	
+	if text:find('Вы открыли двери в спецблок') and ini.set.lowrp then
+		if ini.info.male then
+			sampSendChat('/me проведя картой по считывающему устройству, открыл дверь в спецблок')
+		else
+			sampSendChat('/me проведя картой по считывающему устройству, открыла дверь в спецблок')
+		end
+	end
+	
+	if text:find('Вы использовали аптечку. Здоровье пополнено на 60 единиц') and ini.set.lowrp then
+		if ini.info.male then
+			sampSendChat('/me достал шприц с морфием и вколол его себе в бедро')
+		else
+			sampSendChat('/me достала шприц с морфием и вколола его себе в бедро')
+		end
+	end
+	
+	if text:find('Вы подключились к внутреннему каналу связи организации') then
+		follow_state = true
+		return true
+	end
+	
+	if text:find('Вы отключились от внутреннего канала связи организации') then
+		follow_state = false
+		return true
+	end
 end
 
 function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
@@ -3506,7 +3672,7 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 			for i = 1, 12 do
 				if ini.weapon[InfoWeapon[i][3]] then
 					sampSendDialogResponse(175, 1, i - 1, -1)
-					if i > 4 and ini.weapon[InfoWeapon[i][4]] == 2 then sampSendDialogResponse(175, 1, i - 1, -1) end
+					if i > 3 and ini.weapon[InfoWeapon[i][4]] == 2 then sampSendDialogResponse(175, 1, i - 1, -1) end
 				end
 			end
 		end
@@ -3698,11 +3864,35 @@ function sampev.onSetPlayerColor(playerId, color)
 			if color ~= 572662272 and timerActive then
 				timerActive = false
 				clock_textdraw.text = ''
+				
+				if ini.set.lowrp then
+					if ini.info.male then
+						sampSendChat('/me снял маску с головы, после чего положил её в карман')
+					else
+						sampSendChat('/me сняла маску с головы, после чего положила её в карман')
+					end
+				end
 			elseif color == 572662272 and timerActive then
 				timerActive = false
 				clock_textdraw.text = ''
+				
+				if ini.set.lowrp then
+					if ini.info.male then
+						sampSendChat('/me снял маску с головы, после чего положил её в карман')
+					else
+						sampSendChat('/me сняла маску с головы, после чего положила её в карман')
+					end
+				end
 			elseif color == 572662272 and not timerActive then
 				startMaskTimer()
+				
+				if ini.set.lowrp then
+					if ini.info.male then
+						sampSendChat('/me достал маску из кармана, после чего одел её на себя')
+					else
+						sampSendChat('/me достала маску из кармана, после чего одела её на себя')
+					end
+				end
 			end
 		end
 	end

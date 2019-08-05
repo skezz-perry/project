@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(4.2)
+script_version(4.3)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -73,6 +73,7 @@ local InfoWeapon = {{'Щит', false, 'shit', 'bshit', 1},
 }
 
 local commands = {
+	'КОМАНДА | ОПИСАНИЕ',
 	'/mh | Открыть основное меню',
 	'/update | Информация о последнем обновлении',
 	'/admins | Открыть админ-список',
@@ -157,7 +158,8 @@ local ini = inicfg.load({
 		radio                = false,
 		autopass             = false,
 		autoweapon           = false,
-		lowrp                = false
+		lowrp                = false,
+		rpweapon             = false
 	},
 	weapon = {
 		shit                 = false,
@@ -182,7 +184,7 @@ local ini = inicfg.load({
 		bak47                = 1
 	},
 	gnews = {
-		gfisrt               = 'МВД | Хочешь быстрый карьерный рост? Большие премии? Тогда тебе в LSPD!',
+		gfirst               = 'МВД | Хочешь быстрый карьерный рост? Большие премии? Тогда тебе в LSPD!',
 		gsecond              = 'МВД | Cобеседование пройдёт около департамента полиции Лос-Сантоса.',
 		gthree               = 'МВД | При себе иметь паспорт c 3-х летней пропиской и комплект лицензий.',
 		gone                 = 'МВД | Напоминаю про электронные заявления в полицейский департамент ЛС.',
@@ -205,6 +207,7 @@ local gnews              = {}
 local suspect_id         = {}
 local param_cmd          = 0
 local last_sms           = 0
+local lweap              = 0
 local speed              = 0.3
 local flymode            = false
 local showtimer          = false
@@ -222,12 +225,13 @@ local show_ustav         = imgui.ImBool(false)
 local show_weapon        = imgui.ImBool(false)
 local vfilt              = imgui.ImBool(false)
 local show_item          = imgui.ImInt(0)
-local pgfirst            = imgui.ImBuffer(u8(ini.gnews.gfisrt))
-local pgsecond           = imgui.ImBuffer(u8(ini.gnews.gsecond))
-local pgthree            = imgui.ImBuffer(u8(ini.gnews.gthree))
-local pgone              = imgui.ImBuffer(u8(ini.gnews.gone))
-local pgtwo              = imgui.ImBuffer(u8(ini.gnews.gtwo))
-local pgend              = imgui.ImBuffer(u8(ini.gnews.gend))
+local page_num           = imgui.ImInt(0)
+local pgfirst            = imgui.ImBuffer(u8(ini.gnews.gfirst), 250)
+local pgsecond           = imgui.ImBuffer(u8(ini.gnews.gsecond), 250)
+local pgthree            = imgui.ImBuffer(u8(ini.gnews.gthree), 250)
+local pgone              = imgui.ImBuffer(u8(ini.gnews.gone), 250)
+local pgtwo              = imgui.ImBuffer(u8(ini.gnews.gtwo), 250)
+local pgend              = imgui.ImBuffer(u8(ini.gnews.gend), 250)
 local pname              = imgui.ImBuffer(256)
 local prang              = imgui.ImBuffer(256)
 local pfrac              = imgui.ImBuffer(256)
@@ -246,6 +250,7 @@ local pstrobes           = imgui.ImBool(ini.set.strobes)
 local pradio             = imgui.ImBool(ini.set.radio)
 local pautopass          = imgui.ImBool(ini.set.autopass)
 local pautoweapon        = imgui.ImBool(ini.set.autoweapon)
+local prpweapon          = imgui.ImBool(ini.set.rpweapon)
 local plowrp             = imgui.ImBool(ini.set.lowrp)
 local editor             = imgui.ImBool(false)
 
@@ -288,7 +293,6 @@ function main()
 	sampRegisterChatCommand('st', command_settime)
 	sampRegisterChatCommand('skin', command_setskin)
 	sampRegisterChatCommand('hist', command_history) 
-	sampRegisterChatCommand('skill+', command_skillplus)
 	sampRegisterChatCommand('asms', command_asms)
 	sampRegisterChatCommand('gov', command_gov)
 	sampRegisterChatCommand('чс', command_bl)
@@ -368,20 +372,7 @@ function main()
 		end
 	end)
 	
-	sampRegisterChatCommand('sms', function(value)
-		if string.match(value, '(%d+) (%S+)') then 
-			local number, text = string.match(value, '(%d+) (.+)')
-
-			if string.len(text) > 60 then
-				sampSendChat(string.format('/sms %d %s ..', number, string.sub(text, 0, 60)))
-				sampSendChat(string.format('/sms %d .. %s', number, string.sub(text, 61, string.len(text))))
-			else
-				sampSendChat(string.format('/sms %d %s', number, string.sub(text, 0, 60)))
-			end
-		else
-			sampAddChatMessage('Используйте команду /sms [номер телефона] [сообщение]', 0xFFCECECE)
-		end
-	end)
+	sampRegisterChatCommand('sms', command_sms)
 	
 	sampRegisterChatCommand('ainfo', function()
 		show_info.v = not show_info.v
@@ -406,6 +397,8 @@ function main()
 	end)
 	lua_thread.create(strobe)
 	
+	SCM('Что-то новенькое...')
+	
 	apply_custom_style()
 	
 	local sX, sY = getScreenResolution()
@@ -426,14 +419,78 @@ function main()
 			show_menu.v = not show_menu.v
 		end
 		
-		if wasKeyPressed(KEY.VK_1) and isKeyDown(VK_RBUTTON) then sampSendChat('/eat') end
+		if wasKeyPressed(KEY.VK_1) and isKeyDown(VK_RBUTTON) then 
+			if not isSampfuncsConsoleActive() and not sampIsChatInputActive() and not sampIsDialogActive() then
+				sampSendChat('/eat') 
+			end
+		end
 
-		if wasKeyPressed(KEY.VK_2) and isKeyDown(VK_RBUTTON) then sampSendChat('/open') end
+		if wasKeyPressed(KEY.VK_2) and isKeyDown(VK_RBUTTON) then 
+			if not isSampfuncsConsoleActive() and not sampIsChatInputActive() and not sampIsDialogActive() then
+				sampSendChat('/open') 
+			end
+		end
 
 		if wasKeyPressed(KEY.VK_4) and isKeyDown(VK_RBUTTON) then
 			if suspect_id[1] ~= nil then
 				if IPC(suspect_id[1]) then 
 					command_su(string.format('%d %d %s', suspect_id[1], suspect_id[2], suspect_id[3])) 
+				end
+			end
+		end
+		
+		if ini.set.rpweapon then
+			if wasKeyPressed(KEY.VK_RBUTTON) and lweap ~= getCurrentCharWeapon(PLAYER_PED) then
+				if not isSampfuncsConsoleActive() and not sampIsChatInputActive() and not sampIsDialogActive() then
+					if getCurrentCharWeapon(PLAYER_PED) ~= 0 then
+						lua_thread.create(function()
+							local result, rp = sampWeaponScene(getCurrentCharWeapon(PLAYER_PED))
+							if result then
+								wait(350)
+								lweap = getCurrentCharWeapon(PLAYER_PED)
+								sampSendChat(string.format('/me %s', rp))
+								
+								while lweap == getCurrentCharWeapon(PLAYER_PED) do wait(0) end
+								
+								wait(800)
+								
+								if (lweap ~= getCurrentCharWeapon(PLAYER_PED)) then
+									local aresult, arp = sampWeaponSceneOff(lweap)
+									if aresult then
+										sampSendChat(string.format('/me %s', arp))
+									end
+								end
+								lweap = -1
+							end
+						end)
+					end
+				end
+			end
+			
+			if wasKeyPressed(KEY.VK_R) and isKeyDown(VK_MENU) and lweap ~= getCurrentCharWeapon(PLAYER_PED) then
+				if not isSampfuncsConsoleActive() and not sampIsChatInputActive() and not sampIsDialogActive() then
+					if getCurrentCharWeapon(PLAYER_PED) ~= 0 then
+						lua_thread.create(function()
+							local result, rp = sampWeaponScene(getCurrentCharWeapon(PLAYER_PED))
+							if result then
+								wait(350)
+								lweap = getCurrentCharWeapon(PLAYER_PED)
+								sampSendChat(string.format('/me %s', rp))
+								
+								while lweap == getCurrentCharWeapon(PLAYER_PED) do wait(0) end
+								
+								wait(800)
+								
+								if (lweap ~= getCurrentCharWeapon(PLAYER_PED)) then
+									local aresult, arp = sampWeaponSceneOff(lweap)
+									if aresult then
+										sampSendChat(string.format('/me %s', arp))
+									end
+								end
+								lweap = -1
+							end
+						end)
+					end
 				end
 			end
 		end
@@ -444,7 +501,7 @@ function main()
 			imgui.Process = false
 		end
 		
-		if wasKeyPressed(KEY.VK_L) and not sampIsChatInputActive() and not sampIsDialogActive() then
+		if wasKeyPressed(KEY.VK_L) and not isSampfuncsConsoleActive() and not sampIsChatInputActive() and not sampIsDialogActive() then
 			sampSendChat('/lock 1')
 		end
 		
@@ -459,7 +516,7 @@ function main()
 			end
 		end
 		
-		if edit_obj ~= nil and not sampIsChatInputActive() and not sampIsDialogActive() and text_id == nil then
+		if edit_obj ~= nil and not isSampfuncsConsoleActive() and not sampIsChatInputActive() and not sampIsDialogActive() and text_id == nil then
 			-- вращение
 			if isKeyDown(VK_NUMPAD8) and isKeyDown(VK_CONTROL) then
 				obj_qx = obj_qx + obj_srotate
@@ -506,7 +563,7 @@ function main()
 			end
 		end
 		
-		if text_id ~= nil and not sampIsChatInputActive() and not sampIsDialogActive() and edit_obj == nil then
+		if text_id ~= nil and not isSampfuncsConsoleActive() and not sampIsChatInputActive() and not sampIsDialogActive() and edit_obj == nil then
 			-- движение
 			if isKeyDown(VK_NUMPAD8) then
 				text_y = text_y + 0.04
@@ -533,7 +590,7 @@ function main()
 			end 
 		end
 		
-		if wasKeyPressed(KEY.VK_Z) and not sampIsChatInputActive() and not sampIsDialogActive() then
+		if wasKeyPressed(KEY.VK_Z) and not isSampfuncsConsoleActive() and not sampIsChatInputActive() and not sampIsDialogActive() then
 			local res, ped = getCharPlayerIsTargeting(PLAYER_HANDLE)
 			if res then
 				_, targetid = sampGetPlayerIdByCharHandle(ped)
@@ -610,9 +667,7 @@ function main()
 		end
 		
 		if isKeyDown(VK_C) and isKeyDown(VK_1) then
-			if not flymode then
-				displayRadar(false)
-				displayHud(false)	    
+			if not flymode and not isSampfuncsConsoleActive() and not sampIsChatInputActive() and not sampIsDialogActive() then    
 				posX, posY, posZ = getCharCoordinates(playerPed)
 				angZ = getCharHeading(playerPed)
 				angZ = angZ * -1.0
@@ -759,10 +814,8 @@ function main()
 				printStringNow(speed, 1000)
 			end   
 
-			if isKeyDown(VK_C) and isKeyDown(VK_2) then
+			if isKeyDown(VK_C) and isKeyDown(VK_2) and not isSampfuncsConsoleActive() and not sampIsChatInputActive() and not sampIsDialogActive() then
 				if flymode then
-					displayRadar(true)
-					displayHud(true)
 					radarHud = 0	    
 					angPlZ = angZ * -1.0
 					lockPlayerControl(false)
@@ -792,7 +845,7 @@ function command_fn(text)
 end
 
 function command_update()
-	local update_info = '{ffffff}Добавлена команда /rights, с помощью которой можно зачитать права.\nДобавлена команда /gov, для отправки гос. новостей\n\nДобавлено быстрое меню, активация Z или ПКМ + Z (взаимод. с игроком)\n\nДобавлены мелкие RP-отыгровки:\n• Открытие / Закрытие дверей в спецблок.\n• Использование маски.\n• Использование аптечки.\n\nВ меню настроек добавлена кнопка для восстановления кодировки.\n\nДобавлен CamHack, активация С + 1, деактивация С + 2, настройка скорости + -.\n\nДобавлена  команда /чс для проверки на наличие в ЧС по нику игрока.'
+	local update_info = '{ffffff}Добавлена полуавтоматическая отыгровка оружия, активация отыгровки ПКМ или Alt + R.\n\nИсправлена проблема с вводом текста для гос. новостей.'
 
 	sampShowDialog(10005, '{FFCD00}Обновление', update_info, 'Закрыть', '', 0)
 end
@@ -807,10 +860,25 @@ function command_report(text)
 	end
 end
 
+function command_sms(value)
+	if string.match(value, '(%d+) (%S+)') then 
+		local number, text = string.match(value, '(%d+) (.+)')
+
+		if string.len(text) > 60 then
+			sampSendChat(string.format('/sms %d %s ..', number, string.sub(text, 0, 60)))
+			sampSendChat(string.format('/sms %d .. %s', number, string.sub(text, 61, string.len(text))))
+		else
+			sampSendChat(string.format('/sms %d %s', number, string.sub(text, 0, 60)))
+		end
+	else
+		sampAddChatMessage('Используйте команду /sms [номер телефона] [сообщение]', 0xFFCECECE)
+	end
+end
+
 function command_asms(text)
 	if string.match(text, '(%S+)') then
 		if last_sms ~= 0 then
-			sampSendChat(string.format('/sms %d %s', last_sms, text))
+			command_sms(string.format('/sms %d %s', last_sms, text))
 		else
 			SCM('Ранее вам никто не отправлял SMS-сообщения.')
 		end
@@ -883,32 +951,6 @@ function command_gov(id)
 		else
 			SCM('Используйте команду /gov [ид новости]. Вы {00cc99}можете{ffffff} отправить гос. новость.')
 		end
-	end
-end
-
-function command_skillplus()
-	if skillplus then
-		skillplus = false
-		SCM('STOP')
-	else
-		skillplus = true
-		
-		SCM('START')
-		
-		lua_thread.create(function()
-			while skillplus do
-				wait(0)
-			
-				local wait_up = math.random(3300, 3600)
-				local wait_down = math.random(1300, 1600)
-			
-				setVirtualKeyDown(VK_UP, true)
-				wait(tonumber(wait_up))
-				setVirtualKeyDown(VK_UP, false)
-				wait(tonumber(wait_down))
-			end
-			SCM('THE END')
-		end)
 	end
 end
 
@@ -1819,26 +1861,32 @@ function imgui.OnDrawFrame()
 						ini.info.name = u8:decode(pname.v)
 						inicfg.save(ini)
 					end
+					ItemActive(string.format('Текущее значение: %s', ini.info.name))
 					if imgui.InputText(u8'Должность', prang) then
 						ini.info.rang = u8:decode(prang.v)
 						inicfg.save(ini)
 					end
+					ItemActive(string.format('Текущее значение: %s', ini.info.rang))
 					if imgui.InputText(u8'Подразделение', pfrac) then
 						ini.info.frac = u8:decode(pfrac.v)
 						inicfg.save(ini)
 					end
+					ItemActive(string.format('Текущее значение: %s', ini.info.frac))
 					if imgui.InputText(u8'Личный номер', pnumber) then
 						ini.info.number = u8:decode(pnumber.v)
 						inicfg.save(ini)
 					end
+					ItemActive(string.format('Текущее значение: %s', ini.info.number))
 					if imgui.InputText(u8'Префикс в основную рацию', rteg) then
 						ini.info.rteg = u8:decode(rteg.v)
 						inicfg.save(ini)
 					end
+					ItemActive(string.format('Текущее значение: %s', ini.info.rteg))
 					if imgui.InputText(u8'Префикс в общую волну', fteg) then
 						ini.info.fteg = u8:decode(fteg.v)
 						inicfg.save(ini)
 					end
+					ItemActive(string.format('Текущее значение: %s', ini.info.fteg))
 					
 					imgui.Text('')
 					
@@ -1878,6 +1926,10 @@ function imgui.OnDrawFrame()
 						ini.set.lowrp = plowrp.v
 						inicfg.save(ini) 
 					end
+					if imgui.Checkbox(u8'Полуавтоматические отыгровки оружия', prpweapon) then 
+						ini.set.rpweapon = prpweapon.v
+						inicfg.save(ini) 
+					end
 					if imgui.Checkbox(u8'Авто-проверка паспорта', pautopass) then 
 						ini.set.autopass = pautopass.v
 						inicfg.save(ini) 
@@ -1892,9 +1944,7 @@ function imgui.OnDrawFrame()
 							show_weapon.v = not show_weapon.v
 						end
 					end
-					
-					imgui.Text('')
-					
+
 					if imgui.Button('DONT PRESS!') then
 						decode()
 					end
@@ -1934,19 +1984,16 @@ function imgui.OnDrawFrame()
 				
 				if show_item.v == 2 then
 					imgui.Columns(2)
-					imgui.SetColumnWidth(-1, 150)
-					imgui.Text(u8'КОМАНДА') 
+					imgui.SetColumnWidth(-1, 100)
 					imgui.NextColumn()
 					imgui.SetColumnWidth(-1, 400)
-					imgui.Text(u8'ОПИСАНИЕ')
-					imgui.Separator()
 					for i, val in pairs(commands) do
 						local cmd, info = string.match(val, '(.+) | (.+)')
+						imgui.Separator()
 						imgui.NextColumn()
 						imgui.Text(string.format('%s', u8(cmd)))
 						imgui.NextColumn()
 						imgui.Text(string.format('%s', u8(info)))
-						imgui.Separator()
 					end
 				end
 				
@@ -2100,7 +2147,7 @@ function imgui.OnDrawFrame()
 					local resultext = resultext:gsub('sleep: ', u8('Задержка (в мс)	 '))
 					local resultext = resultext:gsub('text: ', u8('Сообщение в чат	'))
 					local resultext = resultext:gsub('send: ', u8('Серв. сообщение	'))
-					imgui.Text(resultext)
+					imgui.Text(string.format('%s', resultext))
 				end
 				
 				if show_item.v == 4 then
@@ -2164,7 +2211,8 @@ function imgui.OnDrawFrame()
 		
 		if show_help.v then
 			local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-			local info_function = {'{name} | Имя и фамилия | ' .. ini.info.name,
+			local info_function = {'ФУНКЦИЯ | ОПИСАНИЕ | РЕЗУЛЬТАТ',
+				'{name} | Имя и фамилия | ' .. ini.info.name,
 				'{rang} | Должность | ' .. ini.info.rang,
 				'{frac} | Подразделение | ' .. ini.info.frac,
 				'{number} | Личный номер | №000' .. ini.info.number,
@@ -2189,28 +2237,23 @@ function imgui.OnDrawFrame()
 			
 			imgui.SetNextWindowSize(imgui.ImVec2(550, 430))
 			imgui.Begin(u8'ФУНКЦИИ | HELPER FOR MIA', show_help, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
-				imgui.Separator()
 				imgui.Columns(3)
 				imgui.SetColumnWidth(-1, 150)
-				imgui.Text(u8'ФУНКЦИЯ') 
 				imgui.NextColumn()
 				imgui.SetColumnWidth(-1, 200)
-				imgui.Text(u8'ОПИСАНИЕ')
 				imgui.NextColumn()
-				imgui.Text(u8'РЕЗУЛЬТАТ')
-				imgui.Separator()
 				for i, val in pairs(info_function) do
 					local f, i, r = string.match(val, '(.+) | (.+) | (.+)')
 					if f == nil then f = 'nil' end
 					if i == nil then i = 'nil' end
 					if r == nil then r = 'nil' end
+					imgui.Separator()
 					imgui.NextColumn()
 					imgui.Text(string.format('%s', u8(f)))
 					imgui.NextColumn()
 					imgui.Text(string.format('%s', u8(i)))
 					imgui.NextColumn() 
 					imgui.Text(string.format('%s', u8(r)))
-					imgui.Separator()
 				end
 			imgui.End()
 		end
@@ -2263,7 +2306,6 @@ function imgui.OnDrawFrame()
 				if imgui.Button('Vehicles', imgui.ImVec2(130, 20)) then show_item.v = 1 end
 				if imgui.Button('Fraction', imgui.ImVec2(130, 20)) then show_item.v = 2 end
 				if imgui.Button('Chat', imgui.ImVec2(130, 20)) then show_item.v = 3 end
-				if imgui.Button('Damage', imgui.ImVec2(130, 20)) then show_item.v = 4 end
 			imgui.EndChild()
 			imgui.SameLine()
 
@@ -2286,7 +2328,7 @@ function imgui.OnDrawFrame()
 
 			if show_item.v == 1 then
 				imgui.BeginChild('##info_stream', imgui.ImVec2(730, 420), true, imgui.WindowFlags.VerticalScrollbar)
-					imgui.ToggleButton('##cars', vfilt); imgui.SameLine(); imgui.Text('Filter out the empty car')
+					imgui.Checkbox('Filter out the empty car', vfilt)
 					for i, val in pairs(getAllVehicles()) do
 						if doesVehicleExist(val) then
 							id = getCarModel(val)
@@ -2334,19 +2376,52 @@ function imgui.OnDrawFrame()
 			end
 			
 			if show_item.v == 3 then
-				imgui.BeginChild('##info_logs', imgui.ImVec2(730, 420), true, imgui.WindowFlags.VerticalScrollbar)
-					if imgui.Button(u8'Очистить') then logchat = nil; logchat = {} end
-					for i, val in pairs(logchat) do
-						imgui.TextColoredRGB(string.gsub(val, '{ffffff}', ''))
+				imgui.BeginChild('##info_logs', imgui.ImVec2(730, 420), true, imgui.WindowFlags.HorizontalScrollbar)
+					
+					local maxpage = math.floor(table.maxn(logchat) / 21)
+					
+					if imgui.Button(u8'Очистить') then 
+						logchat = nil
+						logchat = {} 
+						page_num.v = 0
 					end
-				imgui.EndChild()
-			end
-			
-			if show_item.v == 4 then
-				imgui.BeginChild('##info_logs', imgui.ImVec2(730, 420), true, imgui.WindowFlags.VerticalScrollbar)
-					if imgui.Button(u8'Очистить') then logdmg = nil; logdmg = {} end
-					for i, val in pairs(logdmg) do
-						imgui.TextColoredRGB(string.gsub(val, '{ffffff}', ''))
+					
+					imgui.SameLine()
+					
+					if imgui.Button('<<') then
+						page_num.v = 0
+					end
+					
+					imgui.SameLine()
+					
+					if imgui.Button('<') then
+						if page_num.v > 0 then
+							page_num.v = page_num.v - 1
+						end
+					end
+					
+					imgui.SameLine()
+					
+					imgui.Button(string.format(u8'[стр. %d из %d]', page_num.v, maxpage))
+						
+					imgui.SameLine()
+					
+					if imgui.Button('>') then
+						if page_num.v < maxpage then
+							page_num.v = page_num.v + 1
+						end
+					end
+					
+					imgui.SameLine()
+					
+					if imgui.Button('>>') then
+						page_num.v = maxpage
+					end
+					
+					for i, val in pairs(logchat) do
+						if (i <= page_num.v * 21 + 21) and (i >= page_num.v * 21) then
+							imgui.TextColoredRGB(string.gsub(val, '{.+}', ''))
+						end
 					end
 				imgui.EndChild()
 			end
@@ -2475,6 +2550,9 @@ function imgui.OnDrawFrame()
 						
 						pie.EndPieMenu()
 					end
+				else
+					SCM('Игрок, с которым вы хотели взаимодействовать, покинул игру.')
+					piemenu.v = not piemenu.v
 				end
 			else
 				if pie.PieMenuItem(u8'mn') then
@@ -2514,7 +2592,7 @@ end
 
 function isPlayerCar(ped)
 	if isCharInAnyCar(ped) then
-		carid = getCarModel(storeCarCharIsInNoSave(ped))
+		local carid = getCarModel(storeCarCharIsInNoSave(ped))
 		return carid
 	else
 		return 0
@@ -2525,8 +2603,8 @@ function sampIsPlayerCarHaveSuspect(id)
 	if IPC(id) then
 		res, ped = sampGetCharHandleBySampPlayerId(id)
 		if res then
-			vehicle = getCarCharIsUsing(ped)
-			myvehicle = getCarCharIsUsing(PLAYER_PED)
+			local vehicle = getCarCharIsUsing(ped)
+			local myvehicle = getCarCharIsUsing(PLAYER_PED)
 			if vehicle == myvehicle then
 				return true
 			else
@@ -2542,10 +2620,10 @@ end
 
 function sampIsPlayerCar(id)
 	if IPC(id) then
-		res, ped = sampGetCharHandleBySampPlayerId(id)
+		local res, ped = sampGetCharHandleBySampPlayerId(id)
 		if res then
-			vehicle = getCarCharIsUsing(ped)
-			vid = getCarModel(vehicle)
+			local vehicle = getCarCharIsUsing(ped)
+			local vid = getCarModel(vehicle)
 			return true, vid
 		else
 			return false, -1
@@ -2556,7 +2634,7 @@ function sampIsPlayerCar(id)
 end
 
 function sampGetHelloByTime()
-	hour = tonumber(os.date('%H'))
+	local hour = tonumber(os.date('%H'))
 
 	if hour > 3 and hour <= 12 then return 'Доброе утро'
 	elseif hour > 12 and hour <= 18 then return 'Добрый день'
@@ -2568,11 +2646,11 @@ function sampGetHelloByTime()
 end
 
 function sampGetDistance(ped1, id)
-	res, pid = sampGetPlayerIdByCharHandle(PLAYER_PED)
+	local res, pid = sampGetPlayerIdByCharHandle(PLAYER_PED)
 	if tonumber(id) == tonumber(pid) then
 		return 0
 	else
-		res, ped2 = sampGetCharHandleBySampPlayerId(id)
+		local res, ped2 = sampGetCharHandleBySampPlayerId(id)
 		if res then
 			x1, y1, z1 = getCharCoordinates(ped1)
 			x2, y2, z2 = getCharCoordinates(ped2)
@@ -2585,7 +2663,7 @@ function sampGetDistance(ped1, id)
 end
 
 function getTimeLast(time)
-	lget = {}
+	local lget = {}
 
 	lget[2] = 60 + (time[3] - os.date('%S'))
 	lget[1] = time[2] - os.date('%M') - 1
@@ -2609,7 +2687,7 @@ end
 
 function getTimeByPeriod(hour, minute, secund, period)
 	if period < 60 then
-		get = {}
+		local get = {}
 		if minute + period >= 60 then
 			hour = hour + 1
 			if hour > 23 then hour = 00 end
@@ -2743,7 +2821,7 @@ function kvadrat()
 end
 
 function sampGetBodyPart(id)
-	if id == 0 then body = 'unknown'
+	if id == 0 then body = 'Неизвестно'
 	elseif id == 1 then body = 'Спина'
 	elseif id == 2 then body = 'Голова'
 	elseif id == 3 then body = 'Плечо левой руки'
@@ -2818,6 +2896,54 @@ function sampGetWeaponName(id)
 	end
 
 	return weap
+end
+
+function sampWeaponScene(id)
+	if id == 24 or id == 22 or id == 23 then
+		if ini.info.male then
+			return true, 'схатившись правой рукой за пистолет, вытащил его из кобуры'
+		else
+			return true, 'схатившись правой рукой за пистолет, вытащила его из кобуры'
+		end
+	elseif id == 25 then
+		if ini.info.male then
+			return true, 'взявшись за ремень дробовика, снял его с плеча и взял в руки'
+		else
+			return true, 'взявшись за ремень дробовика, сняла его с плеча и взяла в руки'
+		end
+	elseif id == 29 then
+		if ini.info.male then
+			return true, 'скинул пистолет-пулемёт MP-5 с плеча и взял его в руки'
+		else
+			return true, 'скинула пистолет-пулемёт MP-5 с плеча и взяла его в руки'
+		end
+	end
+	
+	return false, ''
+end
+
+function sampWeaponSceneOff(id)
+	if id == 24 or id == 22 or id == 23 then
+		if ini.info.male then
+			return true, 'убрал пистолет обратно в кобуру, застягнув её'
+		else
+			return true, 'убрала пистолет обратно в кобуру, застягнув её'
+		end
+	elseif id == 25 then
+		if ini.info.male then
+			return true, 'повесил дробовик обратно на плечо, придерживая за ремень'
+		else
+			return true, 'повесила дробовик обратно на плечо, придерживая за ремень'
+		end
+	elseif id == 29 then
+		if ini.info.male then
+			return true, 'повесил пистолет-пулемёт MP-5 обратно на плечо'
+		else
+			return true, 'повесила пистолет-пулемёт MP-5 обратно на плечо'
+		end
+	end
+	
+	return false, ''
 end
 
 function calculateZone()
@@ -3593,61 +3719,6 @@ function imgui.TextColoredRGB(string)
     render_text(string)
 end
 
-function imgui.ToggleButton(str_id, bool)
-
-   local rBool = false
-
-   if LastActiveTime == nil then
-      LastActiveTime = {}
-   end
-   if LastActive == nil then
-      LastActive = {}
-   end
-
-   local function ImSaturate(f)
-      return f < 0.0 and 0.0 or (f > 1.0 and 1.0 or f)
-   end
-
-   local p = imgui.GetCursorScreenPos()
-   local draw_list = imgui.GetWindowDrawList()
-
-   local height = imgui.GetTextLineHeightWithSpacing() + (imgui.GetStyle().FramePadding.y / 2)
-   local width = height * 1.55
-   local radius = height * 0.50
-   local ANIM_SPEED = 0.15
-
-   if imgui.InvisibleButton(str_id, imgui.ImVec2(width, height)) then
-      bool.v = not bool.v
-      rBool = true
-      LastActiveTime[tostring(str_id)] = os.clock()
-      LastActive[str_id] = true
-   end
-
-   local t = bool.v and 1.0 or 0.0
-
-   if LastActive[str_id] then
-      local time = os.clock() - LastActiveTime[tostring(str_id)]
-      if time <= ANIM_SPEED then
-         local t_anim = ImSaturate(time / ANIM_SPEED)
-         t = bool.v and t_anim or 1.0 - t_anim
-      else
-         LastActive[str_id] = false
-      end
-   end
-
-   local col_bg
-   if imgui.IsItemHovered() then
-      col_bg = imgui.GetColorU32(imgui.GetStyle().Colors[imgui.Col.FrameBgHovered])
-   else
-      col_bg = imgui.GetColorU32(imgui.GetStyle().Colors[imgui.Col.FrameBg])
-   end
-
-   draw_list:AddRectFilled(p, imgui.ImVec2(p.x + width, p.y + height), col_bg, height * 0.5)
-   draw_list:AddCircleFilled(imgui.ImVec2(p.x + radius + t * (width - radius * 2.0), p.y + radius), radius - 1.5, imgui.GetColorU32(bool.v and imgui.GetStyle().Colors[imgui.Col.ButtonActive] or imgui.GetStyle().Colors[imgui.Col.Button]))
-
-   return rBool
-end
-
 function sampev.onServerMessage(color, text)
 	logchat[tonumber(table.maxn(logchat)) + 1] = 'CHAT\t   [' .. os.date('%H') .. ':' .. os.date('%M') .. ':' .. os.date('%S') .. '] ' .. text
 
@@ -3656,15 +3727,13 @@ function sampev.onServerMessage(color, text)
 	if text:find('  Объявление проверил сотрудник СМИ (.+)') and not ini.set.stopad then return false end
 	
 	if color == 869033727 and text:find('[R]') and ini.set.radio then
-		text = string.sub(text, 5)
-		text = string.gsub(text, '_', ' ')
+		local text = string.gsub(string.sub(text, 5), '_', ' ')
 		sampAddChatMessage('[TAC-1] '..text,0x9ACD32)
 		return false
 	end
 
 	if color == 1721355519 and text:find('[F]') and ini.set.radio then
-		text = string.sub(text, 5)
-		text = string.gsub(text, '_', ' ')
+		local text = string.gsub(string.sub(text, 5), '_', ' ')
 		sampAddChatMessage('[TAC-2] '..text,0x20B2AA)
 		return false
 	end
@@ -3692,8 +3761,8 @@ function sampev.onServerMessage(color, text)
 	end
 
 	if text:match('(.+) не удалось взломать дверь у дома №(%d+)') and color == -577699841 then
-		name, homeid = text:match('(.+)[%s]не[%s]удалось[%s]взломать[%s]дверь[%s]у[%s]дома[%s]№(%d+)')
-		_, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
+		local name, homeid = text:match('(.+)[%s]не[%s]удалось[%s]взломать[%s]дверь[%s]у[%s]дома[%s]№(%d+)')
+		local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 		if name == sampGetPlayerNickname(id) then
 			lua_thread.create(function()
 				wait(1000)
@@ -3882,10 +3951,10 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 				if id == 'offline' then
 					dline = string.format('%s{696969}%s\t{696969}%s\t{696969}%s\t{ff5c33}Оффлайн\n', dline, name, rang, frac)
 				else
-					res, ped = sampGetCharHandleBySampPlayerId(id)
+					local res, ped = sampGetCharHandleBySampPlayerId(id)
 					online = online + 1
 					if res then
-						dist = math.floor(sampGetDistance(PLAYER_PED, id))
+						local dist = math.floor(sampGetDistance(PLAYER_PED, id))
 						if sampIsPlayerPaused(id) then
 							dline = string.format('%s{%s}%s\t%s\t%s\t{ff5c33}Дист: %d м\n', dline, sampGetColor(id), name, rang, frac, dist)
 						else
@@ -3897,7 +3966,7 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 				end
 			end
 		end
-		caption = string.format('{ffffff}Всего лидеров {FFCD00}%d чел. {00CC66}(онлайн %d)', all, online)
+		local caption = string.format('{ffffff}Всего лидеров {FFCD00}%d чел. {00CC66}(онлайн %d)', all, online)
 		
 		sampShowDialog(dialogId, caption, dline, 'Подробнее', 'Закрыть', 5)
 		sampSetDialogClientside()
@@ -3954,9 +4023,6 @@ end
 function sampev.onSendTakeDamage(playerId, damage, weapon, bodypart)
 	if playerId ~= nil and damage ~= nil and weapon ~= nil and bodypart ~= nil then
 		if IPC(playerId) then
-			local name = sampGetPlayerNickname(playerId)
-			logdmg[tonumber(table.maxn(logdmg)) + 1] = '{ffffff}You {CD5C5C}<< {' .. sampGetColor(playerId) .. '}' .. name .. '[' .. playerId .. ']{ffffff} by ' .. sampGetWeaponName(weapon) .. ' [{4876FF}' .. weapon .. '{ffffff}] ' .. sampGetBodyPart(bodypart) .. ' [{4876FF}' .. bodypart .. '{ffffff}] DMG[{FFD700}' .. math.floor(damage) .. '{ffffff}] HP[{EE3B3B}' .. sampGetPlayerHealth(playerId) .. '{ffffff}] ARM[{778899}' .. sampGetPlayerArmor(playerId) .. '{ffffff}]'
-
 			if sampGetDistance(PLAYER_PED, playerId) <= 35 and sampGetPlayerColor(playerId) ~= 2236962 then
 				if TypeWeapon[tonumber(weapon)] == 2 then
 					if suspect_id[4] ~= name and suspect_id[3] ~= '1.2 ЕПК' then
@@ -3982,7 +4048,7 @@ function sampev.onSendTakeDamage(playerId, damage, weapon, bodypart)
 						end
 					end
 				else
-					if suspect_id[4] ~= name  and suspect_id[3] ~= '1.1 ЕПК' then
+					if suspect_id[4] ~= name and suspect_id[3] ~= '1.1 ЕПК' then
 						SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 1.1 ЕПК нажмите сочетание клавиш ПКМ + 4.', sampGetPlayerNickname(playerId), playerId))
 						suspect_id = {playerId, 1, '1.1 ЕПК', name}
 					end
@@ -3992,20 +4058,9 @@ function sampev.onSendTakeDamage(playerId, damage, weapon, bodypart)
 	end
 end
 
-function sampev.onSendGiveDamage(playerId, damage, weapon, bodypart)
-	if playerId ~= nil and damage ~= nil and weapon ~= nil and bodypart ~= nil then
-		if IPC(playerId) then
-			logdmg[tonumber(table.maxn(logdmg)) + 1] = '{ffffff}You {9ACD32}>> {' .. sampGetColor(playerId) .. '}' .. sampGetPlayerNickname(playerId) .. '[' .. playerId .. ']{ffffff} by ' .. sampGetWeaponName(weapon) .. ' [{4876FF}' .. weapon .. '{ffffff}] ' .. sampGetBodyPart(bodypart) .. ' [{4876FF}' .. bodypart .. '{ffffff}] DMG[{FFD700}' .. math.floor(damage) .. '{ffffff}] HP[{EE3B3B}' .. sampGetPlayerHealth(playerId) .. '{ffffff}] ARM[{778899}' .. sampGetPlayerArmor(playerId) .. '{ffffff}]'
-		end
-	end
-end
-
 function sampev.onSendDeathNotification(reas, id)
 	if reas ~= nil then
-		dreason[1] = calculateZone()
-		dreason[2] = os.date('%H')
-		dreason[3] = os.date('%M')
-		dreason[4] = os.date('%S')
+		dreason = {calculateZone(), os.date('%H'), os.date('%M'), os.date('%S')}
 	end
 end
 

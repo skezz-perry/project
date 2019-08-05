@@ -4023,7 +4023,10 @@ end
 function sampev.onSendTakeDamage(playerId, damage, weapon, bodypart)
 	if playerId ~= nil and damage ~= nil and weapon ~= nil and bodypart ~= nil then
 		if IPC(playerId) then
+			local name = sampGetPlayerNickname(playerId)
+			
 			if sampGetDistance(PLAYER_PED, playerId) <= 35 and sampGetPlayerColor(playerId) ~= 2236962 then
+				SCM('op')
 				if TypeWeapon[tonumber(weapon)] == 2 then
 					if suspect_id[4] ~= name and suspect_id[3] ~= '1.2 ЕПК' then
 						SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 1.2 ЕПК нажмите сочетание клавиш ПКМ + 4.', sampGetPlayerNickname(playerId), playerId))

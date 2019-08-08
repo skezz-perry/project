@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(4.6)
+script_version(4.7)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -231,6 +231,8 @@ local show_item          = imgui.ImInt(0)
 local page_num           = imgui.ImInt(0)
 local phone_item         = imgui.ImInt(0)
 local call_item          = imgui.ImInt(0)
+local call_number        = imgui.ImBuffer(7)
+local call_name          = imgui.ImBuffer(256)
 local pgfirst            = imgui.ImBuffer(u8(ini.gnews.gfirst), 250)
 local pgsecond           = imgui.ImBuffer(u8(ini.gnews.gsecond), 250)
 local pgthree            = imgui.ImBuffer(u8(ini.gnews.gthree), 250)
@@ -407,8 +409,6 @@ function main()
 		end
 	end)
 	lua_thread.create(strobe)
-	
-	SCM('Что-то новенькое...')
 	
 	apply_custom_style()
 	
@@ -2550,13 +2550,54 @@ function imgui.OnDrawFrame()
 				
 				if call_item.v == 0 then
 					for i, val in pairs(call_table) do
-						imgui.Button(u8(val), imgui.ImVec2(220, 20))
+						imgui.CustomButton(u8(val), imgui.ImVec4(0.00, 0.00, 0.00, 0.00), imgui.ImVec4(0.00, 0.42, 1.00, 0.10), imgui.ImVec4(0.00, 0.42, 1.00, 0.20), imgui.ImVec2(220, 20))
 					end
+					
+					--imgui.SetCursorPos(imgui.ImVec2(wsize.x - 40, wsize.y - 40)) 
+					--imgui.CustomButton('+', imgui.ImVec4(0.00, 0.42, 1.00, 0.20), imgui.ImVec4(0.00, 0.42, 1.00, 0.30), imgui.ImVec4(0.00, 0.42, 1.00, 0.35), imgui.ImVec2(30, 30)) 
 				end
 				
 				if call_item.v == 1 then
-					imgui.Text(u8'В разработке...')
-				end 
+					local path = 'moonloader\\helper\\contact.txt'
+					
+					if doesFileExist(path) then
+						for val in io.lines(path) do
+							if string.match(val, '(.+) | (%d+)') then
+								local name, number = string.match(val, '(.+) | (.+)')
+								if imgui.CustomButton(u8(name), imgui.ImVec4(0.00, 0.00, 0.00, 0.00), imgui.ImVec4(0.00, 0.42, 1.00, 0.10), imgui.ImVec4(0.00, 0.42, 1.00, 0.20), imgui.ImVec2(220, 20)) then
+									sampSendChat('/c ' .. number)
+								end
+							end
+						end
+					else
+						imgui.CenterTextColoredRGB('У вас нет друзей :с')
+					end
+					
+					imgui.SetCursorPos(imgui.ImVec2(wsize.x - 40, wsize.y - 40)) 
+					
+					if imgui.CustomButton('+', imgui.ImVec4(0.00, 0.42, 1.00, 0.20), imgui.ImVec4(0.00, 0.42, 1.00, 0.30), imgui.ImVec4(0.00, 0.42, 1.00, 0.35), imgui.ImVec2(30, 30)) then
+						call_item.v = 2
+					end
+				end
+				
+				if call_item.v == 2 then
+					imgui.PushItemWidth(145)
+					imgui.InputText(u8'Полное имя', call_name)
+					imgui.InputText(u8'Телефон', call_number)
+					
+					if imgui.CustomButton(u8'Добавить поле', imgui.ImVec4(0.00, 0.00, 0.00, 0.05), imgui.ImVec4(0.00, 0.00, 0.00, 0.10), imgui.ImVec4(0.00, 0.00, 0.00, 0.13), imgui.ImVec2(220, 20)) then
+						local path = 'moonloader\\helper\\contact.txt'
+						
+						if call_name.v ~= nil and tonumber(call_number.v) ~= nil then
+							local filew = io.open(path, 'a')
+							filew:write(string.format('\n%s | %d', u8:decode(call_name.v), tonumber(u8:decode(call_number.v))))
+							filew:close()
+							
+							call_name.v, call_number.v = '', ''
+							call_item.v = 1
+						end
+					end
+				end
 			end
 			
 			if phone_item.v == 2 then

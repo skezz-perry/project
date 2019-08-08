@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(4.5)
+script_version(4.6)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -205,6 +205,8 @@ local logdmg             = {}
 local dreason            = {}
 local gnews              = {}
 local suspect_id         = {}
+local call_table         = {}
+local sms_table          = {}
 local param_cmd          = 0
 local last_sms           = 0
 local lweap              = 0
@@ -223,9 +225,12 @@ local show_info          = imgui.ImBool(false)
 local show_epk           = imgui.ImBool(false)
 local show_ustav         = imgui.ImBool(false)
 local show_weapon        = imgui.ImBool(false)
+local show_phone         = imgui.ImBool(false)
 local vfilt              = imgui.ImBool(false)
 local show_item          = imgui.ImInt(0)
 local page_num           = imgui.ImInt(0)
+local phone_item         = imgui.ImInt(0)
+local call_item          = imgui.ImInt(0)
 local pgfirst            = imgui.ImBuffer(u8(ini.gnews.gfirst), 250)
 local pgsecond           = imgui.ImBuffer(u8(ini.gnews.gsecond), 250)
 local pgthree            = imgui.ImBuffer(u8(ini.gnews.gthree), 250)
@@ -384,6 +389,10 @@ function main()
 		show_menu.v = not show_menu.v
 	end)
 	
+	sampRegisterChatCommand('phone', function()
+		show_phone.v = not show_phone.v
+	end)
+	
 	sampRegisterChatCommand('update', command_update)
 	
 	sampRegisterChatCommand('strobes', function()
@@ -497,7 +506,7 @@ function main()
 			end
 		end
 		
-		if show_menu.v or piemenu.v or show_info.v or show_epk.v or show_ustav.v then
+		if show_menu.v or piemenu.v or show_info.v or show_epk.v or show_ustav.v or show_phone.v then
 			imgui.Process = true
 		else
 			imgui.Process = false
@@ -885,7 +894,7 @@ function command_addbl(name)
 		filew:write(name)
 		filew:close()
 		
-		SCM(string.format('{FFCD00}%s{ffffff} был добавлен в чёрный список.', name))
+		SCM(string.format('Игрок {FFCD00}%s{ffffff} был добавлен в чёрный список.', name))
 	else
 		SCM('Используйте команду /addbl [имя игрока]')
 	end
@@ -905,7 +914,7 @@ function command_delbl(name)
 			filew:write(text)
 			filew:close()
 			
-			SCM(string.format('{FFCD00}%s{ffffff} был удалён из чёрного список.', name))
+			SCM(string.format('Игрок {FFCD00}%s{ffffff} был удалён из чёрного списка.', name))
 		else
 			SCM('Данного игрока нет в чёрном списке.')
 		end
@@ -2497,6 +2506,80 @@ function imgui.OnDrawFrame()
 		imgui.End()
 	end
 	
+	if show_phone.v then
+	
+		imgui.SetNextWindowSize(imgui.ImVec2(250, 400))
+		imgui.Begin('##phone', show_phone, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
+		local zsize = imgui.GetWindowSize()
+		
+			imgui.BeginChild('##info_logs', imgui.ImVec2(235, 340), true)
+			local wsize = imgui.GetWindowSize()
+			
+			imgui.TextColoredRGB(string.format('{000000}%s\t\t\t\t\t\t\t\t\t[{CD5C5C}||{008B8B}||{000000}]', os.date('%X')))
+			
+			if phone_item.v == 0 then
+				imgui.SetCursorPos(imgui.ImVec2(wsize.x - 210, wsize.y - 60)) 
+				if imgui.CustomButton('CALL', imgui.ImVec4(0.26, 0.68, 0.00, 0.60), imgui.ImVec4(0.26, 0.68, 0.00, 0.90), imgui.ImVec4(0.26, 0.68, 0.00, 1.00), imgui.ImVec2(40, 40)) then
+					phone_item.v = 1
+				end
+				imgui.SameLine()
+				if imgui.CustomButton('SMS', imgui.ImVec4(1.00, 0.82, 0.00, 0.60), imgui.ImVec4(1.00, 0.82, 0.00, 0.90), imgui.ImVec4(1.00, 0.82, 0.00, 1.00), imgui.ImVec2(45, 40)) then
+					phone_item.v = 2
+				end
+				imgui.SameLine()
+				if imgui.CustomButton('WEAT', imgui.ImVec4(0.81, 0.31, 0.00, 0.60), imgui.ImVec4(0.81, 0.31, 0.00, 0.90), imgui.ImVec4(0.81, 0.31, 0.00, 1.00), imgui.ImVec2(45, 40)) then
+					phone_item.v = 3
+				end
+				imgui.SameLine()
+				if imgui.CustomButton('SET', imgui.ImVec4(0.49, 0.27, 0.84, 0.60), imgui.ImVec4(0.49, 0.27, 0.84, 0.90), imgui.ImVec4(0.49, 0.27, 0.84, 1.00), imgui.ImVec2(40, 40)) then
+					phone_item.v = 4
+				end
+			end
+			
+			if phone_item.v == 1 then
+				if imgui.CustomButton(u8'Вызовы', imgui.ImVec4(0.00, 0.00, 0.00, 0.00), imgui.ImVec4(0.26, 0.68, 0.00, 0.20), imgui.ImVec4(0.26, 0.68, 0.00, 0.30), imgui.ImVec2(105, 20)) then 
+					call_item.v = 0
+				end
+				imgui.SameLine()
+				
+				if imgui.CustomButton(u8'Контакты', imgui.ImVec4(0.00, 0.00, 0.00, 0.00), imgui.ImVec4(0.00, 0.42, 1.00, 0.10), imgui.ImVec4(0.00, 0.42, 1.00, 0.20), imgui.ImVec2(105, 20)) then
+					call_item.v = 1 
+				end
+				
+				imgui.Text('')
+				
+				if call_item.v == 0 then
+					for i, val in pairs(call_table) do
+						imgui.Button(u8(val), imgui.ImVec2(220, 20))
+					end
+				end
+				
+				if call_item.v == 1 then
+					imgui.Text(u8'В разработке...')
+				end 
+			end
+			
+			if phone_item.v == 2 then
+				imgui.Text(u8'CМС-сообщения...')
+			end
+			
+			if phone_item.v == 3 then
+				imgui.Text(u8'В разработке...')
+			end
+			
+			if phone_item.v == 4 then
+				imgui.Text(u8'В разработке...')
+			end
+			
+			imgui.EndChild()
+			
+		imgui.SetCursorPos(imgui.ImVec2(zsize.x / 2 - 20, zsize.y - 25))
+		if imgui.CustomButton('____', imgui.ImVec4(0.00, 0.00, 0.00, 0.00), imgui.ImVec4(0.00, 0.00, 0.00, 0.10), imgui.ImVec4(0.00, 0.00, 0.00, 0.20), imgui.ImVec2(40, 20)) then
+			phone_item.v = 0
+		end
+		imgui.End()
+	end
+	
 	if piemenu.v then
         imgui.OpenPopup('PieMenu')
         if pie.BeginPiePopup('PieMenu', 0) then
@@ -3747,6 +3830,17 @@ function imgui.CenterTextColoredRGB(text)
     render_text(text)
 end
 
+function imgui.CustomButton(name, color, colorHovered, colorActive, size)
+    local clr = imgui.Col
+    imgui.PushStyleColor(clr.Button, color)
+    imgui.PushStyleColor(clr.ButtonHovered, colorHovered)
+    imgui.PushStyleColor(clr.ButtonActive, colorActive)
+    if not size then size = imgui.ImVec2(0, 0) end
+    local result = imgui.Button(name, size)
+    imgui.PopStyleColor(3)
+    return result
+end
+
 function imgui.TextColoredRGB(string)
     local style = imgui.GetStyle()
     local colors = style.Colors
@@ -3816,6 +3910,8 @@ function sampev.onServerMessage(color, text)
 				sampSendChat('/me выхватив тэйзер, нажала на кнопку спуска, тем самым парализовала нарушителя')
 			end
 		end
+		
+		return true
 	end
 
 	if text:find('Сотрудники ФБР взломали дверь Вашего дома!') and color == -10092289 and ini.set.antifbi then
@@ -3863,6 +3959,8 @@ function sampev.onServerMessage(color, text)
 			SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 2.1 ЕПК нажмите сочетание клавиш ПКМ + 4.', sampGetPlayerNickname(id), id))
 			suspect_id = {id, 1, '2.1 ЕПК', sampGetPlayerNickname(id)}
 		end
+		
+		return true
 	end
 	
 	if text:match('SMS.[%s](.+)[%s].[%s]Отправитель.[%s](.+)[%s].т.(%d+).') then
@@ -3875,12 +3973,45 @@ function sampev.onServerMessage(color, text)
 		end
 	end
 	
+	if text:match('Входящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Вызывает[%s](.+)') then
+		local number, name = text:match('Входящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Вызывает[%s](.+)')
+		
+		call_table[tonumber(table.maxn(call_table)) + 1] = string.format('+%d\t%s %s\tВходящий', number, os.date('%d'), os.date('%B'))
+		
+		if sampGetBlackList(name) then
+			bl_call = true
+			
+			ctext = string.format('Входящий звонок заблокирован | Номер: %d |{FFCD00} Вызывает %s', number, name)
+			return {color, ctext}
+		end
+		
+		return true
+	end
+	
+	if text:match('Исходящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Ожидание[%s]ответа[%s]от[%s](.+)...') then
+		local number, name = text:match('Исходящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Ожидание[%s]ответа[%s]от[%s](.+)...')
+		
+		call_table[tonumber(table.maxn(call_table)) + 1] = string.format('+%d\t%s %s\tИсходящий', number, os.date('%d'), os.date('%B'))
+	end
+	
+	if text:match('Используйте {00CC00}/p {FFFFFF}чтобы ответить или {FF6600}/h {FFFFFF}чтобы отклонить вызов') then
+		if bl_call then
+			bl_call = false
+			sampSendChat('/h')
+			return false
+		end
+		
+		return true
+	end
+	
 	if text:find('Вы закрыли двери в спецблок') and ini.set.lowrp then
 		if ini.info.male then
 			sampSendChat('/me проведя картой по считывающему устройству, закрыл дверь в спецблок')
 		else
 			sampSendChat('/me проведя картой по считывающему устройству, закрыла дверь в спецблок')
 		end
+		
+		return true
 	end
 	
 	if text:find('Вы открыли двери в спецблок') and ini.set.lowrp then
@@ -3889,6 +4020,8 @@ function sampev.onServerMessage(color, text)
 		else
 			sampSendChat('/me проведя картой по считывающему устройству, открыла дверь в спецблок')
 		end
+		
+		return true
 	end
 	
 	if text:find('Вы использовали аптечку. Здоровье пополнено на 60 единиц') and ini.set.lowrp then

@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(4.4)
+script_version(4.5)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -296,6 +296,8 @@ function main()
 	sampRegisterChatCommand('asms', command_asms)
 	sampRegisterChatCommand('gov', command_gov)
 	sampRegisterChatCommand('чс', command_bl)
+	sampRegisterChatCommand('addbl', command_addbl)
+	sampRegisterChatCommand('delbl', command_delbl)
 	
 	sampRegisterChatCommand('nhold', function(param)
 		if not param:match('(%d+)') then SCM('Используйте команду /nhold [ид игрока]') else sampSendChat('/hold '..param) end
@@ -458,9 +460,9 @@ function main()
 									local aresult, arp = sampWeaponSceneOff(lweap)
 									if aresult then
 										sampSendChat(string.format('/me %s', arp))
+										lweap = -1
 									end
 								end
-								lweap = -1
 							end
 						end)
 					end
@@ -485,9 +487,9 @@ function main()
 									local aresult, arp = sampWeaponSceneOff(lweap)
 									if aresult then
 										sampSendChat(string.format('/me %s', arp))
+										lweap = -1
 									end
 								end
-								lweap = -1
 							end
 						end)
 					end
@@ -845,7 +847,7 @@ function command_fn(text)
 end
 
 function command_update()
-	local update_info = '{ffffff}Добавлена полуавтоматическая отыгровка оружия, активация отыгровки ПКМ или Alt + R.\n\nИсправлена проблема с вводом текста для гос. новостей.'
+	local update_info = '{ffffff}Добавлена полуавтоматическая отыгровка оружия, активация отыгровки ПКМ или Alt + R.\n\nИсправлена проблема с вводом текста для гос. новостей.\n\nДобавлена команда /addbl для добавления в чёрный список.\nДобавлена команда /delbl для удаления из чёрного списка.'
 
 	sampShowDialog(10005, '{FFCD00}Обновление', update_info, 'Закрыть', '', 0)
 end
@@ -872,6 +874,43 @@ function command_sms(value)
 		end
 	else
 		sampAddChatMessage('Используйте команду /sms [номер телефона] [сообщение]', 0xFFCECECE)
+	end
+end
+
+function command_addbl(name)
+	if string.match(name, '(%S+)') then
+		local path = 'moonloader//helper//black-list.txt'
+		
+		local filew = io.open(path, 'a')
+		filew:write(name)
+		filew:close()
+		
+		SCM(string.format('{FFCD00}%s{ffffff} был добавлен в чёрный список.', name))
+	else
+		SCM('Используйте команду /addbl [имя игрока]')
+	end
+end
+
+function command_delbl(name)
+	if string.match(name, '(%S+)') then
+		local path = 'moonloader//helper//black-list.txt'
+		
+		local filer = io.open(path, 'r')
+		local bl = filer:read('*a')
+		filer:close()
+		
+		if bl:find(name) then
+			local text = string.gsub(bl, name, '')
+			local filew = io.open(path, 'w')
+			filew:write(text)
+			filew:close()
+			
+			SCM(string.format('{FFCD00}%s{ffffff} был удалён из чёрного список.', name))
+		else
+			SCM('Данного игрока нет в чёрном списке.')
+		end
+	else
+		SCM('Используйте команду /delbl [имя игрока]')
 	end
 end
 
@@ -1616,7 +1655,7 @@ function command_pull(id)
 	if string.match(id, '(%d+)') then
 		if IPC(id) then
 			if sampGetDistance(PLAYER_PED, id) < 3 then
-				res, vid = sampIsPlayerCar(id)
+				local res, vid = sampIsPlayerCar(id)
 				if res then
 					lua_thread.create(function()
 						if tCarsType[vid - 399] == 2 or tCarsType[vid - 399] == 9 then
@@ -1737,7 +1776,7 @@ function command_su(param)
 				SCM('Подозреваемый находится в маске.')
 			end
 		else
-			SCM('Вы ввели неверный ид игрока (игрок не авторизован)')
+			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 		end
 	else
 		SCM('Используйте команду /su [ид игрока] [кол-во звёзд] [причина]')
@@ -1966,7 +2005,7 @@ function imgui.OnDrawFrame()
 						editor.v = not editor.v
 					end
 					imgui.SameLine()
-					if imgui.Button(u8'Сохранить', imgui.ImVec2(135, 20)) then
+					if imgui.Button(u8'Сохранить', imgui.ImVec2(135, 20)) and editor.v then
 						local filew = io.open('moonloader//helper//Admins.txt', 'w')
 						filew:write(u8:decode(admins.v))
 						filew:close()
@@ -2601,12 +2640,16 @@ end
 
 function sampIsPlayerCarHaveSuspect(id)
 	if IPC(id) then
-		res, ped = sampGetCharHandleBySampPlayerId(id)
+		local res, ped = sampGetCharHandleBySampPlayerId(id)
 		if res then
-			local vehicle = getCarCharIsUsing(ped)
-			local myvehicle = getCarCharIsUsing(PLAYER_PED)
-			if vehicle == myvehicle then
-				return true
+			if isCharInAnyCar(ped) and isCharInAnyCar(PLAYER_PED) then
+				local vehicle = getCarCharIsUsing(ped)
+				local myvehicle = getCarCharIsUsing(PLAYER_PED)
+				if vehicle == myvehicle then
+					return true
+				else
+					return false
+				end
 			else
 				return false
 			end
@@ -2622,9 +2665,13 @@ function sampIsPlayerCar(id)
 	if IPC(id) then
 		local res, ped = sampGetCharHandleBySampPlayerId(id)
 		if res then
-			local vehicle = getCarCharIsUsing(ped)
-			local vid = getCarModel(vehicle)
-			return true, vid
+			if isCharInAnyCar(ped) then
+				local vehicle = getCarCharIsUsing(ped)
+				local vid = getCarModel(vehicle)
+				return true, vid
+			else
+				return false, -1
+			end
 		else
 			return false, -1
 		end
@@ -3552,6 +3599,23 @@ function sampGetPlayerIdByNickname(nick)
 	end
 end
 
+function sampGetBlackList(name)
+	if IPC(sampGetPlayerIdByNickname(name)) then
+		local path = getWorkingDirectory() .. '\\helper\\black-list.txt'
+		local bl_name = false
+	
+		if doesFileExist(path) then
+			for val in io.lines(path) do
+				if string.find(val, name) then bl_name = true end
+			end
+		end
+		
+		return bl_name
+	else
+		return false
+	end
+end
+
 function SCM(text)
 	if text ~= nil then sampAddChatMessage('Helper for MIA • {FFFFFF}' .. text, 0xFF4169E1) end
 end
@@ -3741,7 +3805,7 @@ function sampev.onServerMessage(color, text)
 	if text:find('Вы оглушили (.+) на 15 секунд') then
 		if ini.info.male then
 			if getCurrentCharWeapon(PLAYER_PED) == 3 then
-				sampSendChat('/me размахнувшись, ударил нарушителя дубинкой, тем самым оглушил его')
+				sampSendChat('/me размахнувшись, ударил нарушителя дубинкой, тем самым оглушил его') 
 			else
 				sampSendChat('/me выхватив тэйзер, нажал на кнопку спуска, тем самым парализовал нарушителя')
 			end
@@ -3804,6 +3868,11 @@ function sampev.onServerMessage(color, text)
 	if text:match('SMS.[%s](.+)[%s].[%s]Отправитель.[%s](.+)[%s].т.(%d+).') then
 		local text, name, number = text:match('SMS.[%s](.+)[%s].[%s]Отправитель.[%s](.+)[%s].т.(%d+).')
 		last_sms = number
+		
+		if sampGetBlackList(name) then
+			local sms = string.format('SMS: {CD5C5C}СООБЩЕНИЕ ЗАБЛОКИРОВАНО{FFFF00} | Отправитель: %s [т.%d]', name, number)
+			return {color, sms}
+		end
 	end
 	
 	if text:find('Вы закрыли двери в спецблок') and ini.set.lowrp then
@@ -4026,7 +4095,6 @@ function sampev.onSendTakeDamage(playerId, damage, weapon, bodypart)
 			local name = sampGetPlayerNickname(playerId)
 			
 			if sampGetDistance(PLAYER_PED, playerId) <= 35 and sampGetPlayerColor(playerId) ~= 2236962 then
-				SCM('op')
 				if TypeWeapon[tonumber(weapon)] == 2 then
 					if suspect_id[4] ~= name and suspect_id[3] ~= '1.2 ЕПК' then
 						SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 1.2 ЕПК нажмите сочетание клавиш ПКМ + 4.', sampGetPlayerNickname(playerId), playerId))

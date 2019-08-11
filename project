@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(4.8)
+script_version(4.9)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -2610,7 +2610,7 @@ function imgui.OnDrawFrame()
 					weathers = getWeatherInCity()
 				end
 				
-				if weathers[1] ~= '' then
+				if weathers[1] ~= '' and weathers[1] ~= nil then
 					imgui.TextColoredRGB(string.format('Темпер.     %s°C', weathers[1]))
 					imgui.TextColoredRGB(string.format('Погода       %s', weathers[2]))
 					imgui.TextColoredRGB(string.format('Ветер         %d м/с, %s', weathers[3], weathers[4]))
@@ -4558,8 +4558,14 @@ function getWeatherInCity()
 					
 					f:close()
 					os.remove(path)
+				else
+					err = 'Ошибка (#1-2)'
 				end
+			else
+				err = 'Ошибка (#1-1)'
 			end
+		else
+			err = 'Ошибка (#1-0)'
 		end
 	end)
 	

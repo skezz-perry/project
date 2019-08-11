@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(4.7)
+script_version(4.8)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -207,6 +207,7 @@ local gnews              = {}
 local suspect_id         = {}
 local call_table         = {}
 local sms_table          = {}
+local weathers           = {'', '', 0, '', 0, 0, '', 0}
 local param_cmd          = 0
 local last_sms           = 0
 local lweap              = 0
@@ -2605,7 +2606,21 @@ function imgui.OnDrawFrame()
 			end
 			
 			if phone_item.v == 3 then
-				imgui.Text(u8'В разработке...')
+				if imgui.CustomButton(u8'Обновить значение', imgui.ImVec4(0.00, 0.00, 0.00, 0.00), imgui.ImVec4(0.00, 0.00, 0.00, 0.10), imgui.ImVec4(0.00, 0.00, 0.00, 0.20), imgui.ImVec2(220, 20)) then
+					weathers = getWeatherInCity()
+				end
+				
+				if weathers[1] ~= '' then
+					imgui.TextColoredRGB(string.format('Темпер.     %s°C', weathers[1]))
+					imgui.TextColoredRGB(string.format('Погода       %s', weathers[2]))
+					imgui.TextColoredRGB(string.format('Ветер         %d м/с, %s', weathers[3], weathers[4]))
+					imgui.TextColoredRGB(string.format('Давление   %d мм рт. ст.', weathers[5]))
+					imgui.TextColoredRGB(string.format('Влажность  %d%%', weathers[6])) 
+					imgui.TextColoredRGB(string.format('Город         %s', weathers[7])) 
+					imgui.TextColoredRGB(string.format('Регион       %d', weathers[8]))
+				else
+					imgui.TextColoredRGB('Не удаётся получить данные...')
+				end
 			end
 			
 			if phone_item.v == 4 then
@@ -4514,6 +4529,41 @@ function autoupdate(json_url, url) -- Author: http://qrlk.me/samp
     end
   )
   while update ~= false do wait(100) end
+end
+
+function getWeatherInCity()
+	local path = getWorkingDirectory() .. '\\helper\\weather.txt'
+	local url = 'https://export.yandex.ru/bar/reginfo.xml?region'
+	local weather = {'', '', 0, '', 0, 0, '', 0}
+	local infoweat = ''
+	
+	if doesFileExist(path) then os.remove(path) end
+	
+	downloadUrlToFile(url, path, function(id, status, p1, p2)
+		if status == dlstatus.STATUSEX_ENDDOWNLOAD then
+			if doesFileExist(path) then
+				local f = io.open(path, 'r')
+				
+				if f then
+					infoweat = u8:decode(f:read('*a'))
+
+					weather[1] = string.match(infoweat, '<temperature[%s]class_name="t18"[%s]color="F7F3D3">(.+)</temperature>.+</temperature>.+</temperature>')
+					weather[2] = string.match(infoweat, '<weather_type>(.+)</weather_type>')
+					weather[3] = string.match(infoweat, '<wind_speed>(.+)</wind_speed>')
+					weather[4] = string.match(infoweat, '<wind_direction[%s]id=".+">(.+)</wind_direction>')
+					weather[5] = string.match(infoweat, '<pressure>(.+)</pressure>')
+					weather[6] = string.match(infoweat, '<dampness>(.+)</dampness>')
+					weather[7] = string.match(infoweat, '<region id=".+" zoom=".+" lat=".+" lon=".+">.+<title>(.+)</title>.+</region>')
+					weather[8] = string.match(infoweat, '<region id="(.+)" zoom=".+" lat=".+" lon=".+">.+<title>.+</title>.+</region>')
+					
+					f:close()
+					os.remove(path)
+				end
+			end
+		end
+	end)
+	
+	return weather
 end
 
 function rkeys.onHotKey(id, keys)

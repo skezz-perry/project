@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(4.9)
+script_version(5.1)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -2607,19 +2607,27 @@ function imgui.OnDrawFrame()
 			
 			if phone_item.v == 3 then
 				if imgui.CustomButton(u8'Обновить значение', imgui.ImVec4(0.00, 0.00, 0.00, 0.00), imgui.ImVec4(0.00, 0.00, 0.00, 0.10), imgui.ImVec4(0.00, 0.00, 0.00, 0.20), imgui.ImVec2(220, 20)) then
-					weathers = getWeatherInCity()
+					st, weathers = getWeatherInCity()
 				end
 				
-				if weathers[1] ~= '' and weathers[1] ~= nil then
-					imgui.TextColoredRGB(string.format('Темпер.     %s°C', weathers[1]))
-					imgui.TextColoredRGB(string.format('Погода       %s', weathers[2]))
-					imgui.TextColoredRGB(string.format('Ветер         %d м/с, %s', weathers[3], weathers[4]))
-					imgui.TextColoredRGB(string.format('Давление   %d мм рт. ст.', weathers[5]))
-					imgui.TextColoredRGB(string.format('Влажность  %d%%', weathers[6])) 
-					imgui.TextColoredRGB(string.format('Город         %s', weathers[7])) 
-					imgui.TextColoredRGB(string.format('Регион       %d', weathers[8]))
+				if st then
+					if weathers[1] ~= '' and weathers[1] ~= nil then
+						imgui.TextColoredRGB(string.format('Темпер.     %s°C', weathers[1]))
+						imgui.TextColoredRGB(string.format('Погода       %s', weathers[2]))
+						imgui.TextColoredRGB(string.format('Ветер         %d м/с, %s', weathers[3], weathers[4]))
+						imgui.TextColoredRGB(string.format('Давление   %d мм рт. ст.', weathers[5]))
+						imgui.TextColoredRGB(string.format('Влажность  %d%%', weathers[6])) 
+						imgui.TextColoredRGB(string.format('Город         %s', weathers[7])) 
+						imgui.TextColoredRGB(string.format('Регион       %d', weathers[8]))
+					else
+						imgui.TextColoredRGB('Не удаётся получить данные...')
+					end
 				else
 					imgui.TextColoredRGB('Не удаётся получить данные...')
+					
+					if weathers[1] ~= '' and weathers[1] ~= nil then
+						imgui.TextColoredRGB(weathers[1])
+					end
 				end
 			end
 			
@@ -4536,6 +4544,7 @@ function getWeatherInCity()
 	local url = 'https://export.yandex.ru/bar/reginfo.xml?region'
 	local weather = {'', '', 0, '', 0, 0, '', 0}
 	local infoweat = ''
+	local err = ''
 	
 	if doesFileExist(path) then os.remove(path) end
 	
@@ -4559,17 +4568,21 @@ function getWeatherInCity()
 					f:close()
 					os.remove(path)
 				else
-					err = 'Ошибка (#1-2)'
+					weather[1] = 'Ошибка (#1-2)'
 				end
 			else
-				err = 'Ошибка (#1-1)'
+				weather[1] = 'Ошибка (#1-1)'
 			end
 		else
-			err = 'Ошибка (#1-0)'
+			weather[1] = 'Ошибка (#1-0)'
 		end
 	end)
 	
-	return weather
+	if err ~= '' then
+		return false, weather
+	else
+		return true, weather
+	end
 end
 
 function rkeys.onHotKey(id, keys)

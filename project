@@ -2313,19 +2313,21 @@ function imgui.OnDrawFrame()
 					imgui.SameLine()
 					
 					if imgui.Button(u8'Найти', imgui.ImVec2(85, 20)) then
-						if doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
-							for val in io.lines(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) do
-								if string.match(val, 'type=(%d+)') then
-									local ntype = string.match(val, 'type=(%d+)')
-									if tonumber(ntype) == 3 then lines.v = true else lines.v = false end
-								elseif string.match(val, 'line(%d+)=(.+)') then
-									local line, text = string.match(val, 'line(%d+)=(.+)')
-									if tonumber(line) <= 3 then
-										if tonumber(line) == 1 then pgline1.v = u8(text) end
-										if tonumber(line) == 2 then pgline2.v = u8(text) end
-										if tonumber(line) == 3 then pgline3.v = u8(text) end
-									elseif tonumber(line) == 4 then
-										pgaline1.v = u8(text)
+						if idnews.v ~= nil then
+							if doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
+								for val in io.lines(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) do
+									if string.match(val, 'type=(%d+)') then
+										local ntype = string.match(val, 'type=(%d+)')
+										if tonumber(ntype) == 3 then lines.v = true else lines.v = false end
+									elseif string.match(val, 'line(%d+)=(.+)') then
+										local line, text = string.match(val, 'line(%d+)=(.+)')
+										if tonumber(line) <= 3 then
+											if tonumber(line) == 1 then pgline1.v = u8(text) end
+											if tonumber(line) == 2 then pgline2.v = u8(text) end
+											if tonumber(line) == 3 then pgline3.v = u8(text) end
+										elseif tonumber(line) == 4 then
+											pgaline1.v = u8(text)
+										end
 									end
 								end
 							end
@@ -2335,13 +2337,15 @@ function imgui.OnDrawFrame()
 					imgui.SameLine()
 					
 					if imgui.Button(u8'Создать', imgui.ImVec2(85, 20)) then
-						if not doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
-							local file = string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)
-							local filew = io.open(file, 'w')
-							filew:write('type=1')
-							filew:close()
-							
-							lines.v = false
+						if idnews.v ~= nil then
+							if not doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
+								local file = string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)
+								local filew = io.open(file, 'w')
+								filew:write('type=1')
+								filew:close()
+								
+								lines.v = false
+							end
 						end
 					end
 					

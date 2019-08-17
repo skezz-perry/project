@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(5.3)
+script_version(5.4)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -1846,6 +1846,11 @@ function command_su(param)
 end
 
 function command_users()
+	async_http_request('GET', 'https://raw.githubusercontent.com/skezz-perry/project/master/users', nil,
+		function(response)
+		users = response.text
+	end)
+	
 	local dline = 'Имя\tСтатус\tДополнительно\n'
 	local all = 0
 	local online = 0
@@ -1853,6 +1858,10 @@ function command_users()
 	for line in string.gmatch(users, "[^\n]+") do
 		if string.match(line, '(.+) | (.+)') then
 			local name, rang = string.match(line, '(.+) | (.+)')
+			if rang == 'Developer' then rang = string.format('{CD5C5C}%s', rang) 
+			elseif rang == 'Super User' then rang = string.format('{FFD700}%s', rang)
+			elseif rang:find('Leader') then rang = string.format('{90EE90}%s', rang)
+			else rang = string.format('{4876FF}%s', rang) end
 			local id = sampGetPlayerIdByNickname(name)
 			all = all + 1
 			
@@ -1974,7 +1983,9 @@ function imgui.OnDrawFrame()
 				end
 				if imgui.Button(u8'Информация', imgui.ImVec2(235, 30))     then show_item.v = 2 end
 				if imgui.Button(u8'Доп. команды', imgui.ImVec2(235, 30))   then show_item.v = 3 end
-				if imgui.Button(u8'Кастомизация', imgui.ImVec2(235, 30))   then show_item.v = 4 end
+				if player_status then 
+					if imgui.Button(u8'Кастомизация', imgui.ImVec2(235, 30))   then show_item.v = 4 end
+				end
 				if imgui.Button(u8'Панель лидера', imgui.ImVec2(235, 30))  then show_item.v = 5 end
 				if imgui.Button(u8'Перезагрузить', imgui.ImVec2(235, 30))  then
 					show_menu.v = not show_menu.v
@@ -1989,7 +2000,7 @@ function imgui.OnDrawFrame()
 			
 			imgui.SameLine()
 			
-			imgui.BeginChild('##another_block', imgui.ImVec2(430, 565), true, imgui.WindowFlags.VerticalScrollbar)
+			imgui.BeginChild('##another_block', imgui.ImVec2(430, 565), true, imgui.WindowFlags.HorizontalScrollbar)
 				
 				if show_item.v == 0 then
 					
@@ -2309,6 +2320,7 @@ function imgui.OnDrawFrame()
 					
 					imgui.PushItemWidth(80)
 					imgui.InputText('##id_news', idnews)
+					ItemActive('Введите в это окно ID новости, которую хотите найти или создать.')
 					
 					imgui.SameLine()
 					
@@ -2333,6 +2345,7 @@ function imgui.OnDrawFrame()
 							end
 						end
 					end
+					ItemActive('С помощь этой кнопки вы можете найти уже созданную гос. новость.')
 					
 					imgui.SameLine()
 					
@@ -2348,6 +2361,7 @@ function imgui.OnDrawFrame()
 							end
 						end
 					end
+					ItemActive('С помощь этой кнопки вы можете создать новую гос. новость.')
 					
 					imgui.SameLine()
 					
@@ -2363,12 +2377,22 @@ function imgui.OnDrawFrame()
 							filew:close()
 						end
 					end
+					ItemActive('С помощь этой кнопки вы можете сохранить созданую гос. новость.')
 					
 					if lines.v then
 						if imgui.Button(u8'Изменить на 1 строку', imgui.ImVec2(415, 20)) then lines.v = not lines.v end
 					else
 						if imgui.Button(u8'Изменить на 3 строки', imgui.ImVec2(415, 20)) then lines.v = not lines.v end
 					end
+					ItemActive('С помощью этой кнопки вы сможете выбрать сколько строк будет в гос. новости.')
+					
+					imgui.Text('')
+					
+					imgui.Separator()
+					
+					imgui.Text('')
+					
+					imgui.CenterTextColoredRGB('НАСТРОЙКА СТРОК ГОС. НОВОСТИ')
 					
 					imgui.Text('')
 					
@@ -4741,6 +4765,9 @@ function getUsers()
 					player_status = true
 				elseif prang == 'Super User' then
 					SCM(string.format('Вы авторизовались как {FFD700}%s.{ffffff} Вам доступен весь функционал скрипта.', prang))
+					player_status = true
+				elseif prang:find('Leader') then
+					SCM(string.format('Вы авторизовались как {90EE90}%s.{ffffff} Вам доступен весь функционал скрипта.', prang))
 					player_status = true
 				else
 					SCM(string.format('Вы авторизовались как {4876FF}%s.{ffffff} Вам не доступна часть функций.', prang))

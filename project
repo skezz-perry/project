@@ -12,6 +12,7 @@ local pie               = require 'imgui_piemenu'
 local encoding          = require 'encoding'
 local color             = require "colorise"
 local inicfg            = require 'inicfg'
+local lanes             = require('lanes').configure()
 local dlstatus          = require('moonloader').download_status
 imgui.HotKey            = require('imgui_addons').HotKey
 lsampev, sampev         = pcall(require, 'lib.samp.events')
@@ -77,6 +78,7 @@ local commands = {
 	'/mh | Открыть основное меню',
 	'/update | Информация о последнем обновлении',
 	'/admins | Открыть админ-список',
+	'/users | Открыть список пользователей',
 	'/r | Сообщение в обычныю рацию',
 	'/rn | NRP-chat обычной рации',
 	'/f | Сообщение в общую волну',
@@ -137,8 +139,6 @@ local frac = {
 	color = {'{0000ff}', '{ccff00}', '{ff6600}', '{996633}', '{ff6666}', '{993366}', '{007575}', '{bb0000}', '{009900}', '{cc00ff}', '{ffcd00}', '{00ccff}', '{6666ff}', '{ffffff}', '{ffffff}', '{ffffff}'},
 }
 
-local FrameBg = imgui.ImVec4(1.0, 1.0, 1.0, 1.0)
-
 local ini = inicfg.load({
 	info = {
 		name                 = '',
@@ -182,14 +182,6 @@ local ini = inicfg.load({
 		bm4                  = 1,
 		ak47                 = false,
 		bak47                = 1
-	},
-	gnews = {
-		gfirst               = 'МВД | Хочешь быстрый карьерный рост? Большие премии? Тогда тебе в LSPD!',
-		gsecond              = 'МВД | Cобеседование пройдёт около департамента полиции Лос-Сантоса.',
-		gthree               = 'МВД | При себе иметь паспорт c 3-х летней пропиской и комплект лицензий.',
-		gone                 = 'МВД | Напоминаю про электронные заявления в полицейский департамент ЛС.',
-		gtwo                 = 'МВД | Напоминаю, проходит собеседование в LSPD около департамента.',
-		gend                 = 'МВД | Собеседование в LSPD закончено, спасибо за внимание.'
 	}
 })
 
@@ -197,6 +189,7 @@ local color_red          = '{CD5C5C}'
 local color_orange       = '{F4A460}'
 local color_green        = '{00CD66}'
 local show_player        = ''
+local users              = ''
 local skin_table         = {}
 local lgov               = {}
 local info_scene         = {}
@@ -211,6 +204,7 @@ local weathers           = {'', '', 0, '', 0, 0, '', 0}
 local param_cmd          = 0
 local last_sms           = 0
 local lweap              = 0
+local gov_delay          = 0
 local speed              = 0.3
 local flymode            = false
 local showtimer          = false
@@ -219,6 +213,8 @@ local cActive            = false
 local follow_state       = false
 local timerActive        = false
 local skillplus          = false
+local openbar            = false
+local player_status      = false
 local show_menu          = imgui.ImBool(false)
 local piemenu            = imgui.ImBool(false)
 local show_help          = imgui.ImBool(false)
@@ -228,18 +224,18 @@ local show_ustav         = imgui.ImBool(false)
 local show_weapon        = imgui.ImBool(false)
 local show_phone         = imgui.ImBool(false)
 local vfilt              = imgui.ImBool(false)
+local lines              = imgui.ImBool(false)
 local show_item          = imgui.ImInt(0)
 local page_num           = imgui.ImInt(0)
 local phone_item         = imgui.ImInt(0)
 local call_item          = imgui.ImInt(0)
 local call_number        = imgui.ImBuffer(7)
 local call_name          = imgui.ImBuffer(256)
-local pgfirst            = imgui.ImBuffer(u8(ini.gnews.gfirst), 250)
-local pgsecond           = imgui.ImBuffer(u8(ini.gnews.gsecond), 250)
-local pgthree            = imgui.ImBuffer(u8(ini.gnews.gthree), 250)
-local pgone              = imgui.ImBuffer(u8(ini.gnews.gone), 250)
-local pgtwo              = imgui.ImBuffer(u8(ini.gnews.gtwo), 250)
-local pgend              = imgui.ImBuffer(u8(ini.gnews.gend), 250)
+local pgaline1           = imgui.ImBuffer(250)
+local pgline1            = imgui.ImBuffer(250)
+local pgline2            = imgui.ImBuffer(250)
+local pgline3            = imgui.ImBuffer(250)
+local idnews             = imgui.ImBuffer(4)
 local pname              = imgui.ImBuffer(256)
 local prang              = imgui.ImBuffer(256)
 local pfrac              = imgui.ImBuffer(256)
@@ -267,6 +263,7 @@ function main()
 	while not isSampAvailable() do wait(100) end
 	
 	autoupdate('https://raw.githubusercontent.com/skezz-perry/project/master/version', 'https://raw.githubusercontent.com/skezz-perry/project/master/project') 
+	getUsers()
 	
 	sampRegisterChatCommand('admins', command_admins)
 	sampRegisterChatCommand('r', command_r)
@@ -306,6 +303,9 @@ function main()
 	sampRegisterChatCommand('чс', command_bl)
 	sampRegisterChatCommand('addbl', command_addbl)
 	sampRegisterChatCommand('delbl', command_delbl)
+	sampRegisterChatCommand('pay', command_apay)
+	sampRegisterChatCommand('eevent', command_easyevent)
+	sampRegisterChatCommand('users', command_users)
 	
 	sampRegisterChatCommand('nhold', function(param)
 		if not param:match('(%d+)') then SCM('Используйте команду /nhold [ид игрока]') else sampSendChat('/hold '..param) end
@@ -384,6 +384,12 @@ function main()
 	
 	sampRegisterChatCommand('sms', command_sms)
 	
+	sampRegisterChatCommand('tdinfo', function(id)
+		local model, rotX, rotY, rotZ, zoom, clr1, clr2 = sampTextdrawGetModelRotationZoomVehColor(id)
+		SCM(id .. ' ' .. model)
+		
+	end)
+	
 	sampRegisterChatCommand('ainfo', function()
 		show_info.v = not show_info.v
 	end)
@@ -439,7 +445,8 @@ function main()
 
 		if wasKeyPressed(KEY.VK_2) and isKeyDown(VK_RBUTTON) then 
 			if not isSampfuncsConsoleActive() and not sampIsChatInputActive() and not sampIsDialogActive() then
-				sampSendChat('/open') 
+				sampSendChat('/open')
+				openbar = true
 			end
 		end
 
@@ -856,8 +863,63 @@ function command_fn(text)
 	if not string.match(text, '(.+)') then SCM('Используйте команду /fn [текст].') else sampSendChat('/f (( ' .. text .. ' ))') end
 end
 
+function command_apay(param)
+	if string.match(param, '(%d+) (%d+)') then
+		local id, money = string.match(param, '(%d+) (%d+)')
+		if IPC(id) then
+			if sampGetDistance(PLAYER_PED, id) < 3 then
+				if tonumber(money) < 200000 then
+					lua_thread.create(function()
+						while sampGetDistance(PLAYER_PED, id) < 3 do
+							if (tonumber(money) - 5000) <= 0 then
+								sampSendChat(string.format('/pay %d %d', id, money))
+								break
+							else
+								sampSendChat(string.format('/pay %d 5000', id, money))
+								money = tonumber(money) - 5000
+							end
+							wait(3500)
+						end
+					end)
+				else
+					SCM('Невозможно передать более 200.000$.')
+				end
+			else
+				SCM('Данный игрок находится слишком далеко от Вас.')
+			end
+		else
+			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+		end
+	else
+		SCM('Используйте команду /pay [ид игрока] [сумма]')
+	end
+end
+
+function command_easyevent(param)
+	if string.match(param, '(%d+) (%d+)') then
+		local id, money = string.match(param, '(%d+) (%d+)')
+		if IPC(id) then
+			SCM(string.format('%s слишком далеко, передача произойдёт сразу же, как будет возможность.', sampGetPlayerNickname(id)))
+			lua_thread.create(function()
+				while sampGetDistance(PLAYER_PED, id) > 2 do 
+					wait(0)
+
+					if not IPC(id) then
+						break
+					end
+				end
+				sampSendChat(string.format('/pay %d %d', id, money))
+			end)
+		else
+			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+		end
+	else
+		SCM('Используйте команду /eevent [ид игрока] [сумма]')
+	end
+end
+
 function command_update()
-	local update_info = '{ffffff}Добавлена полуавтоматическая отыгровка оружия, активация отыгровки ПКМ или Alt + R.\n\nОбновлена панель лидеров и добавлена новая система гос. новостей.\n\nИсправлена проблема с вводом текста для гос. новостей.\n\nДобавлена команда /addbl для добавления в чёрный список.\nДобавлена команда /delbl для удаления из чёрного списка.\nДобавлена команда /phone.'
+	local update_info = '{ffffff}Добавлена команда /users.\nДобавлена команда /eevent.\n\nОбновлена панель лидеров и добавлена новая система гос.новостей.\n\nИсправлен баг с отображением погоды и прочие мелкие баги.'
 
 	sampShowDialog(10005, '{FFCD00}Обновление', update_info, 'Закрыть', '', 0)
 end
@@ -883,7 +945,7 @@ function command_sms(value)
 			sampSendChat(string.format('/sms %d %s', number, string.sub(text, 0, 60)))
 		end
 	else
-		sampAddChatMessage('Используйте команду /sms [номер телефона] [сообщение]', 0xFFCECECE)
+		SCM('Используйте команду /sms [номер телефона] [сообщение]')
 	end
 end
 
@@ -941,52 +1003,12 @@ function command_gov(id)
 		if gnews[1] ~= nil then
 			local timed = getTimeByPeriod(tonumber(gnews[1]), tonumber(gnews[2]), tonumber(gnews[3]), 5)
 			if sampGetPassedTimeByPeriod(tonumber(gnews[1]), tonumber(gnews[2]), tonumber(gnews[3]), 5) then
-				if tonumber(id) == 1 then
-					lua_thread.create(function()
-						sampSendChat('/gnews ' .. ini.gnews.gfirst)
-						wait(1000)
-						sampSendChat('/gnews ' .. ini.gnews.gsecond)
-						wait(1000)
-						sampSendChat('/gnews ' .. ini.gnews.gthree)
-						gnews = {os.date('%H'), os.date('%M'), os.date('%S')}
-					end)
-				elseif tonumber(id) == 2 then
-					sampSendChat('/gnews ' .. ini.gnews.gtwo)
-					gnews = {os.date('%H'), os.date('%M'), os.date('%S')}
-				elseif tonumber(id) == 3 then
-					sampSendChat('/gnews ' .. ini.gnews.gend)
-					gnews = {os.date('%H'), os.date('%M'), os.date('%S')}
-				elseif tonumber(id) == 4 then
-					sampSendChat('/gnews ' .. ini.gnews.gone)
-					gnews = {os.date('%H'), os.date('%M'), os.date('%S')}
-				else
-					SCN('Неизвестный ид новости.')
-				end
+				send_gnews(id)
 			else
 				SCM(string.format('В данный момент Вы {ff5c33}не можете{ffffff} отправить гос. новость.', gnews[1]))
 			end
 		else
-			if tonumber(id) == 1 then
-				lua_thread.create(function()
-					sampSendChat('/gnews ' .. ini.gnews.gfirst)
-					wait(1000)
-					sampSendChat('/gnews ' .. ini.gnews.gsecond)
-					wait(1000)
-					sampSendChat('/gnews ' .. ini.gnews.gthree)
-					gnews = {os.date('%H'), os.date('%M'), os.date('%S')}
-				end)
-			elseif tonumber(id) == 2 then
-				sampSendChat('/gnews ' .. ini.gnews.gtwo)
-				gnews = {os.date('%H'), os.date('%M'), os.date('%S')}
-			elseif tonumber(id) == 3 then
-				sampSendChat('/gnews ' .. ini.gnews.gend)
-				gnews = {os.date('%H'), os.date('%M'), os.date('%S')}
-			elseif tonumber(id) == 4 then
-				sampSendChat('/gnews ' .. ini.gnews.gone)
-				gnews = {os.date('%H'), os.date('%M'), os.date('%S')}
-			else
-				SCN('Неизвестный ид новости.')
-			end
+			send_gnews(id)
 		end
 	else
 		if gnews[1] ~= nil then
@@ -1000,6 +1022,36 @@ function command_gov(id)
 		else
 			SCM('Используйте команду /gov [ид новости]. Вы {00cc99}можете{ffffff} отправить гос. новость.')
 		end
+	end
+end
+
+function send_gnews(id)
+	if doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', id)) then
+		local gtype = '0'
+		lua_thread.create(function()
+			for val in io.lines(string.format('moonloader//helper//gnews//news-%d.txt', id)) do
+				if string.match(val, 'type=(%d+)') then
+					gtype = string.match(val, 'type=(%d+)')
+				elseif string.match(val, 'line(%d+)=(.+)') then
+					local line, text = string.match(val, 'line(%d+)=(.+)')
+					if tonumber(gtype) == 3 then
+						if tonumber(line) <= 3 then
+							if tonumber(line) == 1 then sampSendChat(string.format('/gnews %s', text)) end
+							if tonumber(line) == 2 then sampSendChat(string.format('/gnews %s', text)) end
+							if tonumber(line) == 3 then sampSendChat(string.format('/gnews %s', text)) end
+							gnews = {os.date('%H'), os.date('%M'), os.date('%S'), 3}
+						end
+					elseif tonumber(gtype) == 1 then
+						if tonumber(line) == 4 then sampSendChat(string.format('/gnews %s', text)) end
+						gnews = {os.date('%H'), os.date('%M'), os.date('%S'), 1}
+					end
+					
+					wait(1000)
+				end
+			end
+		end)
+	else
+		SCM('Не найдено новости с данным ID.')
 	end
 end
 
@@ -1132,7 +1184,7 @@ end
 
 function command_setskin(param)
 	if string.match(param, '(%d+) (%d+)') then
-		id, skin = string.match(param, '(%d+) (%d+)')
+		local id, skin = string.match(param, '(%d+) (%d+)')
 		if IPC(id) then
 			if sampGetDistance(PLAYER_PED, id) < 200 then
 				local BS = raknetNewBitStream()
@@ -1793,35 +1845,73 @@ function command_su(param)
 	end
 end
 
-function command_admins()
-	local dline = 'Имя\tДолжность\tДополнительно\n'
+function command_users()
+	local dline = 'Имя\tСтатус\tДополнительно\n'
 	local all = 0
 	local online = 0
-	
-	for line in io.lines('moonloader\\helper\\Admins.txt') do
-		all = all + 1
-		local name, rang, nrang = string.match(line, '(.+) | (.+) | (.+)')
-		local id = sampGetPlayerIdByNickname(name)
-		if id == 'offline' then
-			dline = string.format('%s{696969}%s\t{696969}%s ранг. %s\t{ff5c33}Оффлайн\n', dline, name, nrang, rang)
-		else
-			local res, ped = sampGetCharHandleBySampPlayerId(id)
-			online = online + 1
-			if res then
-				dist = math.floor(sampGetDistance(PLAYER_PED, id))
-				if sampIsPlayerPaused(id) then
-					dline = string.format('%s{%s}%s[%d]\t%s ранг. %s\t{ff5c33}Дист: %d м\n', dline, sampGetColor(id), name, id, nrang, rang, dist)
-				else
-					dline = string.format('%s{%s}%s[%d]\t%s ранг. %s\t{00cc99}Дист: %d м\n', dline, sampGetColor(id), name, id, nrang, rang, dist)
-				end
+
+	for line in string.gmatch(users, "[^\n]+") do
+		if string.match(line, '(.+) | (.+)') then
+			local name, rang = string.match(line, '(.+) | (.+)')
+			local id = sampGetPlayerIdByNickname(name)
+			all = all + 1
+			
+			if id == 'offline' then
+				dline = string.format('%s{696969}%s\t{696969}%s\t{ff5c33}Оффлайн\n', dline, name, rang)
 			else
-				dline = string.format('%s{%s}%s[%d]\t%s ранг. %s\t{00cc99}Онлайн\n', dline, sampGetColor(id), name, id, nrang, rang)
+				local res, ped = sampGetCharHandleBySampPlayerId(id)
+				online = online + 1
+				
+				if res then
+					local dist = math.floor(sampGetDistance(PLAYER_PED, id))
+					
+					if sampIsPlayerPaused(id) then
+						dline = string.format('%s{%s}%s[%d]\t%s\t{ff5c33}Дист: %d м\n', dline, sampGetColor(id), name, id, rang, dist)
+					else
+						dline = string.format('%s{%s}%s[%d]\t%s\t{00cc99}Дист: %d м\n', dline, sampGetColor(id), name, id, rang, dist)
+					end
+				else
+					dline = string.format('%s{%s}%s[%d]\t%s\t{00cc99}Онлайн\n', dline, sampGetColor(id), name, id, rang)
+				end
 			end
 		end
 	end
 	
-	local caption = string.format('{ffffff}Всего администраторов {FFCD00}%d чел. {00CC66}(онлайн %d)', all, online)
-	sampShowDialog(1000, caption, dline, 'Закрыть', '', 5)
+	local caption = string.format('{ffffff}Всего пользователей {FFCD00}%d чел. {00CC66}(онлайн %d)', all, online)
+	sampShowDialog(1001, caption, dline, 'Закрыть', '', 5)
+end
+
+function command_admins()
+	if player_status then
+		local dline = 'Имя\tДолжность\tДополнительно\n'
+		local all = 0
+		local online = 0
+		
+		for line in io.lines('moonloader\\helper\\Admins.txt') do
+			all = all + 1
+			local name, rang, nrang = string.match(line, '(.+) | (.+) | (.+)')
+			local id = sampGetPlayerIdByNickname(name)
+			if id == 'offline' then
+				dline = string.format('%s{696969}%s\t{696969}%s ранг. %s\t{ff5c33}Оффлайн\n', dline, name, nrang, rang)
+			else
+				local res, ped = sampGetCharHandleBySampPlayerId(id)
+				online = online + 1
+				if res then
+					dist = math.floor(sampGetDistance(PLAYER_PED, id))
+					if sampIsPlayerPaused(id) then
+						dline = string.format('%s{%s}%s[%d]\t%s ранг. %s\t{ff5c33}Дист: %d м\n', dline, sampGetColor(id), name, id, nrang, rang, dist)
+					else
+						dline = string.format('%s{%s}%s[%d]\t%s ранг. %s\t{00cc99}Дист: %d м\n', dline, sampGetColor(id), name, id, nrang, rang, dist)
+					end
+				else
+					dline = string.format('%s{%s}%s[%d]\t%s ранг. %s\t{00cc99}Онлайн\n', dline, sampGetColor(id), name, id, nrang, rang)
+				end
+			end
+		end
+		
+		local caption = string.format('{ffffff}Всего администраторов {FFCD00}%d чел. {00CC66}(онлайн %d)', all, online)
+		sampShowDialog(1000, caption, dline, 'Закрыть', '', 5)
+	end
 end
 
 function command_bl(name)
@@ -1879,7 +1969,9 @@ function imgui.OnDrawFrame()
 				imgui.Text('')
 				
 				if imgui.Button(u8'Настройки', imgui.ImVec2(235, 30))      then show_item.v = 0 end
-				if imgui.Button(u8'Администрация', imgui.ImVec2(235, 30))  then show_item.v = 1 end
+				if player_status then
+					if imgui.Button(u8'Администрация', imgui.ImVec2(235, 30))  then show_item.v = 1 end
+				end
 				if imgui.Button(u8'Информация', imgui.ImVec2(235, 30))     then show_item.v = 2 end
 				if imgui.Button(u8'Доп. команды', imgui.ImVec2(235, 30))   then show_item.v = 3 end
 				if imgui.Button(u8'Кастомизация', imgui.ImVec2(235, 30))   then show_item.v = 4 end
@@ -2211,48 +2303,96 @@ function imgui.OnDrawFrame()
 					
 					imgui.Text('')
 					
-					imgui.CenterTextColoredRGB('ID 1 | Новость о начале собеседования (3 строки)')
-					imgui.PushItemWidth(415)
-					imgui.InputText('##gnews1', pgfirst)
-					imgui.InputText('##gnews2', pgsecond)
-					imgui.InputText('##gnews3', pgthree)
+					imgui.Text(u8'ID-новости ')
 					
-					imgui.Text('')
+					imgui.SameLine()
 					
-					imgui.CenterTextColoredRGB('ID 2 | Новость о продолжении собеседования (1 строка)')
-					imgui.InputText('##gnews4', pgtwo)
+					imgui.PushItemWidth(80)
+					imgui.InputText('##id_news', idnews)
 					
-					imgui.Text('')
+					imgui.SameLine()
 					
-					imgui.CenterTextColoredRGB('ID 3 | Новость о окончании собеседования (1 строка)')
-					imgui.InputText('##gnews5', pgend)
-					
-					imgui.Text('')
-					
-					imgui.CenterTextColoredRGB('ID 4 | Новость о заявлениях на портале (1 строка)')
-					imgui.InputText('##gnews6', pgone)
-					
-					imgui.Text('')
-					
-					if imgui.Button(u8'Сохранить') then
-						ini.gnews.gfirst = u8:decode(pgfirst.v)
-						ini.gnews.gsecond = u8:decode(pgsecond.v)
-						ini.gnews.gthree = u8:decode(pgthree.v)
-						ini.gnews.gtwo = u8:decode(pgtwo.v)
-						ini.gnews.gone = u8:decode(pgone.v)
-						ini.gnews.gend = u8:decode(pgend.v)
-						inicfg.save(ini)
+					if imgui.Button(u8'Найти', imgui.ImVec2(85, 20)) then
+						if doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
+							for val in io.lines(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) do
+								if string.match(val, 'type=(%d+)') then
+									local ntype = string.match(val, 'type=(%d+)')
+									if tonumber(ntype) == 3 then lines.v = true else lines.v = false end
+								elseif string.match(val, 'line(%d+)=(.+)') then
+									local line, text = string.match(val, 'line(%d+)=(.+)')
+									if tonumber(line) <= 3 then
+										if tonumber(line) == 1 then pgline1.v = u8(text) end
+										if tonumber(line) == 2 then pgline2.v = u8(text) end
+										if tonumber(line) == 3 then pgline3.v = u8(text) end
+									elseif tonumber(line) == 4 then
+										pgaline1.v = u8(text)
+									end
+								end
+							end
+						end
 					end
 					
 					imgui.SameLine()
 					
-					if imgui.Button(u8'Стандартные значения') then
-						pgfirst.v   = u8'МВД | Хочешь быстрый карьерный рост? Большие премии? Тогда тебе в LSPD!'
-						pgsecond.v  = u8'МВД | Cобеседование пройдёт около департамента полиции Лос-Сантоса.'
-						pgthree.v   = u8'МВД | При себе иметь паспорт c 3-х летней пропиской и комплект лицензий.'
-						pgone.v     = u8'МВД | Напоминаю про электронные заявления в полицейский департамент ЛС.'
-						pgtwo.v     = u8'МВД | Напоминаю, проходит собеседование в LSPD около департамента.'
-						pgend.v     = u8'МВД | Собеседование в LSPD закончено, спасибо за внимание.'
+					if imgui.Button(u8'Создать', imgui.ImVec2(85, 20)) then
+						if not doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
+							local file = string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)
+							local filew = io.open(file, 'w')
+							filew:write('type=1')
+							filew:close()
+							
+							lines.v = false
+						end
+					end
+					
+					imgui.SameLine()
+					
+					if imgui.Button(u8'Сохранить', imgui.ImVec2(80, 20)) then
+						if doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
+							local file = string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)
+							local filew = io.open(file, 'w')
+							if lines.v then
+								filew:write(string.format('type=3\nline1=%s\nline2=%s\nline3=%s', u8:decode(pgline1.v), u8:decode(pgline2.v), u8:decode(pgline3.v)))
+							else
+								filew:write(string.format('type=1\nline4=%s', u8:decode(pgaline1.v)))
+							end
+							filew:close()
+						end
+					end
+					
+					if lines.v then
+						if imgui.Button(u8'Изменить на 1 строку', imgui.ImVec2(415, 20)) then lines.v = not lines.v end
+					else
+						if imgui.Button(u8'Изменить на 3 строки', imgui.ImVec2(415, 20)) then lines.v = not lines.v end
+					end
+					
+					imgui.Text('')
+					
+					imgui.PushItemWidth(350)
+					if lines.v then
+						imgui.InputText(u8'1-я строка ##gnews1', pgline1)
+						imgui.InputText(u8'2-я строка ##gnews2', pgline2)
+						imgui.InputText(u8'3-я строка ##gnews3', pgline3)
+					else
+						imgui.InputText(u8'Строка ##gnews1', pgaline1)
+					end
+					
+					imgui.Text('')
+					
+					imgui.Separator()
+					
+					imgui.Text('')
+					
+					imgui.CenterTextColoredRGB('РЕЗУЛЬТАТ')
+					
+					imgui.Text('')
+					
+					if lines.v then
+						imgui.CenterTextColoredRGB(string.format('{4466CC}%s', u8:decode(pgline1.v)))
+						imgui.CenterTextColoredRGB(string.format('{4466CC}%s', u8:decode(pgline2.v)))
+						imgui.CenterTextColoredRGB(string.format('{4466CC}%s', u8:decode(pgline3.v)))
+					else
+						imgui.CenterTextColoredRGB(string.format('{4466CC}%s', u8:decode(pgaline1.v)))
 					end
 				end
 			imgui.EndChild()
@@ -2512,11 +2652,11 @@ function imgui.OnDrawFrame()
 		imgui.SetNextWindowSize(imgui.ImVec2(250, 400))
 		imgui.Begin('##phone', show_phone, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 		local zsize = imgui.GetWindowSize()
-		
-			imgui.BeginChild('##info_logs', imgui.ImVec2(235, 340), true)
-			local wsize = imgui.GetWindowSize()
 			
-			imgui.TextColoredRGB(string.format('{000000}%s\t\t\t\t\t\t\t\t\t[{CD5C5C}||{008B8B}||{000000}]', os.date('%X')))
+			imgui.TextColoredRGB(string.format('{000000}%s\t\t\t\t\t\t\t\t\t\t[{CD5C5C}||{008B8B}||{000000}]', os.date('%X')))
+		
+			imgui.BeginChild('##info_logs', imgui.ImVec2(235, 325), true)
+			local wsize = imgui.GetWindowSize()
 			
 			if phone_item.v == 0 then
 				imgui.SetCursorPos(imgui.ImVec2(wsize.x - 210, wsize.y - 60)) 
@@ -2547,18 +2687,21 @@ function imgui.OnDrawFrame()
 					call_item.v = 1 
 				end
 				
-				imgui.Text('')
-				
 				if call_item.v == 0 then
+					if imgui.CustomButton(u8'Набрать номер', imgui.ImVec4(0.26, 0.68, 0.00, 0.10), imgui.ImVec4(0.26, 0.68, 0.00, 0.15), imgui.ImVec4(0.26, 0.68, 0.00, 0.20), imgui.ImVec2(220, 20)) then
+						call_item.v = 3
+					end
+				
 					for i, val in pairs(call_table) do
 						imgui.CustomButton(u8(val), imgui.ImVec4(0.00, 0.00, 0.00, 0.00), imgui.ImVec4(0.00, 0.42, 1.00, 0.10), imgui.ImVec4(0.00, 0.42, 1.00, 0.20), imgui.ImVec2(220, 20))
 					end
-					
-					--imgui.SetCursorPos(imgui.ImVec2(wsize.x - 40, wsize.y - 40)) 
-					--imgui.CustomButton('+', imgui.ImVec4(0.00, 0.42, 1.00, 0.20), imgui.ImVec4(0.00, 0.42, 1.00, 0.30), imgui.ImVec4(0.00, 0.42, 1.00, 0.35), imgui.ImVec2(30, 30)) 
 				end
 				
 				if call_item.v == 1 then
+					if imgui.CustomButton(u8'Добавить', imgui.ImVec4(0.26, 0.68, 0.00, 0.10), imgui.ImVec4(0.26, 0.68, 0.00, 0.15), imgui.ImVec4(0.26, 0.68, 0.00, 0.20), imgui.ImVec2(220, 20)) then
+						call_item.v = 2
+					end
+				
 					local path = 'moonloader\\helper\\contact.txt'
 					
 					if doesFileExist(path) then
@@ -2572,12 +2715,6 @@ function imgui.OnDrawFrame()
 						end
 					else
 						imgui.CenterTextColoredRGB('У вас нет друзей :с')
-					end
-					
-					imgui.SetCursorPos(imgui.ImVec2(wsize.x - 40, wsize.y - 40)) 
-					
-					if imgui.CustomButton('+', imgui.ImVec4(0.00, 0.42, 1.00, 0.20), imgui.ImVec4(0.00, 0.42, 1.00, 0.30), imgui.ImVec4(0.00, 0.42, 1.00, 0.35), imgui.ImVec2(30, 30)) then
-						call_item.v = 2
 					end
 				end
 				
@@ -2599,6 +2736,34 @@ function imgui.OnDrawFrame()
 						end
 					end
 				end
+				
+				if call_item.v == 3 then
+					imgui.PushItemWidth(220)
+					imgui.InputText('##number', call_number)
+					
+					imgui.Text('')
+					
+					if imgui.Button('1', imgui.ImVec2(70, 50)) then call_number.v = string.format('%s1', call_number.v) end
+					imgui.SameLine()
+					if imgui.Button('2', imgui.ImVec2(70, 50)) then call_number.v = string.format('%s2', call_number.v) end
+					imgui.SameLine()
+					if imgui.Button('3', imgui.ImVec2(70, 50)) then call_number.v = string.format('%s3', call_number.v) end
+					if imgui.Button('4', imgui.ImVec2(70, 50)) then call_number.v = string.format('%s4', call_number.v) end
+					imgui.SameLine()
+					if imgui.Button('5', imgui.ImVec2(70, 50)) then call_number.v = string.format('%s5', call_number.v) end
+					imgui.SameLine()
+					if imgui.Button('6', imgui.ImVec2(70, 50)) then call_number.v = string.format('%s6', call_number.v) end
+					if imgui.Button('7', imgui.ImVec2(70, 50)) then call_number.v = string.format('%s7', call_number.v) end
+					imgui.SameLine()
+					if imgui.Button('8', imgui.ImVec2(70, 50)) then call_number.v = string.format('%s8', call_number.v) end
+					imgui.SameLine()
+					if imgui.Button('9', imgui.ImVec2(70, 50)) then call_number.v = string.format('%s9', call_number.v) end
+					if imgui.Button('<', imgui.ImVec2(70, 50)) then call_number.v = string.sub(call_number.v, 0, string.len(call_number.v) - 1) end
+					imgui.SameLine()
+					if imgui.Button('0', imgui.ImVec2(70, 50)) then call_number.v = string.format('%s0', call_number.v) end
+					imgui.SameLine()
+					if imgui.Button('CALL', imgui.ImVec2(70, 50)) then sampSendChat(string.format('/c %s', call_number.v)); call_number.v = '' end
+				end
 			end
 			
 			if phone_item.v == 2 then
@@ -2607,27 +2772,19 @@ function imgui.OnDrawFrame()
 			
 			if phone_item.v == 3 then
 				if imgui.CustomButton(u8'Обновить значение', imgui.ImVec4(0.00, 0.00, 0.00, 0.00), imgui.ImVec4(0.00, 0.00, 0.00, 0.10), imgui.ImVec4(0.00, 0.00, 0.00, 0.20), imgui.ImVec2(220, 20)) then
-					st, weathers = getWeatherInCity()
+					weathers = getWeathers()
 				end
 				
-				if st then
-					if weathers[1] ~= '' and weathers[1] ~= nil then
-						imgui.TextColoredRGB(string.format('Темпер.     %s°C', weathers[1]))
-						imgui.TextColoredRGB(string.format('Погода       %s', weathers[2]))
-						imgui.TextColoredRGB(string.format('Ветер         %d м/с, %s', weathers[3], weathers[4]))
-						imgui.TextColoredRGB(string.format('Давление   %d мм рт. ст.', weathers[5]))
-						imgui.TextColoredRGB(string.format('Влажность  %d%%', weathers[6])) 
-						imgui.TextColoredRGB(string.format('Город         %s', weathers[7])) 
-						imgui.TextColoredRGB(string.format('Регион       %d', weathers[8]))
-					else
-						imgui.TextColoredRGB('Не удаётся получить данные...')
-					end
+				if weathers[1] ~= '' and weathers[1] ~= nil then
+					imgui.TextColoredRGB(string.format('Темпер.     %s°C', weathers[1]))
+					imgui.TextColoredRGB(string.format('Погода       %s', weathers[2]))
+					imgui.TextColoredRGB(string.format('Ветер         %d м/с, %s', weathers[3], weathers[4]))
+					imgui.TextColoredRGB(string.format('Давление   %d мм рт. ст.', weathers[5]))
+					imgui.TextColoredRGB(string.format('Влажность  %d%%', weathers[6])) 
+					imgui.TextColoredRGB(string.format('Город         %s', weathers[7])) 
+					imgui.TextColoredRGB(string.format('Регион       %d', weathers[8]))
 				else
 					imgui.TextColoredRGB('Не удаётся получить данные...')
-					
-					if weathers[1] ~= '' and weathers[1] ~= nil then
-						imgui.TextColoredRGB(weathers[1])
-					end
 				end
 			end
 			
@@ -2843,11 +3000,13 @@ function sampGetDistance(ped1, id)
 	local res, pid = sampGetPlayerIdByCharHandle(PLAYER_PED)
 	if tonumber(id) == tonumber(pid) then
 		return 0
+	elseif not IPC(id) then
+		return 5000
 	else
 		local res, ped2 = sampGetCharHandleBySampPlayerId(id)
 		if res then
-			x1, y1, z1 = getCharCoordinates(ped1)
-			x2, y2, z2 = getCharCoordinates(ped2)
+			local x1, y1, z1 = getCharCoordinates(ped1)
+			local x2, y2, z2 = getCharCoordinates(ped2)
 
 			return getDistanceBetweenCoords3d(x1, y1, z1, x2, y2, z2)
 		else
@@ -2868,8 +3027,16 @@ end
 function sampGetPassedTimeByPeriod(hour, minute, secund, period)
 	local time = getTimeByPeriod(hour, minute, secund, period)
 	
-	if tonumber(os.date('%H')) > time[1] then
+	if tonumber(os.date('%H')) > (time[1] + 1) then
 		return true
+	elseif tonumber(os.date('%H')) == (time[1] + 1) then
+		if tonumber(os.date('%M')) == (60 - time[2]) and tonumber(os.date('%S')) >= time[3] then
+			return true
+		elseif tonumber(os.date('%M')) > (60 - time[2]) then
+			return true
+		else
+			return false
+		end
 	elseif tonumber(os.date('%M')) == time[2] and tonumber(os.date('%S')) >= time[3] then
 		return true
 	elseif tonumber(os.date('%M')) > time[2] then
@@ -3961,27 +4128,23 @@ function sampev.onServerMessage(color, text)
 	end
 
 	if text:find('Вы оглушили (.+) на 15 секунд') then
-		if ini.info.male then
-			if getCurrentCharWeapon(PLAYER_PED) == 3 then
-				sampSendChat('/me размахнувшись, ударил нарушителя дубинкой, тем самым оглушил его') 
+		lua_thread.create(function()
+			wait(150)
+			
+			if ini.info.male then
+				if getCurrentCharWeapon(PLAYER_PED) == 3 then
+					sampSendChat('/me размахнувшись, ударил нарушителя дубинкой, тем самым оглушил его') 
+				else
+					sampSendChat('/me выхватив тэйзер, нажал на кнопку спуска, тем самым парализовал нарушителя')
+				end
 			else
-				sampSendChat('/me выхватив тэйзер, нажал на кнопку спуска, тем самым парализовал нарушителя')
+				if getCurrentCharWeapon(PLAYER_PED) == 3 then
+					sampSendChat('/me размахнувшись, ударила нарушителя дубинкой, тем самым оглушила его')
+				else
+					sampSendChat('/me выхватив тэйзер, нажала на кнопку спуска, тем самым парализовала нарушителя')
+				end
 			end
-		else
-			if getCurrentCharWeapon(PLAYER_PED) == 3 then
-				sampSendChat('/me размахнувшись, ударила нарушителя дубинкой, тем самым оглушила его')
-			else
-				sampSendChat('/me выхватив тэйзер, нажала на кнопку спуска, тем самым парализовала нарушителя')
-			end
-		end
-		
-		return true
-	end
-
-	if text:find('Сотрудники ФБР взломали дверь Вашего дома!') and color == -10092289 and ini.set.antifbi then
-		sampSendChat('/home')
-		antifbi = true
-		return true
+		end)
 	end
 
 	if text:match('(.+) не удалось взломать дверь у дома №(%d+)') and color == -577699841 then
@@ -4014,7 +4177,6 @@ function sampev.onServerMessage(color, text)
 				inv_id, inv_rang = nil
 			end)
 		end
-		return true
 	end
 	
 	if text:match('(.+)[^%d](%d+)[^%d] был обнаружен в районе') then
@@ -4023,8 +4185,6 @@ function sampev.onServerMessage(color, text)
 			SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 2.1 ЕПК нажмите сочетание клавиш ПКМ + 4.', sampGetPlayerNickname(id), id))
 			suspect_id = {id, 1, '2.1 ЕПК', sampGetPlayerNickname(id)}
 		end
-		
-		return true
 	end
 	
 	if text:match('SMS.[%s](.+)[%s].[%s]Отправитель.[%s](.+)[%s].т.(%d+).') then
@@ -4064,46 +4224,50 @@ function sampev.onServerMessage(color, text)
 			sampSendChat('/h')
 			return false
 		end
-		
-		return true
 	end
 	
 	if text:find('Вы закрыли двери в спецблок') and ini.set.lowrp then
-		if ini.info.male then
-			sampSendChat('/me проведя картой по считывающему устройству, закрыл дверь в спецблок')
-		else
-			sampSendChat('/me проведя картой по считывающему устройству, закрыла дверь в спецблок')
-		end
-		
-		return true
+		lua_thread.create(function()
+			wait(150)
+			
+			if ini.info.male then
+				sampSendChat('/me проведя картой по считывающему устройству, закрыл дверь в спецблок')
+			else
+				sampSendChat('/me проведя картой по считывающему устройству, закрыла дверь в спецблок')
+			end
+		end)
 	end
 	
 	if text:find('Вы открыли двери в спецблок') and ini.set.lowrp then
-		if ini.info.male then
-			sampSendChat('/me проведя картой по считывающему устройству, открыл дверь в спецблок')
-		else
-			sampSendChat('/me проведя картой по считывающему устройству, открыла дверь в спецблок')
-		end
-		
-		return true
+		lua_thread.create(function()
+			wait(150)
+			
+			if ini.info.male then
+				sampSendChat('/me проведя картой по считывающему устройству, открыл дверь в спецблок')
+			else
+				sampSendChat('/me проведя картой по считывающему устройству, открыла дверь в спецблок')
+			end
+		end)
 	end
 	
 	if text:find('Вы использовали аптечку. Здоровье пополнено на 60 единиц') and ini.set.lowrp then
-		if ini.info.male then
-			sampSendChat('/me достал шприц с морфием и вколол его себе в бедро')
-		else
-			sampSendChat('/me достала шприц с морфием и вколола его себе в бедро')
-		end
+		lua_thread.create(function()
+			wait(150)
+			
+			if ini.info.male then
+				sampSendChat('/me достал шприц с морфием и вколол его себе в бедро')
+			else
+				sampSendChat('/me достала шприц с морфием и вколола его себе в бедро')
+			end
+		end)
 	end
 	
 	if text:find('Вы подключились к внутреннему каналу связи организации') then
 		follow_state = true
-		return true
 	end
 	
 	if text:find('Вы отключились от внутреннего канала связи организации') then
 		follow_state = false
-		return true
 	end
 end
 
@@ -4539,54 +4703,104 @@ function autoupdate(json_url, url) -- Author: http://qrlk.me/samp
   while update ~= false do wait(100) end
 end
 
-function getWeatherInCity()
-	local path = getWorkingDirectory() .. '\\helper\\weather.txt'
-	local url = 'https://export.yandex.ru/bar/reginfo.xml?region'
-	local weather = {'', '', 0, '', 0, 0, '', 0}
-	local infoweat = ''
-	local err = ''
-	
-	if doesFileExist(path) then os.remove(path) end
-	
-	downloadUrlToFile(url, path, function(id, status, p1, p2)
-		if status == dlstatus.STATUSEX_ENDDOWNLOAD then
-			if doesFileExist(path) then
-				local f = io.open(path, 'r')
-				
-				if f then
-					infoweat = u8:decode(f:read('*a'))
-
-					weather[1] = string.match(infoweat, '<temperature[%s]class_name="t18"[%s]color="F7F3D3">(.+)</temperature>.+</temperature>.+</temperature>')
-					weather[2] = string.match(infoweat, '<weather_type>(.+)</weather_type>')
-					weather[3] = string.match(infoweat, '<wind_speed>(.+)</wind_speed>')
-					weather[4] = string.match(infoweat, '<wind_direction[%s]id=".+">(.+)</wind_direction>')
-					weather[5] = string.match(infoweat, '<pressure>(.+)</pressure>')
-					weather[6] = string.match(infoweat, '<dampness>(.+)</dampness>')
-					weather[7] = string.match(infoweat, '<region id=".+" zoom=".+" lat=".+" lon=".+">.+<title>(.+)</title>.+</region>')
-					weather[8] = string.match(infoweat, '<region id="(.+)" zoom=".+" lat=".+" lon=".+">.+<title>.+</title>.+</region>')
-					
-					f:close()
-					os.remove(path)
-				else
-					weather[1] = 'Ошибка (#1-2)'
-				end
-			else
-				weather[1] = 'Ошибка (#1-1)'
-			end
-		else
-			weather[1] = 'Ошибка (#1-0)'
-		end
-	end)
-	
-	if err ~= '' then
-		return false, weather
-	else
-		return true, weather
-	end
-end
-
 function rkeys.onHotKey(id, keys)
     if sampIsChatInputActive() or sampIsDialogActive() or isSampfuncsConsoleActive() then
         return false
     end
+end
+
+function getUsers()
+	async_http_request('GET', 'https://raw.githubusercontent.com/skezz-perry/project/master/users', nil --[[параметры запроса]],
+		function(response) -- вызовется при успешном выполнении и получении ответа
+			--print(response.text) response.text - текст ответа. ещё есть response.status_code и response.headers
+			local found = false
+			local prang
+			users = response.text
+			
+			for line in string.gmatch(users, "[^\n]+") do
+				if string.match(line, '(.+) | (.+)') then
+					local name, rang = string.match(line, '(.+) | (.+)')
+					local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
+					local pname = sampGetPlayerNickname(id)
+					
+					if pname:find(name) then 
+						found = true
+						prang = rang
+						break 
+					end
+				end
+			end
+			
+			if found then
+				local prang = 'User'
+			
+				if prang == 'Developer' or prang == 'Super User' then
+					SCM(string.format('Вы авторизовались как {CD5C5C}%s.{ffffff} Вам доступен весь функционал скрипта.', prang))
+					player_status = true
+				else
+					SCM(string.format('Вы авторизовались как {CD5C5C}%s.{ffffff} Вам не доступна часть функций.', prang))
+					player_status = false
+				end
+			else
+				SCM('Вы не являетесь пользователем и вы не можете использовать данный скрипт.')
+				thisScript():unload()
+			end
+		end,
+		function(err) -- вызовется при ошибке, err - текст ошибки. эту функцию можно не указывать
+			print(err)
+	end)
+end
+
+function getWeathers()
+	local weather = {}
+
+	async_http_request('GET', 'https://export.yandex.ru/bar/reginfo.xml?region', nil --[[параметры запроса]],
+		function(response) -- вызовется при успешном выполнении и получении ответа
+			local infoweat = response.text
+			
+			weather[1] = string.match(infoweat, '<temperature[%s]class_name="t18"[%s]color="F7F3D3">(.+)</temperature>.+</temperature>.+</temperature>.+</temperature>')
+			weather[2] = u8:decode(string.match(infoweat, '<weather_type>(.+)</weather_type>'))
+			weather[3] = string.match(infoweat, '<wind_speed>(.+)</wind_speed>')
+			weather[4] = u8:decode(string.match(infoweat, '<wind_direction[%s]id=".+">(.+)</wind_direction>'))
+			weather[5] = string.match(infoweat, '<pressure>(.+)</pressure>')
+			weather[6] = string.match(infoweat, '<dampness>(.+)</dampness>')
+			weather[7] = u8:decode(string.match(infoweat, '<region id=".+" zoom=".+" lat=".+" lon=".+">.+<title>(.+)</title>.+</region>'))
+			weather[8] = string.match(infoweat, '<region id="(.+)" zoom=".+" lat=".+" lon=".+">.+<title>.+</title>.+</region>')
+		end,
+		
+		function(err)
+			print(err)
+	end)
+	
+	return weather
+end
+
+function async_http_request(method, url, args, resolve, reject)
+    local request_lane = lanes.gen('*', {package = {path = package.path, cpath = package.cpath}}, function()
+        local requests = require 'requests'
+        local ok, result = pcall(requests.request, method, url, args)
+        if ok then
+            result.json, result.xml = nil, nil -- cannot be passed through a lane
+            return true, result
+        else
+            return false, result -- return error
+        end
+    end)
+    if not reject then reject = function() end end
+    lua_thread.create(function()
+        local lh = request_lane()
+        while true do
+            local status = lh.status
+            if status == 'done' then
+                local ok, result = lh[1], lh[2]
+                if ok then resolve(result) else reject(result) end
+                return
+            elseif status == 'error' then
+                return reject(lh[1])
+            elseif status == 'killed' or status == 'cancelled' then
+                return reject(status)
+            end
+            wait(0)
+        end
+    end)
 end

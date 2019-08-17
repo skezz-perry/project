@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(5.2)
+script_version(5.3)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -919,7 +919,7 @@ function command_easyevent(param)
 end
 
 function command_update()
-	local update_info = '{ffffff}Добавлена команда /users.\nДобавлена команда /eevent.\n\nОбновлена панель лидеров и добавлена новая система гос.новостей.\n\nИсправлен баг с отображением погоды и прочие мелкие баги.'
+	local update_info = '{ffffff}Добавлена команда /users.\nДобавлена команда /eevent.\n\nОбновлена панель лидеров и добавлена новая система гос. новостей.\n\nИсправлен баг с отображением погоды и прочие мелкие баги.'
 
 	sampShowDialog(10005, '{FFCD00}Обновление', update_info, 'Закрыть', '', 0)
 end
@@ -4732,13 +4732,14 @@ function getUsers()
 			end
 			
 			if found then
-				local prang = 'User'
-			
-				if prang == 'Developer' or prang == 'Super User' then
+				if prang == 'Developer' then
 					SCM(string.format('Вы авторизовались как {CD5C5C}%s.{ffffff} Вам доступен весь функционал скрипта.', prang))
 					player_status = true
+				elseif prang == 'Super User' then
+					SCM(string.format('Вы авторизовались как {FFD700}%s.{ffffff} Вам доступен весь функционал скрипта.', prang))
+					player_status = true
 				else
-					SCM(string.format('Вы авторизовались как {CD5C5C}%s.{ffffff} Вам не доступна часть функций.', prang))
+					SCM(string.format('Вы авторизовались как {4876FF}%s.{ffffff} Вам не доступна часть функций.', prang))
 					player_status = false
 				end
 			else

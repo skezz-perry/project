@@ -41,9 +41,19 @@ local typeStyle = {
 			imgui.ImColor(170, 20, 20, 235):GetU32(), -- left button
 			imgui.ImColor(170, 20, 20, 170):GetU32(), -- right button
 		}
+	},
+	{ -- 4 - successfull message
+		text = imgui.ImColor(255, 255, 255, 255):GetVec4(),
+		rightBox = imgui.ImColor(65, 165, 65, 255):GetU32(),
+		mainBox = {
+			imgui.ImColor(45, 145, 45, 170):GetU32(), -- left top
+			imgui.ImColor(45, 145, 45, 235):GetU32(), -- right top
+			imgui.ImColor(45, 145, 45, 235):GetU32(), -- left button
+			imgui.ImColor(45, 145, 45, 170):GetU32(), -- right button
+		}
 	}
 }
-local msxMsg = 3
+local msxMsg = 4
 local notfList = {
 	pos = {
 		x = sX - 200,

@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(5.7)
+script_version(5.8)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -1008,7 +1008,7 @@ function command_asms(text)
 end
 
 function command_gov(id)
-	if player_status > 2 then
+	if player_status > 3 then
 		if string.match(id, '(%d+)') then
 			if gnews[1] ~= nil then
 				local timed = getTimeByPeriod(tonumber(gnews[1]), tonumber(gnews[2]), tonumber(gnews[3]), 5)
@@ -1372,58 +1372,66 @@ function command_hack(id)
 end
 
 function command_invite(param)
-	if string.match(param, '(%d+) (%d+)') then
-		inv_id, inv_rang = string.match(param, '(%d+) (%d+)')
-		if IPC(id) then
-			if sampGetDistance(PLAYER_PED, inv_id) < 3 then
-				lua_thread.create(function()
-					if ini.info.male then
-						sampSendChat('/me из внутреннего кармана достал планшет и включил его')
-						wait(1500); sampSendChat('/me зайдя в базу данных МВД, добавил новое личное дело ' .. string.gsub(sampGetPlayerNickname(inv_id),'_',' ') .. '')
-						wait(1500); sampSendChat('/me потушил экран планшета и убрал его обратно')
-						wait(1500); sampSendChat('/me достал ключ от шкафчика под номером ' .. inv_id .. ' и передал его ' .. string.gsub(sampGetPlayerNickname(inv_id),'_',' '))
-					else
-						sampSendChat('/me из внутреннего кармана достала планшет и включила его')
-						wait(1500); sampSendChat('/me зайдя в базу данных МВД, добавила новое личное дело ' .. string.gsub(sampGetPlayerNickname(inv_id),'_',' ') .. '')
-						wait(1500); sampSendChat('/me потушила экран планшета и убрала его обратно')
-						wait(1500); sampSendChat('/me достала ключ от шкафчика под номером ' .. inv_id .. ' и передала его ' .. string.gsub(sampGetPlayerNickname(inv_id),'_',' '))
-					end
-					wait(1000); sampSendChat('/invite ' .. inv_id)
-				end)
+	if player_status > 2 then
+		if string.match(param, '(%d+) (%d+)') then
+			inv_id, inv_rang = string.match(param, '(%d+) (%d+)')
+			if IPC(id) then
+				if sampGetDistance(PLAYER_PED, inv_id) < 3 then
+					lua_thread.create(function()
+						if ini.info.male then
+							sampSendChat('/me из внутреннего кармана достал планшет и включил его')
+							wait(1500); sampSendChat('/me зайдя в базу данных МВД, добавил новое личное дело ' .. string.gsub(sampGetPlayerNickname(inv_id),'_',' ') .. '')
+							wait(1500); sampSendChat('/me потушил экран планшета и убрал его обратно')
+							wait(1500); sampSendChat('/me достал ключ от шкафчика под номером ' .. inv_id .. ' и передал его ' .. string.gsub(sampGetPlayerNickname(inv_id),'_',' '))
+						else
+							sampSendChat('/me из внутреннего кармана достала планшет и включила его')
+							wait(1500); sampSendChat('/me зайдя в базу данных МВД, добавила новое личное дело ' .. string.gsub(sampGetPlayerNickname(inv_id),'_',' ') .. '')
+							wait(1500); sampSendChat('/me потушила экран планшета и убрала его обратно')
+							wait(1500); sampSendChat('/me достала ключ от шкафчика под номером ' .. inv_id .. ' и передала его ' .. string.gsub(sampGetPlayerNickname(inv_id),'_',' '))
+						end
+						wait(1000); sampSendChat('/invite ' .. inv_id)
+					end)
+				else
+					SCM('Данный игрок находится слишком далеко от Вас.')
+				end
 			else
-				SCM('Данный игрок находится слишком далеко от Вас.')
+				SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 			end
 		else
-			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+			SCM('Используйте команду /invite [ид игрока] [ранг].')
 		end
 	else
-		SCM('Используйте команду /invite [ид игрока] [ранг].')
+		SCM('Вы не можете использовать данную функцию, вы не лидер и не его заместитель.')
 	end
 end
 
 function command_uninvite(param)
-	if string.match(param, '(%d+) (%S+)') then
-		local id, reason = string.match(param, '(%d+) (.+)')
-		if IPC(id) then
-			lua_thread.create(function()
-				if ini.info.male then
-					sampSendChat('/me из внутреннего кармана достал планшет и включил его')
-					wait(1500); sampSendChat('/me зайдя в базу данных МВД, удалил личное дело ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. '')
-					wait(1000); sampSendChat('/uninvite ' .. id .. ' ' .. reason)
-					wait(1500); sampSendChat('/me потушил экран планшета и убрал его обратно')
-				else
-					sampSendChat('/me из внутреннего кармана достала планшет и включила его')
-					wait(1500); sampSendChat('/me зайдя в базу данных МВД, удалила личное дело ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. '')
-					wait(1000); sampSendChat('/uninvite ' .. id .. ' ' .. reason)
-					wait(1500); sampSendChat('/me потушила экран планшета и убрала его обратно')
-				end
-				wait(1000); sampSendChat('/r ' .. ini.info.rteg .. ' Сотрудник ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. ' уволен по причине: ' .. reason)
-			end)
+	if player_status > 2 then
+		if string.match(param, '(%d+) (%S+)') then
+			local id, reason = string.match(param, '(%d+) (.+)')
+			if IPC(id) then
+				lua_thread.create(function()
+					if ini.info.male then
+						sampSendChat('/me из внутреннего кармана достал планшет и включил его')
+						wait(1500); sampSendChat('/me зайдя в базу данных МВД, удалил личное дело ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. '')
+						wait(1000); sampSendChat('/uninvite ' .. id .. ' ' .. reason)
+						wait(1500); sampSendChat('/me потушил экран планшета и убрал его обратно')
+					else
+						sampSendChat('/me из внутреннего кармана достала планшет и включила его')
+						wait(1500); sampSendChat('/me зайдя в базу данных МВД, удалила личное дело ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. '')
+						wait(1000); sampSendChat('/uninvite ' .. id .. ' ' .. reason)
+						wait(1500); sampSendChat('/me потушила экран планшета и убрала его обратно')
+					end
+					wait(1000); sampSendChat('/r ' .. ini.info.rteg .. ' Сотрудник ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. ' уволен по причине: ' .. reason)
+				end)
+			else
+				SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+			end
 		else
-			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+			SCM('Используйте команду /uninvite [ид игрока] [причина].')
 		end
 	else
-		SCM('Используйте команду /uninvite [ид игрока] [причина].')
+		SCM('Вы не можете использовать данную функцию, вы не лидер и не его заместитель.')
 	end
 end
 
@@ -1460,54 +1468,62 @@ function command_follow()
 end
 
 function command_rang(param)
-	if string.match(param, '(%d+) [+?-]') then
-		local id, rang = string.match(param, '(%d+) (.+)')
-		if IPC(id) then
-			if sampGetDistance(PLAYER_PED, id) < 3 then
-				lua_thread.create(function()
-					if ini.info.male then
-						sampSendChat('/me из внутреннего кармана достал планшет и включил его')
-						wait(1500); sampSendChat('/me зайдя в базу данных МВД, изменил должность ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. '')
-						wait(1000); sampSendChat('/rang ' .. id .. ' ' .. rang)
-						wait(1500); sampSendChat('/me потушил экран планшета и убрал его обратно')
-					else
-						sampSendChat('/me из внутреннего кармана достала планшет и включила его')
-						wait(1500); sampSendChat('/me зайдя в базу данных МВД, изменила должность ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. '')
-						wait(1000); sampSendChat('/rang ' .. id .. ' ' .. rang)
-						wait(1500); sampSendChat('/me потушила экран планшета и убрала его обратно')
-					end
-				end)
+	if player_status > 2 then
+		if string.match(param, '(%d+) [+?-]') then
+			local id, rang = string.match(param, '(%d+) (.+)')
+			if IPC(id) then
+				if sampGetDistance(PLAYER_PED, id) < 3 then
+					lua_thread.create(function()
+						if ini.info.male then
+							sampSendChat('/me из внутреннего кармана достал планшет и включил его')
+							wait(1500); sampSendChat('/me зайдя в базу данных МВД, изменил должность ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. '')
+							wait(1000); sampSendChat('/rang ' .. id .. ' ' .. rang)
+							wait(1500); sampSendChat('/me потушил экран планшета и убрал его обратно')
+						else
+							sampSendChat('/me из внутреннего кармана достала планшет и включила его')
+							wait(1500); sampSendChat('/me зайдя в базу данных МВД, изменила должность ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. '')
+							wait(1000); sampSendChat('/rang ' .. id .. ' ' .. rang)
+							wait(1500); sampSendChat('/me потушила экран планшета и убрала его обратно')
+						end
+					end)
+				else
+					SCM('Данный игрок находится слишком далеко от Вас.')
+				end
 			else
-				SCM('Данный игрок находится слишком далеко от Вас.')
+				SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 			end
 		else
-			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+			SCM('Используйте команду /rang [ид игрока] [+ или -].')
 		end
 	else
-		SCM('Используйте команду /rang [ид игрока] [+ или -].')
+		SCM('Вы не можете использовать данную функцию, вы не лидер и не его заместитель.')
 	end
 end
 
 function command_changeskin(id)
-	if string.match(id, '(%d+)') then
-		if IPC(id) then
-			if sampGetDistance(PLAYER_PED, id) < 3 then
-				lua_thread.create(function()
-					if ini.info.male then
-						sampSendChat('/me достал ключ от шкафчика под номером ' .. id .. ' и передал его ' .. string.gsub(sampGetPlayerNickname(id),'_',' '))
-					else
-						sampSendChat('/me достала ключ от шкафчика под номером ' .. id .. ' и передала его ' .. string.gsub(sampGetPlayerNickname(id),'_',' '))
-					end
-					wait(1000); sampSendChat('/changeskin ' .. id)
-				end)
+	if player_status > 2 then
+		if string.match(id, '(%d+)') then
+			if IPC(id) then
+				if sampGetDistance(PLAYER_PED, id) < 3 then
+					lua_thread.create(function()
+						if ini.info.male then
+							sampSendChat('/me достал ключ от шкафчика под номером ' .. id .. ' и передал его ' .. string.gsub(sampGetPlayerNickname(id),'_',' '))
+						else
+							sampSendChat('/me достала ключ от шкафчика под номером ' .. id .. ' и передала его ' .. string.gsub(sampGetPlayerNickname(id),'_',' '))
+						end
+						wait(1000); sampSendChat('/changeskin ' .. id)
+					end)
+				else
+					SCM('Данный игрок находится слишком далеко от Вас.')
+				end
 			else
-				SCM('Данный игрок находится слишком далеко от Вас.')
+				SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 			end
 		else
-			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+			SCM('Используйте команду /changeskin [ид игрока].')
 		end
 	else
-		SCM('Используйте команду /changeskin [ид игрока].')
+		SCM('Вы не можете использовать данную функцию, вы не лидер и не его заместитель.')
 	end
 end
 
@@ -1871,7 +1887,8 @@ function command_users()
 	for line in string.gmatch(users, "[^\n]+") do
 		if string.match(line, '(.+) | (.+) | (.+)') then
 			local name, rang, nrang = string.match(line, '(.+) | (.+) | (.+)')
-			if tonumber(nrang) >= 4 then rang = string.format('{CD5C5C}%s', rang) 
+			if tonumber(nrang) >= 5 then rang = string.format('{CD5C5C}%s', rang)
+			elseif tonumber(nrang) == 4 then rang = string.format('{228B22}%s', rang)
 			elseif tonumber(nrang) == 3 then rang = string.format('{90EE90}%s', rang)
 			elseif tonumber(nrang) == 2 then rang = string.format('{FFD700}%s', rang)
 			else rang = string.format('{4876FF}%s', rang) end
@@ -2000,7 +2017,7 @@ function imgui.OnDrawFrame()
 				if player_status > 1 then 
 					if imgui.Button(u8'Кастомизация', imgui.ImVec2(235, 25))   then show_item.v = 5 end
 				end
-			    if player_status > 2 then 	
+			    if player_status > 3 then 	
 					if imgui.Button(u8'Панель лидера', imgui.ImVec2(235, 25))  then show_item.v = 6 end
 				end
 				if imgui.Button(u8'Перезагрузить', imgui.ImVec2(235, 25))  then

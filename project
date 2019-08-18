@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(5.6)
+script_version(5.7)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -15,7 +15,7 @@ local inicfg            = require 'inicfg'
 local lanes             = require('lanes').configure()
 local dlstatus          = require('moonloader').download_status
 imgui.HotKey            = require('imgui_addons').HotKey
-local bNotf, notf       = pcall(import, "imgui_notf.lua")
+local bNotf, notf       = pcall(import, "imgui_notf1.lua")
 lsampev, sampev         = pcall(require, 'lib.samp.events')
 encoding.default        = 'CP1251'
 u8                      = encoding.UTF8
@@ -280,7 +280,7 @@ function main()
 			function(response)
 				local textfile = response.text
 				
-				local fw = io.open('moonloader//imgui_notf.lua', 'w')
+				local fw = io.open('moonloader//imgui_notf1.lua', 'w')
 				fw:write(u8:decode(textfile))
 				fw:close()
 		end)

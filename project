@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(5.4)
+script_version(5.5)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -15,6 +15,7 @@ local inicfg            = require 'inicfg'
 local lanes             = require('lanes').configure()
 local dlstatus          = require('moonloader').download_status
 imgui.HotKey            = require('imgui_addons').HotKey
+local bNotf, notf       = pcall(import, "imgui_notf.lua")
 lsampev, sampev         = pcall(require, 'lib.samp.events')
 encoding.default        = 'CP1251'
 u8                      = encoding.UTF8
@@ -159,7 +160,9 @@ local ini = inicfg.load({
 		autopass             = false,
 		autoweapon           = false,
 		lowrp                = false,
-		rpweapon             = false
+		rpweapon             = false,
+		autorpweapon         = false,
+		halfrpweapon         = false
 	},
 	weapon = {
 		shit                 = false,
@@ -182,6 +185,11 @@ local ini = inicfg.load({
 		bm4                  = 1,
 		ak47                 = false,
 		bak47                = 1
+	},
+	lowrp = {
+		rphealme             = false,
+		rpmask               = false,
+		rpfbi                = false
 	}
 })
 
@@ -221,7 +229,6 @@ local show_help          = imgui.ImBool(false)
 local show_info          = imgui.ImBool(false)
 local show_epk           = imgui.ImBool(false)
 local show_ustav         = imgui.ImBool(false)
-local show_weapon        = imgui.ImBool(false)
 local show_phone         = imgui.ImBool(false)
 local vfilt              = imgui.ImBool(false)
 local lines              = imgui.ImBool(false)
@@ -256,6 +263,9 @@ local pautopass          = imgui.ImBool(ini.set.autopass)
 local pautoweapon        = imgui.ImBool(ini.set.autoweapon)
 local prpweapon          = imgui.ImBool(ini.set.rpweapon)
 local plowrp             = imgui.ImBool(ini.set.lowrp)
+local prphealme          = imgui.ImBool(ini.lowrp.rphealme)
+local prpmask            = imgui.ImBool(ini.lowrp.rpmask)
+local prpfbi             = imgui.ImBool(ini.lowrp.rpfbi)
 local editor             = imgui.ImBool(false)
 
 function main()
@@ -264,6 +274,17 @@ function main()
 	
 	autoupdate('https://raw.githubusercontent.com/skezz-perry/project/master/version', 'https://raw.githubusercontent.com/skezz-perry/project/master/project') 
 	getUsers()
+	
+	if not doesFileExist('moonloader//imgui_notf.lua') then
+		async_http_request('GET', 'https://raw.githubusercontent.com/skezz-perry/project/master/script', nil,
+			function(response)
+				local textfile = response.text
+				
+				local fw = io.open('moonloader//imgui_notf.lua', 'w')
+				fw:write(u8:decode(textfile))
+				fw:close()
+		end)
+	end
 	
 	sampRegisterChatCommand('admins', command_admins)
 	sampRegisterChatCommand('r', command_r)
@@ -306,15 +327,23 @@ function main()
 	sampRegisterChatCommand('pay', command_apay)
 	sampRegisterChatCommand('eevent', command_easyevent)
 	sampRegisterChatCommand('users', command_users)
+	sampRegisterChatCommand('add_obj', command_cobject)
+	sampRegisterChatCommand('del_obj', command_dobject)
+	sampRegisterChatCommand('edit_obj', command_eobject)
+	sampRegisterChatCommand('add_text', command_ctext)
+	sampRegisterChatCommand('del_text', command_dtext)
+	sampRegisterChatCommand('edit_text', command_etext)
+	sampRegisterChatCommand('rkinfo', command_rkinfo)
+	sampRegisterChatCommand('sms', command_sms)
+	sampRegisterChatCommand('update', command_update)
+	
 	
 	sampRegisterChatCommand('nhold', function(param)
 		if not param:match('(%d+)') then SCM('Используйте команду /nhold [ид игрока]') else sampSendChat('/hold '..param) end
 	end)
-	
 	sampRegisterChatCommand('nfollow', function() 
 		sampSendChat('/follow')
 	end)
-	
 	sampRegisterChatCommand('ncuff', function(param) 
 		if not param:match('(%d+)') then SCM('Используйте команду /ncuff [ид игрока]') else sampSendChat('/cuff '..param) end 
 	end)
@@ -357,53 +386,15 @@ function main()
 	sampRegisterChatCommand('nchangeskin', function(param) 
 		if not param:match('(%d+)') then SCM('Используйте команду /nchangeskin [ид игрока]') else sampSendChat('/changeskin '..param) end 
 	end)
-	
-	sampRegisterChatCommand('add_obj', command_cobject)
-	sampRegisterChatCommand('del_obj', command_dobject)
-	sampRegisterChatCommand('edit_obj', command_eobject)
-	sampRegisterChatCommand('add_text', command_ctext)
-	sampRegisterChatCommand('del_text', command_dtext)
-	sampRegisterChatCommand('edit_text', command_etext)
-	
-	sampRegisterChatCommand('rkinfo', function()
-		if dreason[1] ~= nil then
-			local timed = getTimeByPeriod(tonumber(dreason[2]), tonumber(dreason[3]), tonumber(dreason[4]), 10)
-			SCM(string.format('Вы можете вернутся в район %s в %d ч. %d мин. %d сек.', dreason[1], timed[1], timed[2], timed[3]))
-			if sampGetPassedTimeByPeriod(tonumber(dreason[2]), tonumber(dreason[3]), tonumber(dreason[4]), 10) then
-				SCM(string.format('Время вышло и вы уже {00cc99}можете{ffffff} вернутся в район %s.', dreason[1]))
-			else
-				SCM(string.format('В данный момент Вы {ff5c33}не можете{ffffff} вернутся в район %s.', dreason[1]))
-				if tostring(calculateZone()) == tostring(dreason[1]) then
-					SCM(string.format(' {ff5c33}[ПРЕДУПРЕЖДЕНИЕ] {ffffff}Вы находитесь в запрещённом для Вас районе %s.', dreason[1]))
-				end
-			end
-		else
-			SCM('Вы не умирали.')
-		end
-	end)
-	
-	sampRegisterChatCommand('sms', command_sms)
-	
-	sampRegisterChatCommand('tdinfo', function(id)
-		local model, rotX, rotY, rotZ, zoom, clr1, clr2 = sampTextdrawGetModelRotationZoomVehColor(id)
-		SCM(id .. ' ' .. model)
-		
-	end)
-	
 	sampRegisterChatCommand('ainfo', function()
 		show_info.v = not show_info.v
 	end)
-	
 	sampRegisterChatCommand('mh', function()
 		show_menu.v = not show_menu.v
 	end)
-	
 	sampRegisterChatCommand('phone', function()
 		show_phone.v = not show_phone.v
 	end)
-	
-	sampRegisterChatCommand('update', command_update)
-	
 	sampRegisterChatCommand('strobes', function()
 		if isCharInAnyCar(PLAYER_PED) and ini.set.strobes  then
 			local car = storeCarCharIsInNoSave(PLAYER_PED)
@@ -416,6 +407,7 @@ function main()
 		end
 	end)
 	lua_thread.create(strobe)
+	lua_thread.create(rpweapon)
 	
 	apply_custom_style()
 	
@@ -458,7 +450,7 @@ function main()
 			end
 		end
 		
-		if ini.set.rpweapon then
+		if ini.set.halfrpweapon and ini.set.rpweapon then
 			if wasKeyPressed(KEY.VK_RBUTTON) and lweap ~= getCurrentCharWeapon(PLAYER_PED) then
 				if not isSampfuncsConsoleActive() and not sampIsChatInputActive() and not sampIsDialogActive() then
 					if getCurrentCharWeapon(PLAYER_PED) ~= 0 then
@@ -863,6 +855,23 @@ function command_fn(text)
 	if not string.match(text, '(.+)') then SCM('Используйте команду /fn [текст].') else sampSendChat('/f (( ' .. text .. ' ))') end
 end
 
+function command_rkinfo()
+	if dreason[1] ~= nil then
+		local timed = getTimeByPeriod(tonumber(dreason[2]), tonumber(dreason[3]), tonumber(dreason[4]), 10)
+		SCM(string.format('Вы можете вернутся в район %s в %d ч. %d мин. %d сек.', dreason[1], timed[1], timed[2], timed[3]))
+		if sampGetPassedTimeByPeriod(tonumber(dreason[2]), tonumber(dreason[3]), tonumber(dreason[4]), 10) then
+			SCM(string.format('Время вышло и вы уже {00cc99}можете{ffffff} вернутся в район %s.', dreason[1]))
+		else
+			SCM(string.format('В данный момент Вы {ff5c33}не можете{ffffff} вернутся в район %s.', dreason[1]))
+			if tostring(calculateZone()) == tostring(dreason[1]) then
+				SCM(string.format(' {ff5c33}[ПРЕДУПРЕЖДЕНИЕ] {ffffff}Вы находитесь в запрещённом для Вас районе %s.', dreason[1]))
+			end
+		end
+	else
+		SCM('Вы не умирали.')
+	end
+end
+
 function command_apay(param)
 	if string.match(param, '(%d+) (%d+)') then
 		local id, money = string.match(param, '(%d+) (%d+)')
@@ -919,7 +928,7 @@ function command_easyevent(param)
 end
 
 function command_update()
-	local update_info = '{ffffff}Добавлена команда /users.\nДобавлена команда /eevent.\n\nОбновлена панель лидеров и добавлена новая система гос. новостей.\n\nИсправлен баг с отображением погоды и прочие мелкие баги.'
+	local update_info = '{ffffff}Добавлено новый раздел в основном меню Расширенные настройки.\nДобавлены новые push-уведомления.\n\nДобавлены автоматические отыгровки оружия.\n\nИсправлены некоторые баги.'
 
 	sampShowDialog(10005, '{FFCD00}Обновление', update_info, 'Закрыть', '', 0)
 end
@@ -1977,17 +1986,18 @@ function imgui.OnDrawFrame()
 				
 				imgui.Text('')
 				
-				if imgui.Button(u8'Настройки', imgui.ImVec2(235, 30))      then show_item.v = 0 end
+				if imgui.Button(u8'Настройки', imgui.ImVec2(235, 25))      then show_item.v = 0 end
+				if imgui.Button(u8'Расширенные настройки', imgui.ImVec2(235, 25)) then show_item.v = 1 end
 				if player_status then
-					if imgui.Button(u8'Администрация', imgui.ImVec2(235, 30))  then show_item.v = 1 end
+					if imgui.Button(u8'Администрация', imgui.ImVec2(235, 25))  then show_item.v = 2 end
 				end
-				if imgui.Button(u8'Информация', imgui.ImVec2(235, 30))     then show_item.v = 2 end
-				if imgui.Button(u8'Доп. команды', imgui.ImVec2(235, 30))   then show_item.v = 3 end
+				if imgui.Button(u8'Информация', imgui.ImVec2(235, 25))     then show_item.v = 3 end
+				if imgui.Button(u8'Доп. команды', imgui.ImVec2(235, 25))   then show_item.v = 4 end
 				if player_status then 
-					if imgui.Button(u8'Кастомизация', imgui.ImVec2(235, 30))   then show_item.v = 4 end
+					if imgui.Button(u8'Кастомизация', imgui.ImVec2(235, 25))   then show_item.v = 5 end
 				end
-				if imgui.Button(u8'Панель лидера', imgui.ImVec2(235, 30))  then show_item.v = 5 end
-				if imgui.Button(u8'Перезагрузить', imgui.ImVec2(235, 30))  then
+				if imgui.Button(u8'Панель лидера', imgui.ImVec2(235, 25))  then show_item.v = 6 end
+				if imgui.Button(u8'Перезагрузить', imgui.ImVec2(235, 25))  then
 					show_menu.v = not show_menu.v
 					lua_thread.create(function() wait(1000) thisScript():reload() end)
 				end
@@ -2077,24 +2087,24 @@ function imgui.OnDrawFrame()
 					if imgui.Checkbox(u8'Мелкие отыгровки', plowrp) then 
 						ini.set.lowrp = plowrp.v
 						inicfg.save(ini) 
+						
+						if plowrp.v then pushMessage('Вам доступно новое подменю «Мелкие отыгровки» в разделе расширенных настроек', 3, 1) end
 					end
-					if imgui.Checkbox(u8'Полуавтоматические отыгровки оружия', prpweapon) then 
+					if imgui.Checkbox(u8'Отыгровки оружия', prpweapon) then 
 						ini.set.rpweapon = prpweapon.v
-						inicfg.save(ini) 
-					end
-					if imgui.Checkbox(u8'Авто-проверка паспорта', pautopass) then 
-						ini.set.autopass = pautopass.v
-						inicfg.save(ini) 
+						inicfg.save(ini)
+						
+						if prpweapon.v then pushMessage('Вам доступно новое подменю «Отыгровки оружия» в разделе расширенных настроек', 3, 1) end
 					end
 					if imgui.Checkbox(u8'Авто-взятие оружия', pautoweapon) then 
 						ini.set.autoweapon = pautoweapon.v
 						inicfg.save(ini) 
+						
+						if pautoweapon.v then pushMessage('Вам доступно новое подменю «Авто-взятие оружия» в разделе расширенных настроек', 3, 1) end
 					end
-					
-					if pautoweapon.v then
-						if imgui.Button(u8'Настроить авто-взятие оружия') then
-							show_weapon.v = not show_weapon.v
-						end
+					if imgui.Checkbox(u8'Авто-проверка паспорта', pautopass) then 
+						ini.set.autopass = pautopass.v
+						inicfg.save(ini) 
 					end
 
 					if imgui.Button('DONT PRESS!') then
@@ -2104,6 +2114,97 @@ function imgui.OnDrawFrame()
 				end
 				
 				if show_item.v == 1 then
+					imgui.CenterTextColoredRGB('РАСШИРЕННЫЕ НАСТРОЙКИ')
+					
+					if ini.set.rpweapon then
+						imgui.Text('')
+						imgui.Separator()
+						imgui.Text('')
+					
+						imgui.CenterTextColoredRGB('НАСТРОЙКА ОТЫГРОВОК ОРУЖИЯ')
+						
+						imgui.Text('')
+						
+						if ini.set.halfrpweapon then
+							if imgui.Button(u8'Полуавтоматические отыгровки оружия', imgui.ImVec2(415, 20)) then
+								ini.set.halfrpweapon = false
+								ini.set.autorpweapon = true
+								inicfg.save(ini) 
+							end
+						else
+							if imgui.Button(u8'Автоматические отыгровки оружия', imgui.ImVec2(415, 20)) then
+								ini.set.halfrpweapon = true
+								ini.set.autorpweapon = false
+								inicfg.save(ini) 
+							end
+						end
+					end
+					
+					if ini.set.autoweapon then
+						imgui.Text('')
+						imgui.Separator()
+						imgui.Text('')
+					
+						imgui.CenterTextColoredRGB('НАСТРОЙКА АВТО-ВЗЯТИЯ ОРУЖИЯ')
+						
+						imgui.Text('')
+						
+						for i, val in pairs(InfoWeapon) do
+							if ini.weapon[val[3]] then
+								if imgui.Button(u8(val[1] .. ' • Убрать'), imgui.ImVec2(205, 20)) then
+									ini.weapon[val[3]] = not ini.weapon[val[3]]
+									inicfg.save(ini)
+								end
+							else
+								if imgui.Button(u8(val[1] .. ' • Добавить'), imgui.ImVec2(205, 20)) then
+									ini.weapon[val[3]] = not ini.weapon[val[3]]
+									inicfg.save(ini)
+								end
+							end
+							
+							imgui.SameLine()
+							
+							if val[2] then
+								imgui.PushItemWidth(205)
+								if imgui.SliderInt('##' .. val[3], imgui.ImInt(ini.weapon[val[4]]), 1, 2) then
+									if ini.weapon[val[4]] == 1 then 
+										ini.weapon[val[4]] = 2
+									elseif ini.weapon[val[4]] == 2 then
+										ini.weapon[val[4]] = 1
+									end
+									inicfg.save(ini) 
+								end
+							else
+								imgui.Button(u8'Не настривается', imgui.ImVec2(205, 20))
+							end
+						end
+					end
+					
+					if ini.set.lowrp then
+						imgui.Text('')
+						imgui.Separator()
+						imgui.Text('')
+						
+						imgui.CenterTextColoredRGB('НАСТРОЙКА МЕЛКИХ ОТЫГРОВОК')
+						
+						imgui.Text('')
+						
+						if imgui.Checkbox(u8'Отыгровка аптечки', prphealme) then 
+							ini.lowrp.rphealme = prphealme.v
+							inicfg.save(ini) 
+						end
+						if imgui.Checkbox(u8'Отыгровка маски', prpmask) then 
+							ini.lowrp.rpmask = prpmask.v
+							inicfg.save(ini) 
+						end
+						if imgui.Checkbox(u8'Отыгровка открытия спецблока', prpfbi) then 
+							ini.lowrp.rpfbi = prpfbi.v
+							inicfg.save(ini) 
+						end
+					end
+				end
+				
+				if show_item.v == 2 then
 					imgui.CenterTextColoredRGB('СПИСОК АДМИНИСТРАЦИИ')
 					
 					imgui.Text('')
@@ -2134,7 +2235,7 @@ function imgui.OnDrawFrame()
 					end
 				end
 				
-				if show_item.v == 2 then
+				if show_item.v == 3 then
 					imgui.Columns(2)
 					imgui.SetColumnWidth(-1, 100)
 					imgui.NextColumn()
@@ -2149,7 +2250,7 @@ function imgui.OnDrawFrame()
 					end
 				end
 				
-				if show_item.v == 3 then
+				if show_item.v == 4 then
 					imgui.Text(u8'Команда: /')
 					imgui.SameLine()
 					imgui.PushItemWidth(150)
@@ -2180,7 +2281,11 @@ function imgui.OnDrawFrame()
 									end
 								end
 								text_cmd.v = cmd_text
+							else
+								pushMessage('Команда с таким названием не существует', 3, 3)
 							end
+						else
+							pushMessage('Не указано название команды', 3, 3)
 						end
 					end
 					
@@ -2202,7 +2307,11 @@ function imgui.OnDrawFrame()
 									end
 								end
 								text_cmd.v = cmd_text
+							else
+								pushMessage('Команда с таким названием уже существует', 3, 3)
 							end
+						else
+							pushMessage('Не указано название команды', 3, 3)
 						end
 					end
 					
@@ -2216,7 +2325,11 @@ function imgui.OnDrawFrame()
 								local save_text = '{param = ' .. param_cmd .. '}\n' .. text_cmd.v
 								filew:write(u8:decode(save_text))
 								filew:close()
+							else
+								pushMessage('Не удаётся сохранить файл', 3, 3)
 							end
+						else
+							pushMessage('Не указано название команды', 3, 3)
 						end
 					end
 					
@@ -2302,14 +2415,14 @@ function imgui.OnDrawFrame()
 					imgui.Text(string.format('%s', resultext))
 				end
 				
-				if show_item.v == 4 then
+				if show_item.v == 5 then
 					imgui.CenterTextColoredRGB('В вечной разработке...')
 					ItemActive('Ето гавно будет работать, но когда это будет известно лишь...')
 					imgui.CenterTextColoredRGB('Coming soon <3')
 				end
 				
 				
-				if show_item.v == 5 then
+				if show_item.v == 6 then
 					imgui.CenterTextColoredRGB('ГОСУДАРСТВЕННЫЕ НОВОСТИ')
 					
 					imgui.Text('')
@@ -2325,7 +2438,7 @@ function imgui.OnDrawFrame()
 					imgui.SameLine()
 					
 					if imgui.Button(u8'Найти', imgui.ImVec2(85, 20)) then
-						if idnews.v ~= nil then
+						if string.match(idnews.v, '(%d+)') then
 							if doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
 								for val in io.lines(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) do
 									if string.match(val, 'type=(%d+)') then
@@ -2342,7 +2455,11 @@ function imgui.OnDrawFrame()
 										end
 									end
 								end
+							else
+								pushMessage('Новости с данным ID не существует', 3, 3)
 							end
+						else
+							pushMessage('Не указан ID-новости или он некорректен', 3, 3)
 						end
 					end
 					ItemActive('С помощь этой кнопки вы можете найти уже созданную гос. новость.')
@@ -2350,7 +2467,7 @@ function imgui.OnDrawFrame()
 					imgui.SameLine()
 					
 					if imgui.Button(u8'Создать', imgui.ImVec2(85, 20)) then
-						if idnews.v ~= nil then
+						if string.match(idnews.v, '(%d+)') then
 							if not doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
 								local file = string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)
 								local filew = io.open(file, 'w')
@@ -2359,6 +2476,8 @@ function imgui.OnDrawFrame()
 								
 								lines.v = false
 							end
+						else
+							pushMessage('Не указан ID-новости или он некорректен', 3, 3)
 						end
 					end
 					ItemActive('С помощь этой кнопки вы можете создать новую гос. новость.')
@@ -2366,15 +2485,21 @@ function imgui.OnDrawFrame()
 					imgui.SameLine()
 					
 					if imgui.Button(u8'Сохранить', imgui.ImVec2(80, 20)) then
-						if doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
-							local file = string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)
-							local filew = io.open(file, 'w')
-							if lines.v then
-								filew:write(string.format('type=3\nline1=%s\nline2=%s\nline3=%s', u8:decode(pgline1.v), u8:decode(pgline2.v), u8:decode(pgline3.v)))
+						if string.match(idnews.v, '(%d+)') then
+							if doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
+								local file = string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)
+								local filew = io.open(file, 'w')
+								if lines.v then
+									filew:write(string.format('type=3\nline1=%s\nline2=%s\nline3=%s', u8:decode(pgline1.v), u8:decode(pgline2.v), u8:decode(pgline3.v)))
+								else
+									filew:write(string.format('type=1\nline4=%s', u8:decode(pgaline1.v)))
+								end
+								filew:close()
 							else
-								filew:write(string.format('type=1\nline4=%s', u8:decode(pgaline1.v)))
+								pushMessage('Новости с данным ID не существует', 3, 3)
 							end
-							filew:close()
+						else
+							pushMessage('Не указан ID-новости или он некорректен', 3, 3)
 						end
 					end
 					ItemActive('С помощь этой кнопки вы можете сохранить созданую гос. новость.')
@@ -2471,45 +2596,6 @@ function imgui.OnDrawFrame()
 					imgui.Text(string.format('%s', u8(i)))
 					imgui.NextColumn() 
 					imgui.Text(string.format('%s', u8(r)))
-				end
-			imgui.End()
-		end
-		
-		if show_weapon.v then
-			imgui.SetNextWindowSize(imgui.ImVec2(400, 335))
-			imgui.Begin(u8'ОРУЖИЕ | HELPER FOR MIA', show_weapon, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
-				for i, val in pairs(InfoWeapon) do
-					imgui.BeginChild('##name_weapon', imgui.ImVec2(190, 300), true)
-						if ini.weapon[val[3]] then
-							if imgui.Button(u8(val[1] .. ' • Убрать'), imgui.ImVec2(175, 20)) then
-								ini.weapon[val[3]] = not ini.weapon[val[3]]
-								inicfg.save(ini)
-							end
-						else
-							if imgui.Button(u8(val[1] .. ' • Добавить'), imgui.ImVec2(175, 20)) then
-								ini.weapon[val[3]] = not ini.weapon[val[3]]
-								inicfg.save(ini)
-							end
-						end
-					imgui.EndChild()
-					
-					imgui.SameLine()
-					
-					imgui.BeginChild('##slider_weapon', imgui.ImVec2(190, 300), true)
-						if val[2] then
-							imgui.PushItemWidth(140)
-							if imgui.SliderInt('[' .. val[5] * ini.weapon[val[4]] .. ']##' .. val[3], imgui.ImInt(ini.weapon[val[4]]), 1, 2) then
-								if ini.weapon[val[4]] == 1 then 
-									ini.weapon[val[4]] = 2
-								elseif ini.weapon[val[4]] == 2 then
-									ini.weapon[val[4]] = 1
-								end
-								inicfg.save(ini) 
-							end
-						else
-							imgui.Button(u8'Не настривается', imgui.ImVec2(175, 20))
-						end
-					imgui.EndChild()
 				end
 			imgui.End()
 		end
@@ -3911,6 +3997,36 @@ function strobe()
 	end
 end
 
+function rpweapon()
+	while true do
+		wait(0)
+		
+		if ini.set.autorpweapon and ini.set.rpweapon then
+			local result, rp = sampWeaponScene(getCurrentCharWeapon(PLAYER_PED))
+			if result then
+				lweap = getCurrentCharWeapon(PLAYER_PED)
+				
+				wait(350)
+				if lweap == getCurrentCharWeapon(PLAYER_PED) then
+					sampSendChat(string.format('/me %s', rp))
+											
+					while lweap == getCurrentCharWeapon(PLAYER_PED) do wait(0) end
+											
+					wait(800)
+											
+					if lweap ~= getCurrentCharWeapon(PLAYER_PED) then
+						local aresult, arp = sampWeaponSceneOff(lweap)
+						if aresult then
+							sampSendChat(string.format('/me %s', arp))
+							lweap = -1
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
 function isKeyCheckAvailable()
   if not isSampfuncsLoaded() then
     return not isPauseMenuActive()
@@ -4254,7 +4370,7 @@ function sampev.onServerMessage(color, text)
 		end
 	end
 	
-	if text:find('Вы закрыли двери в спецблок') and ini.set.lowrp then
+	if text:find('Вы закрыли двери в спецблок') and ini.set.lowrp and ini.lowrp.rpfbi then
 		lua_thread.create(function()
 			wait(150)
 			
@@ -4266,7 +4382,7 @@ function sampev.onServerMessage(color, text)
 		end)
 	end
 	
-	if text:find('Вы открыли двери в спецблок') and ini.set.lowrp then
+	if text:find('Вы открыли двери в спецблок') and ini.set.lowrp and ini.lowrp.rpfbi then
 		lua_thread.create(function()
 			wait(150)
 			
@@ -4278,7 +4394,7 @@ function sampev.onServerMessage(color, text)
 		end)
 	end
 	
-	if text:find('Вы использовали аптечку. Здоровье пополнено на 60 единиц') and ini.set.lowrp then
+	if text:find('Вы использовали аптечку. Здоровье пополнено на 60 единиц') and ini.set.lowrp and ini.lowrp.rphealme then
 		lua_thread.create(function()
 			wait(150)
 			
@@ -4646,7 +4762,7 @@ function sampev.onSetPlayerColor(playerId, color)
 				timerActive = false
 				clock_textdraw.text = ''
 				
-				if ini.set.lowrp then
+				if ini.set.lowrp and ini.lowrp.rpmask then
 					if ini.info.male then
 						sampSendChat('/me снял маску с головы, после чего положил её в карман')
 					else
@@ -4657,7 +4773,7 @@ function sampev.onSetPlayerColor(playerId, color)
 				timerActive = false
 				clock_textdraw.text = ''
 				
-				if ini.set.lowrp then
+				if ini.set.lowrp and ini.lowrp.rpmask then
 					if ini.info.male then
 						sampSendChat('/me снял маску с головы, после чего положил её в карман')
 					else
@@ -4667,7 +4783,7 @@ function sampev.onSetPlayerColor(playerId, color)
 			elseif color == 572662272 and not timerActive then
 				startMaskTimer()
 				
-				if ini.set.lowrp then
+				if ini.set.lowrp and ini.lowrp.rpmask then
 					if ini.info.male then
 						sampSendChat('/me достал маску из кармана, после чего одел её на себя')
 					else
@@ -4760,17 +4876,11 @@ function getUsers()
 			end
 			
 			if found then
-				if prang == 'Developer' then
-					SCM(string.format('Вы авторизовались как {CD5C5C}%s.{ffffff} Вам доступен весь функционал скрипта.', prang))
-					player_status = true
-				elseif prang == 'Super User' then
-					SCM(string.format('Вы авторизовались как {FFD700}%s.{ffffff} Вам доступен весь функционал скрипта.', prang))
-					player_status = true
-				elseif prang:find('Leader') then
-					SCM(string.format('Вы авторизовались как {90EE90}%s.{ffffff} Вам доступен весь функционал скрипта.', prang))
+				if prang == 'Developer' or prang == 'Super User' or prang:find('Leader') then
+					pushMessage(string.format('Вы авторизовались как %s', prang), 5, 2)
 					player_status = true
 				else
-					SCM(string.format('Вы авторизовались как {4876FF}%s.{ffffff} Вам не доступна часть функций.', prang))
+					pushMessage(string.format('Вы авторизовались как %s', prang), 5, 2)
 					player_status = false
 				end
 			else
@@ -4783,6 +4893,12 @@ function getUsers()
 	end)
 end
 
+function pushMessage(text, time, style)
+	if bNotf then
+		notf.addNotification(text, time, style)
+	end
+end
+
 function getWeathers()
 	local weather = {}
 
@@ -4790,7 +4906,7 @@ function getWeathers()
 		function(response) -- вызовется при успешном выполнении и получении ответа
 			local infoweat = response.text
 			
-			weather[1] = string.match(infoweat, '<temperature[%s]class_name="t18"[%s]color="F7F3D3">(.+)</temperature>.+</temperature>.+</temperature>.+</temperature>')
+			weather[1] = string.match(infoweat, '<temperature[%s]class_name="t18"[%s]color="F7F3D3">(.+)</temperature>')
 			weather[2] = u8:decode(string.match(infoweat, '<weather_type>(.+)</weather_type>'))
 			weather[3] = string.match(infoweat, '<wind_speed>(.+)</wind_speed>')
 			weather[4] = u8:decode(string.match(infoweat, '<wind_direction[%s]id=".+">(.+)</wind_direction>'))

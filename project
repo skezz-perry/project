@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(5.5)
+script_version(5.6)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -222,7 +222,7 @@ local follow_state       = false
 local timerActive        = false
 local skillplus          = false
 local openbar            = false
-local player_status      = false
+local player_status      = 0
 local show_menu          = imgui.ImBool(false)
 local piemenu            = imgui.ImBool(false)
 local show_help          = imgui.ImBool(false)
@@ -275,7 +275,7 @@ function main()
 	autoupdate('https://raw.githubusercontent.com/skezz-perry/project/master/version', 'https://raw.githubusercontent.com/skezz-perry/project/master/project') 
 	getUsers()
 	
-	if not doesFileExist('moonloader//imgui_notf.lua') then
+	if not doesFileExist('moonloader//imgui_notf1.lua') then
 		async_http_request('GET', 'https://raw.githubusercontent.com/skezz-perry/project/master/script', nil,
 			function(response)
 				local textfile = response.text
@@ -1008,29 +1008,33 @@ function command_asms(text)
 end
 
 function command_gov(id)
-	if string.match(id, '(%d+)') then
-		if gnews[1] ~= nil then
-			local timed = getTimeByPeriod(tonumber(gnews[1]), tonumber(gnews[2]), tonumber(gnews[3]), 5)
-			if sampGetPassedTimeByPeriod(tonumber(gnews[1]), tonumber(gnews[2]), tonumber(gnews[3]), 5) then
-				send_gnews(id)
+	if player_status > 2 then
+		if string.match(id, '(%d+)') then
+			if gnews[1] ~= nil then
+				local timed = getTimeByPeriod(tonumber(gnews[1]), tonumber(gnews[2]), tonumber(gnews[3]), 5)
+				if sampGetPassedTimeByPeriod(tonumber(gnews[1]), tonumber(gnews[2]), tonumber(gnews[3]), 5) then
+					send_gnews(id)
+				else
+					SCM(string.format('В данный момент Вы {ff5c33}не можете{ffffff} отправить гос. новость.', gnews[1]))
+				end
 			else
-				SCM(string.format('В данный момент Вы {ff5c33}не можете{ffffff} отправить гос. новость.', gnews[1]))
+				send_gnews(id)
 			end
 		else
-			send_gnews(id)
+			if gnews[1] ~= nil then
+				local timed = getTimeByPeriod(tonumber(gnews[1]), tonumber(gnews[2]), tonumber(gnews[3]), 5)
+				if sampGetPassedTimeByPeriod(tonumber(gnews[1]), tonumber(gnews[2]), tonumber(gnews[3]), 5) then
+					SCM('Используйте команду /gov [ид новости]. Вы {00cc99}можете{ffffff} отправить гос. новость.')
+				else
+					SCM('Используйте команду /gov [ид новости]. Вы {ff5c33}не можете{ffffff} отправить гос. новость.')
+					SCM(string.format('Вы сможете отправить гос. новость в %d ч. %d мин. %d сек.', timed[1], timed[2], timed[3]))
+				end
+			else
+				SCM('Используйте команду /gov [ид новости]. Вы {00cc99}можете{ffffff} отправить гос. новость.')
+			end
 		end
 	else
-		if gnews[1] ~= nil then
-			local timed = getTimeByPeriod(tonumber(gnews[1]), tonumber(gnews[2]), tonumber(gnews[3]), 5)
-			if sampGetPassedTimeByPeriod(tonumber(gnews[1]), tonumber(gnews[2]), tonumber(gnews[3]), 5) then
-				SCM('Используйте команду /gov [ид новости]. Вы {00cc99}можете{ffffff} отправить гос. новость.')
-			else
-				SCM('Используйте команду /gov [ид новости]. Вы {ff5c33}не можете{ffffff} отправить гос. новость.')
-				SCM(string.format('Вы сможете отправить гос. новость в %d ч. %d мин. %d сек.', timed[1], timed[2], timed[3]))
-			end
-		else
-			SCM('Используйте команду /gov [ид новости]. Вы {00cc99}можете{ffffff} отправить гос. новость.')
-		end
+		SCM('Вы не можете использовать данную функцию, вы не лидер.')
 	end
 end
 
@@ -1865,17 +1869,17 @@ function command_users()
 	local online = 0
 
 	for line in string.gmatch(users, "[^\n]+") do
-		if string.match(line, '(.+) | (.+)') then
-			local name, rang = string.match(line, '(.+) | (.+)')
-			if rang == 'Developer' then rang = string.format('{CD5C5C}%s', rang) 
-			elseif rang == 'Super User' then rang = string.format('{FFD700}%s', rang)
-			elseif rang:find('Leader') then rang = string.format('{90EE90}%s', rang)
+		if string.match(line, '(.+) | (.+) | (.+)') then
+			local name, rang, nrang = string.match(line, '(.+) | (.+) | (.+)')
+			if tonumber(nrang) >= 4 then rang = string.format('{CD5C5C}%s', rang) 
+			elseif tonumber(nrang) == 3 then rang = string.format('{90EE90}%s', rang)
+			elseif tonumber(nrang) == 2 then rang = string.format('{FFD700}%s', rang)
 			else rang = string.format('{4876FF}%s', rang) end
 			local id = sampGetPlayerIdByNickname(name)
 			all = all + 1
 			
 			if id == 'offline' then
-				dline = string.format('%s{696969}%s\t{696969}%s\t{ff5c33}Оффлайн\n', dline, name, rang)
+				dline = string.format('%s{696969}%s\t{696969}%s ранг. %s\t{ff5c33}Оффлайн\n', dline, name, nrang, rang)
 			else
 				local res, ped = sampGetCharHandleBySampPlayerId(id)
 				online = online + 1
@@ -1884,12 +1888,12 @@ function command_users()
 					local dist = math.floor(sampGetDistance(PLAYER_PED, id))
 					
 					if sampIsPlayerPaused(id) then
-						dline = string.format('%s{%s}%s[%d]\t%s\t{ff5c33}Дист: %d м\n', dline, sampGetColor(id), name, id, rang, dist)
+						dline = string.format('%s{%s}%s[%d]\t%s ранг. %s\t{ff5c33}Дист: %d м\n', dline, sampGetColor(id), name, id, nrang, rang, dist)
 					else
-						dline = string.format('%s{%s}%s[%d]\t%s\t{00cc99}Дист: %d м\n', dline, sampGetColor(id), name, id, rang, dist)
+						dline = string.format('%s{%s}%s[%d]\t%s ранг. %s\t{00cc99}Дист: %d м\n', dline, sampGetColor(id), name, id, nrang, rang, dist)
 					end
 				else
-					dline = string.format('%s{%s}%s[%d]\t%s\t{00cc99}Онлайн\n', dline, sampGetColor(id), name, id, rang)
+					dline = string.format('%s{%s}%s[%d]\t%s ранг. %s\t{00cc99}Онлайн\n', dline, sampGetColor(id), name, id, nrang, rang)
 				end
 			end
 		end
@@ -1900,7 +1904,7 @@ function command_users()
 end
 
 function command_admins()
-	if player_status then
+	if player_status > 1 then
 		local dline = 'Имя\tДолжность\tДополнительно\n'
 		local all = 0
 		local online = 0
@@ -1988,15 +1992,17 @@ function imgui.OnDrawFrame()
 				
 				if imgui.Button(u8'Настройки', imgui.ImVec2(235, 25))      then show_item.v = 0 end
 				if imgui.Button(u8'Расширенные настройки', imgui.ImVec2(235, 25)) then show_item.v = 1 end
-				if player_status then
+				if player_status > 1 then
 					if imgui.Button(u8'Администрация', imgui.ImVec2(235, 25))  then show_item.v = 2 end
 				end
 				if imgui.Button(u8'Информация', imgui.ImVec2(235, 25))     then show_item.v = 3 end
 				if imgui.Button(u8'Доп. команды', imgui.ImVec2(235, 25))   then show_item.v = 4 end
-				if player_status then 
+				if player_status > 1 then 
 					if imgui.Button(u8'Кастомизация', imgui.ImVec2(235, 25))   then show_item.v = 5 end
 				end
-				if imgui.Button(u8'Панель лидера', imgui.ImVec2(235, 25))  then show_item.v = 6 end
+			    if player_status > 2 then 	
+					if imgui.Button(u8'Панель лидера', imgui.ImVec2(235, 25))  then show_item.v = 6 end
+				end
 				if imgui.Button(u8'Перезагрузить', imgui.ImVec2(235, 25))  then
 					show_menu.v = not show_menu.v
 					lua_thread.create(function() wait(1000) thisScript():reload() end)
@@ -2281,6 +2287,8 @@ function imgui.OnDrawFrame()
 									end
 								end
 								text_cmd.v = cmd_text
+								
+								pushMessage('Команда найдена и открыта для настройки', 3, 4)
 							else
 								pushMessage('Команда с таким названием не существует', 3, 3)
 							end
@@ -2307,6 +2315,8 @@ function imgui.OnDrawFrame()
 									end
 								end
 								text_cmd.v = cmd_text
+								
+								pushMessage('Команда создана и открыта для настройки', 3, 4)
 							else
 								pushMessage('Команда с таким названием уже существует', 3, 3)
 							end
@@ -2325,6 +2335,8 @@ function imgui.OnDrawFrame()
 								local save_text = '{param = ' .. param_cmd .. '}\n' .. text_cmd.v
 								filew:write(u8:decode(save_text))
 								filew:close()
+								
+								pushMessage('Команда успешно сохранена', 3, 4)
 							else
 								pushMessage('Не удаётся сохранить файл', 3, 3)
 							end
@@ -2440,6 +2452,8 @@ function imgui.OnDrawFrame()
 					if imgui.Button(u8'Найти', imgui.ImVec2(85, 20)) then
 						if string.match(idnews.v, '(%d+)') then
 							if doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
+								pushMessage('Новость найдена и открыта для настройки', 3, 4)
+							
 								for val in io.lines(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) do
 									if string.match(val, 'type=(%d+)') then
 										local ntype = string.match(val, 'type=(%d+)')
@@ -2469,6 +2483,8 @@ function imgui.OnDrawFrame()
 					if imgui.Button(u8'Создать', imgui.ImVec2(85, 20)) then
 						if string.match(idnews.v, '(%d+)') then
 							if not doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
+								pushMessage('Новость создана и открыта для настройки', 3, 4)
+								
 								local file = string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)
 								local filew = io.open(file, 'w')
 								filew:write('type=1')
@@ -2495,6 +2511,8 @@ function imgui.OnDrawFrame()
 									filew:write(string.format('type=1\nline4=%s', u8:decode(pgaline1.v)))
 								end
 								filew:close()
+								
+								pushMessage('Новость успешно сохранена', 3, 4)
 							else
 								pushMessage('Новости с данным ID не существует', 3, 3)
 							end
@@ -4862,27 +4880,23 @@ function getUsers()
 			users = response.text
 			
 			for line in string.gmatch(users, "[^\n]+") do
-				if string.match(line, '(.+) | (.+)') then
-					local name, rang = string.match(line, '(.+) | (.+)')
+				if string.match(line, '(.+) | (.+) | (.+)') then
+					local name, rang, nrang = string.match(line, '(.+) | (.+) | (.+)')
 					local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 					local pname = sampGetPlayerNickname(id)
 					
 					if pname:find(name) then 
 						found = true
 						prang = rang
+						numrang = nrang
 						break 
 					end
 				end
 			end
 			
 			if found then
-				if prang == 'Developer' or prang == 'Super User' or prang:find('Leader') then
-					pushMessage(string.format('Вы авторизовались как %s', prang), 5, 2)
-					player_status = true
-				else
-					pushMessage(string.format('Вы авторизовались как %s', prang), 5, 2)
-					player_status = false
-				end
+				pushMessage(string.format('Вы авторизовались как %s', prang), 5, 2)
+				player_status = tonumber(numrang)
 			else
 				SCM('Вы не являетесь пользователем и вы не можете использовать данный скрипт.')
 				thisScript():unload()

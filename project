@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(5.8)
+script_version(5.9)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -116,12 +116,6 @@ local commands = {
 	'/st | Изменить время',
 	'/skin | Установить визуальный скин для игрока',
 	'/hist | Открыть history игрока по его ID',
-	'/add_obj | Добавить объект',
-	'/edit_obj | Изменить объект',
-	'/del_obj | Удалить объект',
-	'/add_text | Добавить 3D текст',
-	'/edit_text | Изменить 3D текст',
-	'/del_text | Удалить 3D текст',
 	'/strobes | Включить стробоскопы',
 	'NumPad3 | Открыть основное меню',
 	'ПКМ + 1 | Съесть еду',
@@ -189,7 +183,8 @@ local ini = inicfg.load({
 	lowrp = {
 		rphealme             = false,
 		rpmask               = false,
-		rpfbi                = false
+		rpfbi                = false,
+		rpbar                = false
 	}
 })
 
@@ -266,6 +261,7 @@ local plowrp             = imgui.ImBool(ini.set.lowrp)
 local prphealme          = imgui.ImBool(ini.lowrp.rphealme)
 local prpmask            = imgui.ImBool(ini.lowrp.rpmask)
 local prpfbi             = imgui.ImBool(ini.lowrp.rpfbi)
+local prpbar             = imgui.ImBool(ini.lowrp.rpbar)
 local editor             = imgui.ImBool(false)
 
 function main()
@@ -327,17 +323,11 @@ function main()
 	sampRegisterChatCommand('pay', command_apay)
 	sampRegisterChatCommand('eevent', command_easyevent)
 	sampRegisterChatCommand('users', command_users)
-	sampRegisterChatCommand('add_obj', command_cobject)
-	sampRegisterChatCommand('del_obj', command_dobject)
-	sampRegisterChatCommand('edit_obj', command_eobject)
-	sampRegisterChatCommand('add_text', command_ctext)
-	sampRegisterChatCommand('del_text', command_dtext)
-	sampRegisterChatCommand('edit_text', command_etext)
 	sampRegisterChatCommand('rkinfo', command_rkinfo)
 	sampRegisterChatCommand('sms', command_sms)
 	sampRegisterChatCommand('update', command_update)
-	
-	
+	sampRegisterChatCommand('open', command_open)
+
 	sampRegisterChatCommand('nhold', function(param)
 		if not param:match('(%d+)') then SCM('Используйте команду /nhold [ид игрока]') else sampSendChat('/hold '..param) end
 	end)
@@ -408,6 +398,7 @@ function main()
 	end)
 	lua_thread.create(strobe)
 	lua_thread.create(rpweapon)
+	lua_thread.create(updateUsersAndCheckUpdate)
 	
 	apply_custom_style()
 	
@@ -437,8 +428,7 @@ function main()
 
 		if wasKeyPressed(KEY.VK_2) and isKeyDown(VK_RBUTTON) then 
 			if not isSampfuncsConsoleActive() and not sampIsChatInputActive() and not sampIsDialogActive() then
-				sampSendChat('/open')
-				openbar = true
+				command_open()
 			end
 		end
 
@@ -527,80 +517,6 @@ function main()
 			end
 		end
 		
-		if edit_obj ~= nil and not isSampfuncsConsoleActive() and not sampIsChatInputActive() and not sampIsDialogActive() and text_id == nil then
-			-- вращение
-			if isKeyDown(VK_NUMPAD8) and isKeyDown(VK_CONTROL) then
-				obj_qx = obj_qx + obj_srotate
-				setObjectRotation(edit_obj, obj_qx, obj_qy, obj_qz)
-			elseif isKeyDown(VK_NUMPAD2) and isKeyDown(VK_CONTROL) then
-				obj_qx = obj_qx - obj_srotate
-				setObjectRotation(edit_obj, obj_qx, obj_qy, obj_qz)
-			elseif isKeyDown(VK_NUMPAD4) and isKeyDown(VK_CONTROL) then
-				obj_qy = obj_qy + obj_srotate
-				setObjectRotation(edit_obj, obj_qx, obj_qy, obj_qz)
-			elseif isKeyDown(VK_NUMPAD6) and isKeyDown(VK_CONTROL) then
-				obj_qy = obj_qy - obj_srotate
-				setObjectRotation(edit_obj, obj_qx, obj_qy, obj_qz)
-			elseif isKeyDown(VK_NUMPAD7) and isKeyDown(VK_CONTROL) then
-				obj_qz = obj_qz + obj_srotate
-				setObjectRotation(edit_obj, obj_qx, obj_qy, obj_qz)
-			elseif isKeyDown(VK_NUMPAD9) and isKeyDown(VK_CONTROL) then
-				obj_qz = obj_qz - obj_srotate
-				setObjectRotation(edit_obj, obj_qx, obj_qy, obj_qz)
-			-- движение (в стороны)
-			elseif isKeyDown(VK_NUMPAD8) then
-				obj_y = obj_y + obj_smove
-				setObjectCoordinates(edit_obj, obj_x, obj_y, obj_z)
-			elseif isKeyDown(VK_NUMPAD2) then
-				obj_y = obj_y - obj_smove
-				setObjectCoordinates(edit_obj, obj_x, obj_y, obj_z)
-			elseif isKeyDown(VK_NUMPAD4) then
-				obj_x = obj_x - obj_smove
-				setObjectCoordinates(edit_obj, obj_x, obj_y, obj_z)
-			elseif isKeyDown(VK_NUMPAD6) then
-				obj_x = obj_x + obj_smove
-				setObjectCoordinates(edit_obj, obj_x, obj_y, obj_z)
-			-- движение (верх вниз)
-			elseif isKeyDown(VK_SPACE) then
-				obj_z = obj_z + obj_smove
-				setObjectCoordinates(edit_obj, obj_x, obj_y, obj_z)
-			elseif isKeyDown(VK_MENU) then
-				obj_z = obj_z - obj_smove
-				setObjectCoordinates(edit_obj, obj_x, obj_y, obj_z)
-			-- сохранение
-			elseif isKeyDown(VK_RETURN) then
-				SCM('Вы закончили редактирование объекта с хендлом {FFCD00}' .. edit_obj .. '{ffffff}.')
-				edit_obj = nil
-			end
-		end
-		
-		if text_id ~= nil and not isSampfuncsConsoleActive() and not sampIsChatInputActive() and not sampIsDialogActive() and edit_obj == nil then
-			-- движение
-			if isKeyDown(VK_NUMPAD8) then
-				text_y = text_y + 0.04
-				sampCreate3dTextEx(text_id, text_text, text_color, text_x, text_y, text_z, text_distance, false, -1, -1)
-			elseif isKeyDown(VK_NUMPAD2) then
-				text_y = text_y - 0.04
-				sampCreate3dTextEx(text_id, text_text, text_color, text_x, text_y, text_z, text_distance, false, -1, -1)
-			elseif isKeyDown(VK_NUMPAD4) then
-				text_x = text_x - 0.04
-				sampCreate3dTextEx(text_id, text_text, text_color, text_x, text_y, text_z, text_distance, false, -1, -1)
-			elseif isKeyDown(VK_NUMPAD6) then
-				text_x = text_x + 0.04
-				sampCreate3dTextEx(text_id, text_text, text_color, text_x, text_y, text_z, text_distance, false, -1, -1)
-			elseif isKeyDown(VK_SPACE) then
-				text_z = text_z + 0.04
-				sampCreate3dTextEx(text_id, text_text, text_color, text_x, text_y, text_z, text_distance, false, -1, -1)
-			elseif isKeyDown(VK_MENU) then
-				text_z = text_z - 0.04
-				sampCreate3dTextEx(text_id, text_text, text_color, text_x, text_y, text_z, text_distance, false, -1, -1)
-			-- сохранение
-			elseif isKeyDown(VK_RETURN) then
-				SCM('Вы закончили редактирование 3D текста с ID {FFCD00}' .. text_id .. '{ffffff}.')
-				text_id = nil
-			end 
-		end
-		
 		if wasKeyPressed(KEY.VK_Z) and not isSampfuncsConsoleActive() and not sampIsChatInputActive() and not sampIsDialogActive() then
 			local res, ped = getCharPlayerIsTargeting(PLAYER_HANDLE)
 			if res then
@@ -642,31 +558,24 @@ function main()
 
 		if wasKeyPressed(KEY.VK_3) and isKeyDown(VK_RBUTTON) then
 			lua_thread.create(function()
-				itsok = false
-				if isCharInAnyCar(playerPed) then
-					peds = getAllChars()
-					if peds ~= nil then
-						for _, hm in pairs(peds) do
-							if itsok == false and hm ~= nil then
-								local _ , id = sampGetPlayerIdByCharHandle(hm)
-								local _ , m = sampGetPlayerIdByCharHandle(PLAYER_PED)
-								if id ~= -1 and id ~= m and doesCharExist(hm) and sampIsPlayerConnected(id) then
-									local  _ , idofplayercar = sampGetPlayerIdByCharHandle(hm)
-									if IPC(idofplayercar) then
-										if sampGetDistance(PLAYER_PED, idofplayercar) <= 55 then
-											 if isCharInAnyCar(hm) then
-												if storeCarCharIsInNoSave(hm) ~= storeCarCharIsInNoSave(playerPed) then
-													local carh = storeCarCharIsInNoSave(hm)
-													if getDriverOfCar(carh) == hm then
-														sampSendChat('/m Внимание! Водитель ' .. tCarsName[getCarModel(carh) - 399] .. ' с номером ' .. idofplayercar .. '!')
-														wait(1500)
-														sampSendChat("/m Немедленно остановите транспортное средство и прижмитесь к обочине!")
-														wait(1000)
-														sampSendChat('/r ' .. ini.info.rteg .. ' 10-57 VICTOR за ' .. tCarsName[getCarModel(carh) - 399] .. ' с номером ' .. idofplayercar .. ' по ' .. calculateZone() .. ' (' .. kvadrat() .. ').')
-														itsok = true 
-													end
-												end
-											 end
+				for i, val in pairs(getAllVehicles()) do
+					if doesVehicleExist(val) then
+						local id = getCarModel(val)
+						if id ~= nil then
+							local ped = getDriverOfCar(val)
+							local res, pid = sampGetPlayerIdByCharHandle(ped)
+							if ped ~= nil and res then
+								if sampGetDistance(PLAYER_PED, pid) <= 55 then
+									if not isCharInAnyPoliceVehicle(ped) then
+										if val ~= storeCarCharIsInNoSave(playerPed) then
+											if getDriverOfCar(val) == ped then
+												sampSendChat('/m Внимание! Водитель ' .. tCarsName[id - 399] .. ' с номером ' .. pid .. '!')
+												wait(1500)
+												sampSendChat("/m Немедленно остановите транспортное средство и прижмитесь к обочине!")
+												wait(1000)
+												sampSendChat('/r ' .. ini.info.rteg .. ' 10-57 VICTOR за ' .. tCarsName[id - 399] .. ' с номером ' .. pid .. ' по ' .. calculateZone() .. ' (' .. kvadrat() .. ').')
+												break
+											end
 										end
 									end
 								end
@@ -857,9 +766,9 @@ end
 
 function command_rkinfo()
 	if dreason[1] ~= nil then
-		local timed = getTimeByPeriod(tonumber(dreason[2]), tonumber(dreason[3]), tonumber(dreason[4]), 10)
+		local timed = getTimeByPeriod(tonumber(dreason[2]), tonumber(dreason[3]), tonumber(dreason[4]), 5)
 		SCM(string.format('Вы можете вернутся в район %s в %d ч. %d мин. %d сек.', dreason[1], timed[1], timed[2], timed[3]))
-		if sampGetPassedTimeByPeriod(tonumber(dreason[2]), tonumber(dreason[3]), tonumber(dreason[4]), 10) then
+		if sampGetPassedTimeByPeriod(tonumber(dreason[2]), tonumber(dreason[3]), tonumber(dreason[4]), 5) then
 			SCM(string.format('Время вышло и вы уже {00cc99}можете{ffffff} вернутся в район %s.', dreason[1]))
 		else
 			SCM(string.format('В данный момент Вы {ff5c33}не можете{ffffff} вернутся в район %s.', dreason[1]))
@@ -1090,109 +999,6 @@ function command_rights()
 		wait(1500)
 		sampSendChat('Вы понимаете свои права?')
 	end)
-end
-
-function command_cobject(id)
-	if string.match(id, '(%d+) (.+) (.+)') then
-		id, smove, srotate = string.match(id, '(%d+) (.+) (.+)')
-		x, y, z = getCharCoordinates(PLAYER_PED)
-		object = createObject(id, x, y, z)
-		if doesObjectExist(object) and edit_obj == nil then
-			setObjectCollision(object, false)
-			SCM('Был создан объект {FFCD00}' .. id .. '{ffffff} с хендлом {FFCD00}' .. object .. '{ffffff}.')
-			SCM('Для редактирование объекта используйте стрелки на NumPad, Space (поднять), Alt (опустить), Ctrl + стрелки NumPad (вращение).')
-			SCM('Чтобы сохранить нажмите {FFCD00}ENTER{ffffff}, для удаления используйте команду /del_obj [хендл объекта].')
-			obj_x = x; obj_y = y; obj_z = z
-			obj_qx = 0; obj_qy = 0; obj_qz = 0 
-			edit_obj = object
-			obj_smove = tonumber(smove); obj_srotate = tonumber(srotate)
-		else
-			SCM('Произошла ошибка при создании объекта.')
-		end
-	else
-		SCM('Используйте команду /add_obj [ид объекта] [шаг движения (рек. 0.04)] [шаг врашения (рек. 1.0)].')
-	end
-end
-
-function command_eobject(id)
-	if string.match(id, '(%d+) (.+) (.+)') then
-		id, smove, srotate = string.match(id, '(%d+) (.+) (.+)')
-		if doesObjectExist(id) and edit_obj == nil then
-			SCM('Вы начали редактировать объект с хендлом {FFCD00}' .. id .. '{ffffff}.')
-			SCM('Для редактирование объекта используйте стрелки на NumPad, Space (поднять), Alt (опустить), Ctrl + NumPad (вращение).')
-			SCM('Чтобы сохранить нажмите {FFCD00}ENTER{ffffff}, для удаления используйте команду /del_obj [хендл объекта].')
-			_, obj_x, obj_y, obj_z = getObjectCoordinates(id)
-			obj_qx = 0; obj_qy = 0; obj_qz = 0 
-			edit_obj = id
-			obj_smove = tonumber(smove); obj_srotate = tonumber(srotate)
-		else
-			SCM('Произошла ошибка при начале редактирования объекта.')
-		end
-	else
-		SCM('Используйте команду /edit_obj [хендл объекта] [шаг движения] [шаг врашения].')
-	end
-end
-
-function command_dobject(id)
-	if string.match(id, '(%d+)') then
-		if doesObjectExist(id) and edit_obj == nil then
-			deleteObject(id)
-			SCM('Вы успешно удалили объект с хендлом {FFCD00}' .. id .. '{ffffff}.')
-		else
-			SCM('Произошла ошибка при удалении объекта.')
-		end
-	else
-		SCM('Используйте команду /del_obj [хендл объекта].')
-	end
-end
-
-function command_ctext(param)
-	if string.match(param, '(%S+) (%d+) (.+)') then
-		local text, distance, color = string.match(param, '(.+) (%d+) (.+)')
-		x, y, z = getCharCoordinates(PLAYER_PED)
-		id = sampCreate3dText(text, color, x, y, z, distance, false, -1, -1)
-		if sampIs3dTextDefined(id) and text_id == nil then
-			SCM('Был создан 3D текст с ID {FFCD00}' ..id .. '{ffffff}.')
-			SCM('Для редактирование 3D текста используйте стрелки на NumPad, Space (поднять), Alt (опустить).')
-			SCM('Чтобы сохранить нажмите {FFCD00}ENTER{ffffff}, для удаления используйте команду /del_text [ид 3D текста].')
-			text_x = x; text_y = y; text_z = z; text_distance = distance; text_color = color; text_text = text
-			text_id = id
-		else
-			SCM('Произошла ошибка при создании 3D текста.')
-		end
-	else
-		SCM('Используйте команду /add_text [текст] [дистанция] [цвет]')
-	end
-end
-
-function command_etext(id)
-	if string.match(id, '(%d+)') then
-		if sampIs3dTextDefined(id) and text_id == nil then
-			SCM('Вы начали редактировать #d текст с ID {FFCD00}' .. id .. '{ffffff}.')
-			SCM('Для редактирование 3D текста используйте стрелки на NumPad, Space (поднять), Alt (опустить).')
-			SCM('Чтобы сохранить нажмите {FFCD00}ENTER{ffffff}, для удаления используйте команду /del_text [ид 3D текста].')
-			text, color, x, y, z, distance, _1, _2, _3 = sampGet3dTextInfoById(id)
-			text_x = x; text_y = y; text_z = z; text_distance = distance; text_color = color; text_text = text
-			text_id = id
-		else
-			SCM('Произошла ошибка при создании 3D текста.')
-		end
-	else
-		SCM('Используйте команду /edit_text [ид 3D текста]')
-	end
-end
-
-function command_dtext(id)
-	if string.match(id, '(%d+)') then
-		if sampIs3dTextDefined(id) and text_id == nil then
-			sampDestroy3dText(id)
-			SCM('Вы успешно удалили 3D текст с ID {FFCD00}' .. id .. '{ffffff}.')
-		else
-			SCM('Произошла ошибка при удалении 3D текста.')
-		end
-	else
-		SCM('Используйте команду /del_text [ид 3D текста]')
-	end
 end
 
 function command_setskin(param)
@@ -1609,6 +1415,15 @@ function command_skip(id)
 	end
 end
 
+function command_open()
+	lua_thread.create(function()
+		sampSendChat('/open')
+		openbar = true
+		wait(150)
+		openbar = false
+	end)
+end
+
 function command_clear(param)
 	if string.match(param, '(%d+) (%S+)') then
 		local id, reason = string.match(param, '(%d+) (.+)')
@@ -1834,13 +1649,13 @@ function command_su(param)
 						
 						wait(1000)
 						
-						if sampGetDistance(PLAYER_PED, id) <= 60 then
+						if sampGetDistance(PLAYER_PED, id) <= 50 then
 							sampSendChat('/su ' .. id .. ' ' .. stars .. ' ' .. reason)
 							wait(1500)
 							sampSendChat('/do ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. ' был объявлен в розыск по причине: ' .. reason .. '.')
 						else
 							SCM('Подозреваемый слишком далеко, розыск выдастся сразу же, как будет возможность.')
-							while sampGetDistance(PLAYER_PED, id) > 60 do
+							while sampGetDistance(PLAYER_PED, id) > 50 do
 								wait(0)
 							
 								local result, ped = sampGetCharHandleBySampPlayerId(id)
@@ -1853,7 +1668,7 @@ function command_su(param)
 								end
 							end
 							
-							if sampGetDistance(PLAYER_PED, id) <= 60 then
+							if sampGetDistance(PLAYER_PED, id) <= 50 then
 								sampSendChat('/su ' .. id .. ' ' .. stars .. ' ' .. reason)
 								wait(1500)
 								sampSendChat('/do ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. ' был объявлен в розыск по причине: ' .. reason .. '.')
@@ -1875,11 +1690,6 @@ function command_su(param)
 end
 
 function command_users()
-	async_http_request('GET', 'https://raw.githubusercontent.com/skezz-perry/project/master/users', nil,
-		function(response)
-		users = response.text
-	end)
-	
 	local dline = 'Имя\tСтатус\tДополнительно\n'
 	local all = 0
 	local online = 0
@@ -2222,6 +2032,10 @@ function imgui.OnDrawFrame()
 						end
 						if imgui.Checkbox(u8'Отыгровка открытия спецблока', prpfbi) then 
 							ini.lowrp.rpfbi = prpfbi.v
+							inicfg.save(ini) 
+						end
+						if imgui.Checkbox(u8'Отыгровка открытия шлагбаума', prpbar) then 
+							ini.lowrp.rpbar = prpbar.v
 							inicfg.save(ini) 
 						end
 					end
@@ -3330,6 +3144,20 @@ function kvadrat()
 	end
 end
 
+function sampGetVehicleInfo(vehicle)
+	if doesVehicleExist(vehicle) then
+		local engine = isCarEngineOn(vehicle) -- двигатель
+		local speed = math.floor(getCarSpeed(vehicle) * 2.02)
+		local gear = getCarCurrentGear(vehicle) -- передача (т)
+		local allgear = getCarNumberOfGears(vehicle) -- всего передач
+		local mass = getCarMass(vehicle) -- масса
+		
+		return {engine = engine, speed = speed, gear = gear, allgear = allgear, mass = mass}
+	else
+		return -1
+	end
+end
+
 function sampGetBodyPart(id)
 	if id == 0 then body = 'Неизвестно'
 	elseif id == 1 then body = 'Спина'
@@ -4405,6 +4233,50 @@ function sampev.onServerMessage(color, text)
 		end
 	end
 	
+	if text:match('(.+)[%s+](.+)[%s+]изъял[%s+]у[%s+](.+)[%s+]патроны[%s+].(%d+)[%s+]шт..') then
+		local rang, name, pname, bull = text:match('(.+)[%s+](.+)[%s+]изъял[%s+]у[%s+](.+)[%s+]патроны[%s+].(%d+)[%s+]шт..')
+		local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
+		if name == sampGetPlayerNickname(id) then
+			lua_thread.create(function()
+				wait(850)
+				
+				if ini.info.male then
+					sampSendChat('/me достал планшет и включил его, после зашёл в базу данных МВД')
+					wait(1500); sampSendChat(string.format('/me взяв один из найденных патронов у %s записал серийный номер в нужной строке', string.gsub(pname, '_', ' ')))
+					wait(1500); sampSendChat('/do Информация из БД МВД: патрон с данным номером числится как краденный.')
+					wait(1500); sampSendChat('/me достал ZIP-пакет и чёрный маркер, открыл ZIP-пакет и сложил туда изъятые боеприпасы')
+					wait(1500); sampSendChat('/me закрыв ZIP-пакет, написал информацию на нём с помощью чёрного маркера, после убрал их обратно')
+				else
+					sampSendChat('/me достала планшет и включила его, после зашла в базу данных МВД')
+					wait(1500); sampSendChat(string.format('/me взяв один из найденных патронов у %s записала серийный номер в нужной строке', string.gsub(pname, '_', ' ')))
+					wait(1500); sampSendChat('/do Информация из БД МВД: патрон с данным номером числится как краденный.')
+					wait(1500); sampSendChat('/me достала ZIP-пакет и чёрный маркер, открыла ZIP-пакет и сложила туда изъятые боеприпасы')
+					wait(1500); sampSendChat('/me закрыв ZIP-пакет, написала информацию на нём с помощью чёрного маркера, после убрала их обратно')
+				end
+			end)
+		end
+	end
+	
+	if text:match('(.+)[%s+](.+)[%s+]изъял[%s+]у[%s+](.+)[%s+](%d+)[%s+]г[%s+]наркотиков') then
+		local rang, name, pname, drugs = text:match('(.+)[%s+](.+)[%s+]изъял[%s+]у[%s+](.+)[%s+](%d+)[%s+]г[%s+]наркотиков')
+		local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
+		if name == sampGetPlayerNickname(id) then
+			lua_thread.create(function()
+				wait(850)
+				
+				if ini.info.male then
+					sampSendChat('/me достал ZIP-пакет и чёрный маркер, затем раскрыл ZIP-пакет и положил туда изъятые неизвестнные в-ва')
+					wait(1500); sampSendChat('/me держа в левой руке маркер, правой рукой закрыл пакет и промаркировал его')
+					wait(1500); sampSendChat('/me убрал ZIP-пакет и чёрный маркер обратно')
+				else
+					sampSendChat('/me достала ZIP-пакет и чёрный маркер, затем раскрыла ZIP-пакет и положила туда изъятые неизвестнные в-ва')
+					wait(1500); sampSendChat('/me держа в левой руке маркер, правой рукой закрыла пакет и промаркировала его')
+					wait(1500); sampSendChat('/me убрала ZIP-пакет и чёрный маркер обратно')
+				end
+			end)
+		end
+	end
+	
 	if text:find('Вы закрыли двери в спецблок') and ini.set.lowrp and ini.lowrp.rpfbi then
 		lua_thread.create(function()
 			wait(150)
@@ -4830,6 +4702,47 @@ function sampev.onSetPlayerColor(playerId, color)
 	end
 end
 
+function sampev.onMoveObject(id, pos, npos, speed, rot)
+	if getObjectModel(sampGetObjectHandleBySampId(id)) == 968 and openbar then
+		if ini.set.lowrp and ini.lowrp.rpbar then
+			lua_thread.create(function()
+				wait(1000)
+				if rot.y == 0 then
+					if ini.info.male then
+						if isCharInAnyCar(PLAYER_PED) then
+							sampSendChat('/me не отпуская руль, нажал на кнопку открытия шлагбаума, расположенную на руле')
+						else
+							sampSendChat('/me нажал на кнопку открытия шлагбаума, расположенную на часах')
+						end
+					else
+						if isCharInAnyCar(PLAYER_PED) then
+							sampSendChat('/me не отпуская руль, нажала на кнопку открытия шлагбаума, расположенную на руле')
+						else
+							sampSendChat('/me нажала на кнопку открытия шлагбаума, расположенную на часах')
+						end
+					end
+				else
+					if ini.info.male then
+						if isCharInAnyCar(PLAYER_PED) then
+							sampSendChat('/me не отпуская руль, нажал на кнопку закрытия шлагбаума, расположенную на руле')
+						else
+							sampSendChat('/me нажал на кнопку закрытия шлагбаума, расположенную на часах')
+						end
+					else
+						if isCharInAnyCar(PLAYER_PED) then
+							sampSendChat('/me не отпуская руль, нажала на кнопку закрытия шлагбаума, расположенную на руле')
+						else
+							sampSendChat('/me нажала на кнопку закрытия шлагбаума, расположенную на часах')
+						end
+					end
+				end
+				
+				openbar = false
+			end)
+		end
+	end
+end
+
 function autoupdate(json_url, url) -- Author: http://qrlk.me/samp
   local json = getWorkingDirectory() .. '\\'..thisScript().name..'-version.json'
   if doesFileExist(json) then os.remove(json) end
@@ -4930,6 +4843,26 @@ function pushMessage(text, time, style)
 	end
 end
 
+function updateUsersAndCheckUpdate()
+	while true do
+		wait(25000)
+		
+		sequent_async_http_request('GET', 'https://raw.githubusercontent.com/skezz-perry/project/master/users', nil,
+			function(response)
+				users = response.text
+		end)
+		
+		sequent_async_http_request('GET', 'https://raw.githubusercontent.com/skezz-perry/project/master/version', nil,
+			function(response)
+				local version = decodeJson(response.text)
+
+				if version.latest ~= thisScript().version then
+					pushMessage('Доступно новое обновление, перезагрузите скрипт', 15, 4)
+				end
+		end)
+	end
+end
+
 function getWeathers()
 	local weather = {}
 
@@ -4982,4 +4915,39 @@ function async_http_request(method, url, args, resolve, reject)
             wait(0)
         end
     end)
+end
+
+function sequent_async_http_request(method, url, args, resolve, reject)
+    if not _G['lanes.async_http'] then
+        local linda = lanes.linda()
+        local lane_gen = lanes.gen('*', {package = {path = package.path, cpath = package.cpath}}, function()
+            local requests = require 'requests'
+            while true do
+                local key, val = linda:receive(50 / 1000, 'request')
+                if key == 'request' then
+                    local ok, result = pcall(requests.request, val.method, val.url, val.args)
+                    if ok then
+                        result.json, result.xml = nil, nil
+                        linda:send('response', result)
+                    else
+                        linda:send('error', result)
+                    end
+                end
+            end
+        end)
+        _G['lanes.async_http'] = {lane = lane_gen(), linda = linda}
+    end
+    local lanes_http = _G['lanes.async_http']
+    lanes_http.linda:send('request', {method = method, url = url, args = args})
+    lua_thread.create(function(linda)
+        while true do
+            local key, val = linda:receive(0, 'response', 'error')
+            if key == 'response' then
+                return resolve(val)
+            elseif key == 'error' then
+                return reject(val)
+            end
+            wait(0)
+        end
+    end, lanes_http.linda)
 end

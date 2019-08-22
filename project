@@ -4173,7 +4173,7 @@ function sampev.onServerMessage(color, text)
 	
 	if text:match('(.+)[%s+].[%s+]Отправил[%s+](%S+).[%d+].[%s+].тел.[%s+](%d+).') then
 		local text, name, number = text:match('(.+)[%s+].[%s+]Отправил[%s+](%S+).[%d+].[%s+].тел.[%s+](%d+).')
-		name = string.gsub(name, '[', '')
+		name = string.gsub(name, '%[', '')
 		ini.number[name] = number
 		inicfg.save(ini, 'Helper for MIA.ini')
 		

@@ -4824,8 +4824,11 @@ function autoUpdate(url)
 		function(response)
 		
 		local info = decodeJson(response.text)
-		if info.latest ~= thisScript().version then
-			async_http_request('GET', info.updateurl, nil,
+		local version = info.latest
+		local updateurl = info.updateurl
+		
+		if version ~= thisScript().version then
+			async_http_request('GET', updateurl, nil,
 				function(response)
 					local file_text = u8:decode(response.text)
 					local file = getWorkingDirectory() .. '\\project.lua'

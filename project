@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(5.9)
+script_version(6.1)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -76,11 +76,7 @@ local InfoWeapon = {{'Щит', false, 'shit', 'bshit', 1},
 
 local commands = {
 	'КОМАНДА | ОПИСАНИЕ',
-	'/mh | Открыть основное меню',
-	'/update | Информация о последнем обновлении',
-	'/admins | Открыть админ-список',
-	'/users | Открыть список пользователей',
-	'/r | Сообщение в обычныю рацию',
+	'/r | Сообщение в обычную рацию',
 	'/rn | NRP-chat обычной рации',
 	'/f | Сообщение в общую волну',
 	'/fn | NRP-chat общей волны',
@@ -99,17 +95,28 @@ local commands = {
 	'/putpl | Посадить подозреваемого в автомобиль',
 	'/search | Обыскать подозреваемого',
 	'/hack | Взломать дверь дома',
+	'/ud | Показать удостоверение',
+	'/pas | Запросить документы у игрока',
 	'/invite | Принять игрока в организацию',
 	'/uninvite | Уволить игрока из организации',
 	'/rang | Изменить ранг игрока',
 	'/changeskin | Изменить внешность игрока',
+	'  |  ',
+	'ДОП. КОМАНДА | ОПИСАНИЕ',
+	'/mh | Открыть основное меню',
+	'/update | Информация о последнем обновлении',
+	'/admins | Открыть админ-список',
+	'/users | Открыть список пользователей',
 	'/gov | Отправить гос. новость',
-	'/ud | Показать удостоверение',
-	'/pas | Запросить документы у игрока',
+	'/bl_name | Проверить никнейм на наличие в ЧС',
+	'/bl_hist | Проверить весь history на наличие в ЧС',
 	'/ainfo | Открыть информационное меню',
 	'/rkinfo | Получить информацию о RK',
 	'/rep | Быстрая отправка сообщения в репорт',
 	'/asms | Быстрая отправка SMS-сообщений',
+	'/addbl | Добавить в чёрный список телефона',
+	'/delbl | Удалить из чёрного списка телефона',
+	'/phone | Открыть телефон',
 	'/епк | Найти информацию о ЕПК',
 	'/устав | Найти информацию о УМВД',
 	'/sw | Изменить погоду',
@@ -117,12 +124,18 @@ local commands = {
 	'/skin | Установить визуальный скин для игрока',
 	'/hist | Открыть history игрока по его ID',
 	'/strobes | Включить стробоскопы',
+	'  |  ',
+	'КЛАВИША | ОПИСАНИЕ',
 	'NumPad3 | Открыть основное меню',
 	'ПКМ + 1 | Съесть еду',
 	'ПКМ + 2 | Открыть шлагбаум',
 	'ПКМ + 3 | Потребовать автомобиль остановится',
 	'ПКМ + 4 | Объявить игрока в розыск',
 	'ПКМ + Z | Быстрое меню (взаимод. с игроком)',
+	'ПКМ | Полу-автоматическая отыгровка оружия',
+	'Alt + R | Полу-автоматическая отыгровка оружия',
+	'C + 1 | Включить CamHack',
+	'C + 2 | Выключить CamHack',
 	'Z | Быстрое меню',
 	'Alt | Включить стробоскопы',
 	'L | Открыть или закрыть свою машину'
@@ -185,8 +198,10 @@ local ini = inicfg.load({
 		rpmask               = false,
 		rpfbi                = false,
 		rpbar                = false
+	},
+	number = {
 	}
-})
+}, 'Helper for MIA.ini')
 
 local color_red          = '{CD5C5C}'
 local color_orange       = '{F4A460}'
@@ -268,19 +283,8 @@ function main()
 	if not isSampLoaded() or not isSampfuncsLoaded() then return end
 	while not isSampAvailable() do wait(100) end
 	
-	autoupdate('https://raw.githubusercontent.com/skezz-perry/project/master/version', 'https://raw.githubusercontent.com/skezz-perry/project/master/project') 
+	autoUpdate('https://raw.githubusercontent.com/skezz-perry/project/master/version') 
 	getUsers()
-	
-	if not doesFileExist('moonloader//imgui_notf1.lua') then
-		async_http_request('GET', 'https://raw.githubusercontent.com/skezz-perry/project/master/script', nil,
-			function(response)
-				local textfile = response.text
-				
-				local fw = io.open('moonloader//imgui_notf1.lua', 'w')
-				fw:write(u8:decode(textfile))
-				fw:close()
-		end)
-	end
 	
 	sampRegisterChatCommand('admins', command_admins)
 	sampRegisterChatCommand('r', command_r)
@@ -317,7 +321,6 @@ function main()
 	sampRegisterChatCommand('hist', command_history) 
 	sampRegisterChatCommand('asms', command_asms)
 	sampRegisterChatCommand('gov', command_gov)
-	sampRegisterChatCommand('чс', command_bl)
 	sampRegisterChatCommand('addbl', command_addbl)
 	sampRegisterChatCommand('delbl', command_delbl)
 	sampRegisterChatCommand('pay', command_apay)
@@ -327,6 +330,8 @@ function main()
 	sampRegisterChatCommand('sms', command_sms)
 	sampRegisterChatCommand('update', command_update)
 	sampRegisterChatCommand('open', command_open)
+	sampRegisterChatCommand('bl_hist', command_bl)
+	sampRegisterChatCommand('bl_name', command_namebl)
 
 	sampRegisterChatCommand('nhold', function(param)
 		if not param:match('(%d+)') then SCM('Используйте команду /nhold [ид игрока]') else sampSendChat('/hold '..param) end
@@ -502,7 +507,7 @@ function main()
 			imgui.Process = false
 		end
 		
-		if wasKeyPressed(KEY.VK_L) and not isSampfuncsConsoleActive() and not sampIsChatInputActive() and not sampIsDialogActive() then
+		if wasKeyPressed(KEY.VK_L) and isKeyCheckAvailable() then
 			sampSendChat('/lock 1')
 		end
 		
@@ -517,7 +522,7 @@ function main()
 			end
 		end
 		
-		if wasKeyPressed(KEY.VK_Z) and not isSampfuncsConsoleActive() and not sampIsChatInputActive() and not sampIsDialogActive() then
+		if wasKeyPressed(KEY.VK_Z) and isKeyCheckAvailable() then
 			local res, ped = getCharPlayerIsTargeting(PLAYER_HANDLE)
 			if res then
 				_, targetid = sampGetPlayerIdByCharHandle(ped)
@@ -587,12 +592,12 @@ function main()
 		end
 		
 		if isKeyDown(VK_C) and isKeyDown(VK_1) then
-			if not flymode and not isSampfuncsConsoleActive() and not sampIsChatInputActive() and not sampIsDialogActive() then    
+			if not flymode and isKeyCheckAvailable() then    
 				posX, posY, posZ = getCharCoordinates(playerPed)
 				angZ = getCharHeading(playerPed)
 				angZ = angZ * -1.0
 				setFixedCameraPosition(posX, posY, posZ, 0.0, 0.0, 0.0)
-				angY = 0.0
+				angY = 0.0 
 				lockPlayerControl(true)
 				flymode = not flymode
 			end
@@ -734,7 +739,7 @@ function main()
 				printStringNow(speed, 1000)
 			end   
 
-			if isKeyDown(VK_C) and isKeyDown(VK_2) and not isSampfuncsConsoleActive() and not sampIsChatInputActive() and not sampIsDialogActive() then
+			if isKeyDown(VK_C) and isKeyDown(VK_2) and isKeyCheckAvailable() then
 				if flymode then
 					radarHud = 0	    
 					angPlZ = angZ * -1.0
@@ -837,7 +842,7 @@ function command_easyevent(param)
 end
 
 function command_update()
-	local update_info = '{ffffff}Добавлено новый раздел в основном меню Расширенные настройки.\nДобавлены новые push-уведомления.\n\nДобавлены автоматические отыгровки оружия.\n\nИсправлены некоторые баги.'
+	local update_info = '{ffffff}Добавлена умная система SMS, теперь вы можете отправить SMS по ID-игрока.\n\nДобавлена команда /bl_name для проверки на ЧС по нику игрока\nДобавлена команда /bl_hist для проверки всего history игрока на ЧС.'
 
 	sampShowDialog(10005, '{FFCD00}Обновление', update_info, 'Закрыть', '', 0)
 end
@@ -855,12 +860,25 @@ end
 function command_sms(value)
 	if string.match(value, '(%d+) (%S+)') then 
 		local number, text = string.match(value, '(%d+) (.+)')
-
-		if string.len(text) > 60 then
-			sampSendChat(string.format('/sms %d %s ..', number, string.sub(text, 0, 60)))
-			sampSendChat(string.format('/sms %d .. %s', number, string.sub(text, 61, string.len(text))))
-		else
-			sampSendChat(string.format('/sms %d %s', number, string.sub(text, 0, 60)))
+		local found = false
+		
+		if IPC(number) then
+			local name = sampGetPlayerNickname(number)
+			if ini.number[name] ~= nil then
+				number = ini.number[name]
+			else
+				SCM('Номер не найден в базе данных.')
+				found = true
+			end
+		end
+		
+		if not found then
+			if string.len(text) > 60 then
+				sampSendChat(string.format('/sms %d %s ..', number, string.sub(text, 0, 60)))
+				sampSendChat(string.format('/sms %d .. %s', number, string.sub(text, 61, string.len(text))))
+			else
+				sampSendChat(string.format('/sms %d %s', number, string.sub(text, 0, 60)))
+			end
 		end
 	else
 		SCM('Используйте команду /sms [номер телефона] [сообщение]')
@@ -1763,45 +1781,80 @@ function command_admins()
 	end
 end
 
-function command_bl(name)
-	if string.match(name, '(%S+)_(%S+)') then
-		local bl = false
-		lua_thread.create(function()
-			local path = getWorkingDirectory() .. '\\'..thisScript().name..'-bl.txt'
-			local url = 'https://forum.advance-rp.ru/threads/mvd-chjornyj-spisok-ministerstva-vnutrennix-del.1511869/'
-					
-			if doesFileExist(path) then os.remove(path) end
-					
-			downloadUrlToFile(url, path, function(id, status, p1, p2)
-				if status == dlstatus.STATUSEX_ENDDOWNLOAD then
-					if doesFileExist(path) then
-						local f = io.open(path, 'r')
-						if f then
-							local val = f:read('*a')
-							
-							if string.find(val, name) or string.find(val, string.gsub(name, '_', ' ')) then
-								SCM(string.format('%s {ff5c33}находится{ffffff} в чёрном списке МВД.', name))
-								bl = true
-							end
-							
-							f:close()
-							os.remove(path)
-						end
-						
-						if not bl then
-							SCM(string.format('%s {00cc99}не находится{ffffff} в чёрном списке МВД.', name))
-						end
-					else
-						SCM('Произошла ошибка при подключении к чёрному списку...')
-						update = false
-					end
+function command_bl(param)
+	if string.match(param, '(%d+)') then
+		if IPC(param) then
+			local name = sampGetPlayerNickname(param)
+			sampSendChat('/history ' .. name)
+			pushMessage('Ожидайте...', 3, 4)
+			check_bl = true
+			black_list = nil
+			black_list = {}
+		end
+	elseif string.match(param, '(%S+)') then
+		sampSendChat('/history ' .. param)
+		pushMessage('Ожидайте...', 3, 4)
+		check_bl = true
+		black_list = nil
+		black_list = {}
+	else
+		SCM('Используйте команду /bl_hist [ид или никнейм игрока].')
+	end
+end
+
+function command_namebl(param)
+	if string.match(param, '(%d+)') then
+		if IPC(param) then
+			pushMessage('Ожидайте...', 3, 4)
+		
+			local name = sampGetPlayerNickname(param)
+			async_http_request('GET', 'https://forum.advance-rp.ru/threads/mvd-chjornyj-spisok-ministerstva-vnutrennix-del.1511869/', nil,
+				function(response)
+				
+				if u8:decode(response.text):find(name) or u8:decode(response.text):find(string.gsub(name, '_', ' ')) then
+					SCM(string.format('%s {ff5c33}находится{ffffff} в чёрном списке МВД.', name))
+				else
+					SCM(string.format('%s {00cc99}не находится{ffffff} в чёрном списке МВД.', name))
 				end
 			end)
-					
-			while update ~= false do wait(100) end
+		else
+			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+		end
+	elseif string.match(param, '(%S+)') then
+		pushMessage('Ожидайте...', 3, 4)
+		async_http_request('GET', 'https://forum.advance-rp.ru/threads/mvd-chjornyj-spisok-ministerstva-vnutrennix-del.1511869/', nil,
+			function(response)
+			
+			if u8:decode(response.text):find(param) or u8:decode(response.text):find(string.gsub(param, '_', ' ')) then
+				SCM(string.format('%s {ff5c33}находится{ffffff} в чёрном списке МВД.', param))
+			else
+				SCM(string.format('%s {00cc99}не находится{ffffff} в чёрном списке МВД.', param))
+			end
 		end)
 	else
-		SCM('Используйте команду /чс [никнейм игрока]')
+		SCM('Используйте команду /bl_name [ид или никнейм игрока].')
+	end
+end
+
+function CheckPlayersOfBlackList(name, tab)
+	if type(tab) == ('table') then
+		local blfound = false
+	
+		async_http_request('GET', 'https://forum.advance-rp.ru/threads/mvd-chjornyj-spisok-ministerstva-vnutrennix-del.1511869/', nil,
+			function(response) 
+			
+			for i, val in pairs(tab) do
+				if u8:decode(response.text):find(val) or u8:decode(response.text):find(string.gsub(val, '_', ' ')) then
+					SCM(string.format('%s {ff5c33}находится{ffffff} в чёрном списке МВД под именем %s.', name, val))
+					blfound = true
+					break
+				end
+			end
+			
+			if not blfound then
+				SCM(string.format('%s {00cc99}не находится{ffffff} в чёрном списке МВД.', name))
+			end
+		end)
 	end
 end
 
@@ -1854,32 +1907,32 @@ function imgui.OnDrawFrame()
 					imgui.PushItemWidth(200)
 					if imgui.InputText(u8'Имя и фамилия', pname) then
 						ini.info.name = u8:decode(pname.v)
-						inicfg.save(ini)
+						inicfg.save(ini, 'Helper for MIA.ini')
 					end
 					ItemActive(string.format('Текущее значение: %s', ini.info.name))
 					if imgui.InputText(u8'Должность', prang) then
 						ini.info.rang = u8:decode(prang.v)
-						inicfg.save(ini)
+						inicfg.save(ini, 'Helper for MIA.ini')
 					end
 					ItemActive(string.format('Текущее значение: %s', ini.info.rang))
 					if imgui.InputText(u8'Подразделение', pfrac) then
 						ini.info.frac = u8:decode(pfrac.v)
-						inicfg.save(ini)
+						inicfg.save(ini, 'Helper for MIA.ini')
 					end
 					ItemActive(string.format('Текущее значение: %s', ini.info.frac))
 					if imgui.InputText(u8'Личный номер', pnumber) then
 						ini.info.number = u8:decode(pnumber.v)
-						inicfg.save(ini)
+						inicfg.save(ini, 'Helper for MIA.ini')
 					end
 					ItemActive(string.format('Текущее значение: %s', ini.info.number))
 					if imgui.InputText(u8'Префикс в основную рацию', rteg) then
 						ini.info.rteg = u8:decode(rteg.v)
-						inicfg.save(ini)
+						inicfg.save(ini, 'Helper for MIA.ini')
 					end
 					ItemActive(string.format('Текущее значение: %s', ini.info.rteg))
 					if imgui.InputText(u8'Префикс в общую волну', fteg) then
 						ini.info.fteg = u8:decode(fteg.v)
-						inicfg.save(ini)
+						inicfg.save(ini, 'Helper for MIA.ini')
 					end
 					ItemActive(string.format('Текущее значение: %s', ini.info.fteg))
 					
@@ -1895,49 +1948,49 @@ function imgui.OnDrawFrame()
 					
 					if imgui.Checkbox(u8'Режим женских отыгровок', male) then 
 						ini.info.male = not male.v
-						inicfg.save(ini) 
+						inicfg.save(ini, 'Helper for MIA.ini') 
 					end
 					if imgui.Checkbox(u8'Объявления от СМИ', pstopad) then 
 						ini.set.stopad = pstopad.v
-						inicfg.save(ini) 
+						inicfg.save(ini, 'Helper for MIA.ini') 
 					end
 					if imgui.Checkbox(u8'Стробоскопы', pstrobes) then 
 						ini.set.strobes = pstrobes.v
-						inicfg.save(ini) 
+						inicfg.save(ini, 'Helper for MIA.ini') 
 					end
 					if imgui.Checkbox(u8'Изменённая рация', pradio) then 
 						ini.set.radio = pradio.v
-						inicfg.save(ini) 
+						inicfg.save(ini, 'Helper for MIA.ini') 
 					end
 					if imgui.Checkbox(u8'Таймер маски', pmasktimer) then 
 						ini.set.masktimer = pmasktimer.v
-						inicfg.save(ini) 
+						inicfg.save(ini, 'Helper for MIA.ini') 
 					end
 					if imgui.Checkbox(u8'Отыгровка камеры', pcamera) then 
 						ini.set.camera = pcamera.v
-						inicfg.save(ini) 
+						inicfg.save(ini, 'Helper for MIA.ini') 
 					end
 					if imgui.Checkbox(u8'Мелкие отыгровки', plowrp) then 
 						ini.set.lowrp = plowrp.v
-						inicfg.save(ini) 
+						inicfg.save(ini, 'Helper for MIA.ini') 
 						
 						if plowrp.v then pushMessage('Вам доступно новое подменю «Мелкие отыгровки» в разделе расширенных настроек', 3, 1) end
 					end
 					if imgui.Checkbox(u8'Отыгровки оружия', prpweapon) then 
 						ini.set.rpweapon = prpweapon.v
-						inicfg.save(ini)
+						inicfg.save(ini, 'Helper for MIA.ini')
 						
 						if prpweapon.v then pushMessage('Вам доступно новое подменю «Отыгровки оружия» в разделе расширенных настроек', 3, 1) end
 					end
 					if imgui.Checkbox(u8'Авто-взятие оружия', pautoweapon) then 
 						ini.set.autoweapon = pautoweapon.v
-						inicfg.save(ini) 
+						inicfg.save(ini, 'Helper for MIA.ini') 
 						
 						if pautoweapon.v then pushMessage('Вам доступно новое подменю «Авто-взятие оружия» в разделе расширенных настроек', 3, 1) end
 					end
 					if imgui.Checkbox(u8'Авто-проверка паспорта', pautopass) then 
 						ini.set.autopass = pautopass.v
-						inicfg.save(ini) 
+						inicfg.save(ini, 'Helper for MIA.ini') 
 					end
 
 					if imgui.Button('DONT PRESS!') then
@@ -1962,13 +2015,13 @@ function imgui.OnDrawFrame()
 							if imgui.Button(u8'Полуавтоматические отыгровки оружия', imgui.ImVec2(415, 20)) then
 								ini.set.halfrpweapon = false
 								ini.set.autorpweapon = true
-								inicfg.save(ini) 
+								inicfg.save(ini, 'Helper for MIA.ini') 
 							end
 						else
 							if imgui.Button(u8'Автоматические отыгровки оружия', imgui.ImVec2(415, 20)) then
 								ini.set.halfrpweapon = true
 								ini.set.autorpweapon = false
-								inicfg.save(ini) 
+								inicfg.save(ini, 'Helper for MIA.ini') 
 							end
 						end
 					end
@@ -1986,12 +2039,12 @@ function imgui.OnDrawFrame()
 							if ini.weapon[val[3]] then
 								if imgui.Button(u8(val[1] .. ' • Убрать'), imgui.ImVec2(205, 20)) then
 									ini.weapon[val[3]] = not ini.weapon[val[3]]
-									inicfg.save(ini)
+									inicfg.save(ini, 'Helper for MIA.ini')
 								end
 							else
 								if imgui.Button(u8(val[1] .. ' • Добавить'), imgui.ImVec2(205, 20)) then
 									ini.weapon[val[3]] = not ini.weapon[val[3]]
-									inicfg.save(ini)
+									inicfg.save(ini, 'Helper for MIA.ini')
 								end
 							end
 							
@@ -2005,7 +2058,7 @@ function imgui.OnDrawFrame()
 									elseif ini.weapon[val[4]] == 2 then
 										ini.weapon[val[4]] = 1
 									end
-									inicfg.save(ini) 
+									inicfg.save(ini, 'Helper for MIA.ini') 
 								end
 							else
 								imgui.Button(u8'Не настривается', imgui.ImVec2(205, 20))
@@ -2024,19 +2077,19 @@ function imgui.OnDrawFrame()
 						
 						if imgui.Checkbox(u8'Отыгровка аптечки', prphealme) then 
 							ini.lowrp.rphealme = prphealme.v
-							inicfg.save(ini) 
+							inicfg.save(ini, 'Helper for MIA.ini') 
 						end
 						if imgui.Checkbox(u8'Отыгровка маски', prpmask) then 
 							ini.lowrp.rpmask = prpmask.v
-							inicfg.save(ini) 
+							inicfg.save(ini, 'Helper for MIA.ini') 
 						end
 						if imgui.Checkbox(u8'Отыгровка открытия спецблока', prpfbi) then 
 							ini.lowrp.rpfbi = prpfbi.v
-							inicfg.save(ini) 
+							inicfg.save(ini, 'Helper for MIA.ini') 
 						end
 						if imgui.Checkbox(u8'Отыгровка открытия шлагбаума', prpbar) then 
 							ini.lowrp.rpbar = prpbar.v
-							inicfg.save(ini) 
+							inicfg.save(ini, 'Helper for MIA.ini') 
 						end
 					end
 				end
@@ -2081,9 +2134,9 @@ function imgui.OnDrawFrame()
 						local cmd, info = string.match(val, '(.+) | (.+)')
 						imgui.Separator()
 						imgui.NextColumn()
-						imgui.Text(string.format('%s', u8(cmd)))
+						imgui.TextColoredRGB(string.format('{1E90FF}%s', cmd))
 						imgui.NextColumn()
-						imgui.Text(string.format('%s', u8(info)))
+						imgui.TextColoredRGB(string.format('{000000}%s', info))
 					end
 				end
 				
@@ -4117,8 +4170,15 @@ end
 
 function sampev.onServerMessage(color, text)
 	logchat[tonumber(table.maxn(logchat)) + 1] = 'CHAT\t   [' .. os.date('%H') .. ':' .. os.date('%M') .. ':' .. os.date('%S') .. '] ' .. text
-
-	if color == 13369599 and text:find('Отправил') and not ini.set.stopad then return false end
+	
+	if text:match('(.+)[%s+].[%s+]Отправил[%s+](%S+).[%d+].[%s+].тел.[%s+](%d+).') then
+		local text, name, number = text:match('(.+)[%s+].[%s+]Отправил[%s+](%S+).[%d+].[%s+].тел.[%s+](%d+).')
+		name = string.gsub(name, ']', '')
+		ini.number[name] = number
+		inicfg.save(ini, 'Helper for MIA.ini')
+		
+		if not ini.set.stopad then return false end
+	end
 
 	if text:find('  Объявление проверил сотрудник СМИ (.+)') and not ini.set.stopad then return false end
 	
@@ -4196,6 +4256,8 @@ function sampev.onServerMessage(color, text)
 	
 	if text:match('SMS.[%s](.+)[%s].[%s]Отправитель.[%s](.+)[%s].т.(%d+).') then
 		local text, name, number = text:match('SMS.[%s](.+)[%s].[%s]Отправитель.[%s](.+)[%s].т.(%d+).')
+		ini.number[name] = number
+		inicfg.save(ini, 'Helper for MIA.ini')
 		last_sms = number
 		
 		if sampGetBlackList(name) then
@@ -4204,8 +4266,16 @@ function sampev.onServerMessage(color, text)
 		end
 	end
 	
+	if text:match('SMS.[%s](.+)[%s].[%s]Получатель.[%s](.+)[%s].т.(%d+).') then
+		local text, name, number = text:match('SMS.[%s](.+)[%s].[%s]Получатель.[%s](.+)[%s].т.(%d+).')
+		ini.number[name] = number
+		inicfg.save(ini, 'Helper for MIA.ini')
+	end
+	
 	if text:match('Входящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Вызывает[%s](.+)') then
 		local number, name = text:match('Входящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Вызывает[%s](.+)')
+		ini.number[name] = number
+		inicfg.save(ini, 'Helper for MIA.ini')
 		
 		call_table[tonumber(table.maxn(call_table)) + 1] = string.format('+%d\t%s %s\tВходящий', number, os.date('%d'), os.date('%B'))
 		
@@ -4221,6 +4291,8 @@ function sampev.onServerMessage(color, text)
 	
 	if text:match('Исходящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Ожидание[%s]ответа[%s]от[%s](.+)...') then
 		local number, name = text:match('Исходящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Ожидание[%s]ответа[%s]от[%s](.+)...')
+		ini.number[name] = number
+		inicfg.save(ini, 'Helper for MIA.ini')
 		
 		call_table[tonumber(table.maxn(call_table)) + 1] = string.format('+%d\t%s %s\tИсходящий', number, os.date('%d'), os.date('%B'))
 	end
@@ -4455,7 +4527,7 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 	end
 
 	if string.find(title, 'Паспорт') and autopass and ini.set.autopass then
-		for s in string.gmatch(text, "[^\n]+") do
+		for s in string.gmatch(text, '[^\n]+') do
 			if string.match(s, '{FFFFFF}Уровень розыска:		{80aaff}(%d+)') then
 				stars = string.match(s, '{FFFFFF}Уровень розыска:		{80aaff}(%d+)')
 				lua_thread.create(function()
@@ -4476,6 +4548,25 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 		end
 		sampSendDialogResponse(dialogId, 1, 0, 0)
 		autopass = false
+		return false
+	end
+	
+	if string.find(title, 'Прошлые имена') and check_bl then
+		for val in string.gmatch(text, "[^\n]+") do
+			if string.match(val, 'До[%s][%S+].(%D+)') then
+				local dat, name = string.match(val, 'До[%s](%S+).(%D+)')
+				black_list[tonumber(table.maxn(black_list)) + 1] = name
+			end
+		end
+		
+		if button1:find('Закрыть') then
+			local name = string.match(title, 'Прошлые[%s+]имена[%s+](.+)')
+			CheckPlayersOfBlackList(name, black_list)
+			check_bl = false
+		else
+			sampSendDialogResponse(dialogId, 1, 0, 0)
+		end
+		
 		return false
 	end
 
@@ -4743,56 +4834,25 @@ function sampev.onMoveObject(id, pos, npos, speed, rot)
 	end
 end
 
-function autoupdate(json_url, url) -- Author: http://qrlk.me/samp
-  local json = getWorkingDirectory() .. '\\'..thisScript().name..'-version.json'
-  if doesFileExist(json) then os.remove(json) end
-  downloadUrlToFile(json_url, json,
-    function(id, status, p1, p2)
-      if status == dlstatus.STATUSEX_ENDDOWNLOAD then
-        if doesFileExist(json) then
-          local f = io.open(json, 'r')
-          if f then
-            local info = decodeJson(f:read('*a'))
-            updatelink = info.updateurl
-            updateversion = info.latest
-            f:close()
-            os.remove(json)
-            if updateversion ~= thisScript().version then
-              lua_thread.create(function()
-                wait(250)
-                downloadUrlToFile(updatelink, thisScript().path,
-                  function(id3, status1, p13, p23)
-                    if status1 == dlstatus.STATUS_DOWNLOADINGDATA then
-                      print(string.format('Загружено %d из %d.', p13, p23))
-                    elseif status1 == dlstatus.STATUS_ENDDOWNLOADDATA then
-						decode()
-						SCM('Игровой помощник для МВД был автоматически обновлён до новейшей версии. Подробнее /update.')
-						goupdatestatus = true
-					    lua_thread.create(function() wait(1000) thisScript():reload() end)
-                    end
-                    if status1 == dlstatus.STATUSEX_ENDDOWNLOAD then
-                      if goupdatestatus == nil then
-						SCM('При обновлении игрового помощника произошла ошибка.')
-                        update = false
-                      end
-                    end 
-                  end
-                )
-                end, prefix
-              )
-            else
-              update = false
-              SCM('Игровой помощник для МВД был успешно запущен. Вы используйте актуальную версию скрипта.')
-            end
-          end
-        else
-          SCM('Произошла ошибка при попытке обновления игрового помощника.')
-          update = false
-        end
-      end
-    end
-  )
-  while update ~= false do wait(100) end
+function autoUpdate(url)
+	async_http_request('GET', url, nil,
+		function(response)
+		
+		local info = decodeJson(response.text)
+		if info.latest ~= thisScript().version then
+			async_http_request('GET', info.updateurl, nil,
+				function(response)
+					local file_text = u8:decode(response.text)
+					local file = getWorkingDirectory() .. '\\project.lua'
+					local filew = io.open(file, 'w')
+					filew:write(file_text)
+					filew:close()
+					SCM('Игровой помощник для МВД был автоматически обновлён до новейшей версии. Подробнее /update.')
+			end)
+		else
+			SCM('Игровой помощник для МВД был успешно запущен. Вы используйте актуальную версию скрипта.')
+		end
+	end)
 end
 
 function rkeys.onHotKey(id, keys)

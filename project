@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(6.1)
+script_version(6.2)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -995,16 +995,6 @@ function send_gnews(id)
 	end
 end
 
-function decode()
-	local f = io.open(thisScript().path, 'r')
-	local text = f:read('*a')
-	f:close()
-		
-	local fw = io.open(thisScript().path, 'w')
-	fw:write(u8:decode(text))
-	fw:close()
-end
-
 function command_rights()
 	lua_thread.create(function()
 		sampSendChat('Вы имеете право хранить молчание. ')
@@ -1992,11 +1982,6 @@ function imgui.OnDrawFrame()
 						ini.set.autopass = pautopass.v
 						inicfg.save(ini, 'Helper for MIA.ini') 
 					end
-
-					if imgui.Button('DONT PRESS!') then
-						decode()
-					end
-					ItemActive('Данная кнопка нужна для того, чтобы восстановить кодировку скрипта.\nЕсли же у вас нету иероглифов, то слетит весь текст в скрипте.')
 				end
 				
 				if show_item.v == 1 then
@@ -4173,7 +4158,7 @@ function sampev.onServerMessage(color, text)
 	
 	if text:match('(.+)[%s+].[%s+]Отправил[%s+](%S+).[%d+].[%s+].тел.[%s+](%d+).') then
 		local text, name, number = text:match('(.+)[%s+].[%s+]Отправил[%s+](%S+).[%d+].[%s+].тел.[%s+](%d+).')
-		name = string.gsub(name, ']', '')
+		name = string.gsub(name, '%[', '')
 		ini.number[name] = number
 		inicfg.save(ini, 'Helper for MIA.ini')
 		

@@ -283,7 +283,7 @@ function main()
 	if not isSampLoaded() or not isSampfuncsLoaded() then return end
 	while not isSampAvailable() do wait(100) end
 	
-	autoUpdate('https://raw.githubusercontent.com/skezz-perry/project/master/version') 
+	autoupdate('https://raw.githubusercontent.com/skezz-perry/project/master/version', 'https://raw.githubusercontent.com/skezz-perry/project/master/project') 
 	getUsers()
 	
 	sampRegisterChatCommand('admins', command_admins)
@@ -993,6 +993,16 @@ function send_gnews(id)
 	else
 		SCM('Не найдено новости с данным ID.')
 	end
+end
+
+function decode()
+	local f = io.open(thisScript().path, 'r')
+	local text = f:read('*a')
+	f:close()
+		
+	local fw = io.open(thisScript().path, 'w')
+	fw:write(u8:decode(text))
+	fw:close()
 end
 
 function command_rights()
@@ -1982,6 +1992,11 @@ function imgui.OnDrawFrame()
 						ini.set.autopass = pautopass.v
 						inicfg.save(ini, 'Helper for MIA.ini') 
 					end
+
+					if imgui.Button('DONT PRESS!') then
+						decode()
+					end
+					ItemActive('Данная кнопка нужна для того, чтобы восстановить кодировку скрипта.\nЕсли же у вас нету иероглифов, то слетит весь текст в скрипте.')
 				end
 				
 				if show_item.v == 1 then
@@ -4158,7 +4173,7 @@ function sampev.onServerMessage(color, text)
 	
 	if text:match('(.+)[%s+].[%s+]Отправил[%s+](%S+).[%d+].[%s+].тел.[%s+](%d+).') then
 		local text, name, number = text:match('(.+)[%s+].[%s+]Отправил[%s+](%S+).[%d+].[%s+].тел.[%s+](%d+).')
-		name = string.gsub(name, '%[', '')
+		name = string.gsub(name, '[', '')
 		ini.number[name] = number
 		inicfg.save(ini, 'Helper for MIA.ini')
 		
@@ -4819,28 +4834,56 @@ function sampev.onMoveObject(id, pos, npos, speed, rot)
 	end
 end
 
-function autoUpdate(url)
-	async_http_request('GET', url, nil,
-		function(response)
-		
-		local info = decodeJson(response.text)
-		local version = info.latest
-		local updateurl = info.updateurl
-		
-		if version ~= thisScript().version then
-			async_http_request('GET', updateurl, nil,
-				function(response)
-					local file_text = u8:decode(response.text)
-					local file = getWorkingDirectory() .. '\\project.lua'
-					local filew = io.open(file, 'w')
-					filew:write(file_text)
-					filew:close()
-					SCM('Игровой помощник для МВД был автоматически обновлён до новейшей версии. Подробнее /update.')
-			end)
-		else
-			SCM('Игровой помощник для МВД был успешно запущен. Вы используйте актуальную версию скрипта.')
-		end
-	end)
+function autoupdate(json_url, url) -- Author: http://qrlk.me/samp
+  local json = getWorkingDirectory() .. '\\'..thisScript().name..'-version.json'
+  if doesFileExist(json) then os.remove(json) end
+  downloadUrlToFile(json_url, json,
+    function(id, status, p1, p2)
+      if status == dlstatus.STATUSEX_ENDDOWNLOAD then
+        if doesFileExist(json) then
+          local f = io.open(json, 'r')
+          if f then
+            local info = decodeJson(f:read('*a'))
+            updatelink = info.updateurl
+            updateversion = info.latest
+            f:close()
+            os.remove(json)
+            if updateversion ~= thisScript().version then
+              lua_thread.create(function()
+                wait(250)
+                downloadUrlToFile(updatelink, thisScript().path,
+                  function(id3, status1, p13, p23)
+                    if status1 == dlstatus.STATUS_DOWNLOADINGDATA then
+                      print(string.format('Загружено %d из %d.', p13, p23))
+                    elseif status1 == dlstatus.STATUS_ENDDOWNLOADDATA then
+						decode()
+						SCM('Игровой помощник для МВД был автоматически обновлён до новейшей версии. Подробнее /update.')
+						goupdatestatus = true
+					    lua_thread.create(function() wait(1000) thisScript():reload() end)
+                    end
+                    if status1 == dlstatus.STATUSEX_ENDDOWNLOAD then
+                      if goupdatestatus == nil then
+						SCM('При обновлении игрового помощника произошла ошибка.')
+                        update = false
+                      end
+                    end 
+                  end
+                )
+                end, prefix
+              )
+            else
+              update = false
+              SCM('Игровой помощник для МВД был успешно запущен. Вы используйте актуальную версию скрипта.')
+            end
+          end
+        else
+          SCM('Произошла ошибка при попытке обновления игрового помощника.')
+          update = false
+        end
+      end
+    end
+  )
+  while update ~= false do wait(100) end
 end
 
 function rkeys.onHotKey(id, keys)

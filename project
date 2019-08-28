@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(6.8)
+script_version(6.9)
 
 require 'lib.moonloader'
 require 'lib.sampfuncs'
@@ -439,7 +439,6 @@ function main()
 		end
 
 		if wasKeyPressed(KEY.VK_4) and isKeyDown(VK_RBUTTON) then
-			dialogDo()
 			if suspect_id[1] ~= nil then
 				if IPC(suspect_id[1]) then 
 					command_su(string.format('%d %d %s', suspect_id[1], suspect_id[2], suspect_id[3])) 

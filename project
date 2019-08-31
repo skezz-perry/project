@@ -151,63 +151,6 @@ local frac = {
 	color = {'{0000ff}', '{ccff00}', '{ff6600}', '{996633}', '{ff6666}', '{993366}', '{007575}', '{bb0000}', '{009900}', '{cc00ff}', '{ffcd00}', '{00ccff}', '{6666ff}', '{ffffff}', '{ffffff}', '{ffffff}'},
 }
 
-local to_connect = {
-	{
-		title = '1. Подключится к Advance RP Red',
-        onclick = function()
-			reconnect(5, '5.254.104.131:7777')
-		end
-	},
-	{
-		title = '2. Подключится к Advance RP Green',
-        onclick = function()
-			reconnect(5, '5.254.104.132:7777')
-		end
-	},
-	{
-		title = '3. Подключится к Advance RP Yellow',
-        onclick = function()
-			reconnect(5, '5.254.104.133:7777')
-		end
-	},
-	{
-		title = '4. Подключится к Advance RP Orange',
-        onclick = function()
-			reconnect(5, '5.254.104.134:7777')
-		end
-	},
-	{
-		title = '5. Подключится к Advance RP Blue',
-        onclick = function()
-			reconnect(5, '5.254.104.135:7777')
-		end
-	},
-	{
-		title = '6. Подключится к Advance RP White',
-        onclick = function()
-			reconnect(5, '5.254.104.136:7777')
-		end
-	},
-	{
-		title = '7. Подключится к Advance RP Silver',
-        onclick = function()
-			reconnect(5, '5.254.104.137:7777')
-		end
-	},
-	{
-		title = '8. Подключится к Advance RP Purple',
-        onclick = function()
-			reconnect(5, '5.254.104.138:7777')
-		end
-	},
-	{
-		title = '9. Подключится к Advance RP Chocolate',
-        onclick = function()
-			reconnect(5, '5.254.104.139:7777')
-		end
-	},
-}
-
 local ini = inicfg.load({
 	info = {
 		name                 = '',
@@ -271,7 +214,7 @@ local pass = inicfg.load({
 	orange = {},
 	blue = {},
 	white = {},
-	silver = {},
+	silver = {Skezz_Perry = '123123'},
 	purple = {},
 	chocolate = {} 
 }, 'password.ini')

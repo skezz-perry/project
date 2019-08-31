@@ -1,8 +1,8 @@
 script_name('helper-for-mia')
-script_version(6.9)
+script_version(7.1)
 
 require 'lib.moonloader'
-require 'lib.sampfuncs'
+local sf                = require 'lib.sampfuncs'
 local mad               = require 'MoonAdditions'
 local KEY               = require 'vkeys'
 local rkeys             = require 'rkeys'
@@ -76,54 +76,58 @@ local InfoWeapon = {{'Щит', false, 'shit', 'bshit', 1},
 
 local commands = {
 	'КОМАНДА | ОПИСАНИЕ',
-	'/r | Сообщение в обычную рацию',
-	'/rn | NRP-chat обычной рации',
-	'/f | Сообщение в общую волну',
-	'/fn | NRP-chat общей волны',
-	'/cuff | Надеть наручники на подозреваемого',
-	'/uncuff | Снять наручники с подозреваемого',
-	'/arrest | Отправить подозреваемого в департамент',
-	'/pull | Вытащить подозреваемого из автомобиля',
-	'/su | Объявить подозреваемого в розыск',
-	'/skip | Выдать временный пропуск игроку',
-	'/clear | Очистить уровень розыска для игрока',
-	'/follow | Начать прослушивание',
-	'/hold | Тащить игрока за собой',
-	'/ticket | Выписать штраф нарушителю',
-	'/takelic | Изъять лицензию на вождение',
-	'/rights | Зачитать права игроку',
-	'/putpl | Посадить подозреваемого в автомобиль',
-	'/search | Обыскать подозреваемого',
-	'/hack | Взломать дверь дома',
-	'/ud | Показать удостоверение',
-	'/pas | Запросить документы у игрока',
-	'/invite | Принять игрока в организацию',
-	'/uninvite | Уволить игрока из организации',
-	'/rang | Изменить ранг игрока',
-	'/changeskin | Изменить внешность игрока',
+	'[1] /r | Сообщение в обычную рацию',
+	'[1] /rn | NRP-chat обычной рации',
+	'[1] /f | Сообщение в общую волну',
+	'[1] /fn | NRP-chat общей волны',
+	'[1] /cuff | Надеть наручники на подозреваемого',
+	'[1] /uncuff | Снять наручники с подозреваемого',
+	'[1] /arrest | Отправить подозреваемого в департамент',
+	'[1] /pull | Вытащить подозреваемого из автомобиля',
+	'[1] /su | Объявить подозреваемого в розыск',
+	'[1] /skip | Выдать временный пропуск игроку',
+	'[1] /clear | Очистить уровень розыска для игрока',
+	'[1] /follow | Начать прослушивание',
+	'[1] /hold | Тащить игрока за собой',
+	'[1] /ticket | Выписать штраф нарушителю',
+	'[1] /takelic | Изъять лицензию на вождение',
+	'[1] /rights | Зачитать права игроку',
+	'[1] /putpl | Посадить подозреваемого в автомобиль',
+	'[1] /search | Обыскать подозреваемого',
+	'[1] /hack | Взломать дверь дома',
+	'[1] /ud | Показать удостоверение',
+	'[1] /pas | Запросить документы у игрока',
+	'[3] /invite | Принять игрока в организацию',
+	'[3] /uninvite | Уволить игрока из организации',
+	'[3] /rang | Изменить ранг игрока',
+	'[3] /changeskin | Изменить внешность игрока',
 	'  |  ',
 	'ДОП. КОМАНДА | ОПИСАНИЕ',
-	'/mh | Открыть основное меню',
-	'/update | Информация о последнем обновлении',
-	'/admins | Открыть админ-список',
-	'/users | Открыть список пользователей',
-	'/gov | Отправить гос. новость',
-	'/bl_name | Проверить никнейм на наличие в ЧС',
-	'/bl_hist | Проверить весь history на наличие в ЧС',
-	'/ainfo | Открыть информационное меню',
-	'/rkinfo | Получить информацию о RK',
-	'/rep | Быстрая отправка сообщения в репорт',
-	'/asms | Быстрая отправка SMS-сообщений',
-	'/addbl | Добавить в чёрный список телефона',
-	'/delbl | Удалить из чёрного списка телефона',
-	'/phone | Открыть телефон',
-	'/епк | Найти информацию о ЕПК',
-	'/устав | Найти информацию о УМВД',
-	'/sw | Изменить погоду',
-	'/st | Изменить время',
-	'/skin | Установить визуальный скин для игрока',
-	'/hist | Открыть history игрока по его ID',
-	'/strobes | Включить стробоскопы',
+	'[1] /mh | Открыть основное меню',
+	'[1] /update | Информация о последнем обновлении',
+	'[2] /admins | Открыть админ-список',
+	'[1] /users | Открыть список пользователей',
+	'[4] /gov | Отправить гос. новость',
+	'[1] /rec | Переподключится к серверу',
+	'[1] /recn | Переподключится к серверу со сменой ника',
+	'[1] /recd | Переподключится к другому серверу',
+	'[1] /account | Авто-подключение к серверу',
+	'[1] /bl_name | Проверить никнейм на наличие в ЧС',
+	'[1] /bl_hist | Проверить весь history на наличие в ЧС',
+	'[1] /ainfo | Открыть информационное меню',
+	'[1] /rkinfo | Получить информацию о RK',
+	'[1] /rep | Быстрая отправка сообщения в репорт',
+	'[1] /asms | Быстрая отправка SMS-сообщений',
+	'[1] /addbl | Добавить в чёрный список телефона',
+	'[1] /delbl | Удалить из чёрного списка телефона',
+	'[1] /phone | Открыть телефон',
+	'[1] /епк | Найти информацию о ЕПК',
+	'[1] /устав | Найти информацию о УМВД',
+	'[1] /sw | Изменить погоду',
+	'[1] /st | Изменить время',
+	'[2] /skin | Установить визуальный скин для игрока',
+	'[1] /hist | Открыть history игрока по его ID',
+	'[1] /strobes | Включить стробоскопы',
 	'  |  ',
 	'КЛАВИША | ОПИСАНИЕ',
 	'NumPad3 | Открыть основное меню',
@@ -145,6 +149,63 @@ local frac = {
 	name = {'mvd', 'prav', 'mm', 'mo', 'mz', 'lcn', 'rm', 'yak', 'grv', 'bal', 'vag', 'azt', 'rif', 'civ', 'mask', 'all'},
 	fullname = {'Министерство внутренних дел', 'Правительство', 'Средства массовой информации', 'Министерство обороны', 'Министерство здравоохранения', 'La Cosa Nostra', 'Russian Mafia', 'Yakuza', 'Grove Street', 'The Ballas', 'Los Santos Vagos', 'Varios los Aztecas', 'The Rifa', 'Гражданские', 'В маске', 'Прочее'},
 	color = {'{0000ff}', '{ccff00}', '{ff6600}', '{996633}', '{ff6666}', '{993366}', '{007575}', '{bb0000}', '{009900}', '{cc00ff}', '{ffcd00}', '{00ccff}', '{6666ff}', '{ffffff}', '{ffffff}', '{ffffff}'},
+}
+
+local to_connect = {
+	{
+		title = '1. Подключится к Advance RP Red',
+        onclick = function()
+			reconnect(5, '5.254.104.131:7777')
+		end
+	},
+	{
+		title = '2. Подключится к Advance RP Green',
+        onclick = function()
+			reconnect(5, '5.254.104.132:7777')
+		end
+	},
+	{
+		title = '3. Подключится к Advance RP Yellow',
+        onclick = function()
+			reconnect(5, '5.254.104.133:7777')
+		end
+	},
+	{
+		title = '4. Подключится к Advance RP Orange',
+        onclick = function()
+			reconnect(5, '5.254.104.134:7777')
+		end
+	},
+	{
+		title = '5. Подключится к Advance RP Blue',
+        onclick = function()
+			reconnect(5, '5.254.104.135:7777')
+		end
+	},
+	{
+		title = '6. Подключится к Advance RP White',
+        onclick = function()
+			reconnect(5, '5.254.104.136:7777')
+		end
+	},
+	{
+		title = '7. Подключится к Advance RP Silver',
+        onclick = function()
+			reconnect(5, '5.254.104.137:7777')
+		end
+	},
+	{
+		title = '8. Подключится к Advance RP Purple',
+        onclick = function()
+			reconnect(5, '5.254.104.138:7777')
+		end
+	},
+	{
+		title = '9. Подключится к Advance RP Chocolate',
+        onclick = function()
+			reconnect(5, '5.254.104.139:7777')
+		end
+	},
 }
 
 local ini = inicfg.load({
@@ -203,11 +264,24 @@ local ini = inicfg.load({
 	}
 }, 'Helper for MIA.ini')
 
+local pass = inicfg.load({
+	red = {},
+	green = {},
+	yellow = {},
+	orange = {},
+	blue = {},
+	white = {},
+	silver = {},
+	purple = {},
+	chocolate = {} 
+}, 'password.ini')
+
 local color_red          = '{CD5C5C}'
 local color_orange       = '{F4A460}'
 local color_green        = '{00CD66}'
 local show_player        = ''
 local users              = ''
+local server             = ''
 local skin_table         = {}
 local lgov               = {}
 local info_scene         = {}
@@ -243,6 +317,7 @@ local show_ustav         = imgui.ImBool(false)
 local show_phone         = imgui.ImBool(false)
 local vfilt              = imgui.ImBool(false)
 local lines              = imgui.ImBool(false)
+local spypass            = imgui.ImBool(true)
 local show_item          = imgui.ImInt(0)
 local page_num           = imgui.ImInt(0)
 local phone_item         = imgui.ImInt(0)
@@ -286,6 +361,7 @@ function main()
 	
 	autoupdate('https://raw.githubusercontent.com/skezz-perry/project/master/version', 'https://raw.githubusercontent.com/skezz-perry/project/master/project') 
 	getUsers()
+	getServer()
 	
 	sampRegisterChatCommand('admins', command_admins)
 	sampRegisterChatCommand('r', command_r)
@@ -334,6 +410,10 @@ function main()
 	sampRegisterChatCommand('bl_hist', command_bl)
 	sampRegisterChatCommand('bl_name', command_namebl)
 	sampRegisterChatCommand('rofl', command_rofl)
+	sampRegisterChatCommand('rec', command_reconnect)
+	sampRegisterChatCommand('recn', command_reconnectwithchange)
+	sampRegisterChatCommand('recd', command_reconnectwithchangeip)
+	sampRegisterChatCommand('account', command_account)
 
 	sampRegisterChatCommand('nhold', function(param)
 		if not param:match('(%d+)') then SCM('Используйте команду /nhold [ид игрока]') else sampSendChat('/hold '..param) end
@@ -751,91 +831,7 @@ function main()
 				end
 			end
 		end
-		
-		if edit_obj ~= nil and not sampIsChatInputActive() and not sampIsDialogActive() and text_id == nil then
-			-- вращение
-			if isKeyDown(VK_NUMPAD8) and isKeyDown(VK_CONTROL) then
-				obj_qx = obj_qx + obj_srotate
-				setObjectRotation(edit_obj, obj_qx, obj_qy, obj_qz)
-			elseif isKeyDown(VK_NUMPAD2) and isKeyDown(VK_CONTROL) then
-				obj_qx = obj_qx - obj_srotate
-				setObjectRotation(edit_obj, obj_qx, obj_qy, obj_qz)
-			elseif isKeyDown(VK_NUMPAD4) and isKeyDown(VK_CONTROL) then
-				obj_qy = obj_qy + obj_srotate
-				setObjectRotation(edit_obj, obj_qx, obj_qy, obj_qz)
-			elseif isKeyDown(VK_NUMPAD6) and isKeyDown(VK_CONTROL) then
-				obj_qy = obj_qy - obj_srotate
-				setObjectRotation(edit_obj, obj_qx, obj_qy, obj_qz)
-			elseif isKeyDown(VK_NUMPAD7) and isKeyDown(VK_CONTROL) then
-				obj_qz = obj_qz + obj_srotate
-				setObjectRotation(edit_obj, obj_qx, obj_qy, obj_qz)
-			elseif isKeyDown(VK_NUMPAD9) and isKeyDown(VK_CONTROL) then
-				obj_qz = obj_qz - obj_srotate
-				setObjectRotation(edit_obj, obj_qx, obj_qy, obj_qz)
-			-- движение (в стороны)
-			elseif isKeyDown(VK_NUMPAD8) then
-				obj_y = obj_y + obj_smove
-				setObjectCoordinates(edit_obj, obj_x, obj_y, obj_z)
-			elseif isKeyDown(VK_NUMPAD2) then
-				obj_y = obj_y - obj_smove
-				setObjectCoordinates(edit_obj, obj_x, obj_y, obj_z)
-			elseif isKeyDown(VK_NUMPAD4) then
-				obj_x = obj_x - obj_smove
-				setObjectCoordinates(edit_obj, obj_x, obj_y, obj_z)
-			elseif isKeyDown(VK_NUMPAD6) then
-				obj_x = obj_x + obj_smove
-				setObjectCoordinates(edit_obj, obj_x, obj_y, obj_z)
-			-- движение (верх вниз)
-			elseif isKeyDown(VK_SPACE) then
-				obj_z = obj_z + obj_smove
-				setObjectCoordinates(edit_obj, obj_x, obj_y, obj_z)
-			elseif isKeyDown(VK_MENU) then
-				obj_z = obj_z - obj_smove
-				setObjectCoordinates(edit_obj, obj_x, obj_y, obj_z)
-			-- сохранение
-			elseif isKeyDown(VK_RETURN) then
-				SCM('Вы закончили редактирование объекта с хендлом {FFCD00}' .. edit_obj .. '{ffffff}.')
-				SCM(string.format('ID = %d | X = %s | Y = %s | Z = %s', obj_id, obj_x, obj_y, obj_z))
-				setClipboardText(string.format('createObject(%d, %s, %s, %s) setObjectRotation(%d, %s, %s, %s)', obj_id, obj_x, obj_y, obj_z, obj_id, obj_qx, obj_qy, obj_qz))
-				edit_obj = nil
-			end
-		end
-		
-		if text_id ~= nil and not sampIsChatInputActive() and not sampIsDialogActive() and edit_obj == nil then
-			-- движение
-			if isKeyDown(VK_NUMPAD8) then
-				text_y = text_y + 0.04
-				sampCreate3dTextEx(text_id, text_text, text_color, text_x, text_y, text_z, text_distance, false, -1, -1)
-			elseif isKeyDown(VK_NUMPAD2) then
-				text_y = text_y - 0.04
-				sampCreate3dTextEx(text_id, text_text, text_color, text_x, text_y, text_z, text_distance, false, -1, -1)
-			elseif isKeyDown(VK_NUMPAD4) then
-				text_x = text_x - 0.04
-				sampCreate3dTextEx(text_id, text_text, text_color, text_x, text_y, text_z, text_distance, false, -1, -1)
-			elseif isKeyDown(VK_NUMPAD6) then
-				text_x = text_x + 0.04
-				sampCreate3dTextEx(text_id, text_text, text_color, text_x, text_y, text_z, text_distance, false, -1, -1)
-			elseif isKeyDown(VK_SPACE) then
-				text_z = text_z + 0.04
-				sampCreate3dTextEx(text_id, text_text, text_color, text_x, text_y, text_z, text_distance, false, -1, -1)
-			elseif isKeyDown(VK_MENU) then
-				text_z = text_z - 0.04
-				sampCreate3dTextEx(text_id, text_text, text_color, text_x, text_y, text_z, text_distance, false, -1, -1)
-			-- сохранение
-			elseif isKeyDown(VK_RETURN) then
-				SCM('Вы закончили редактирование 3D текста с ID {FFCD00}' .. text_id .. '{ffffff}.')
-				setClipboardText(string.format('sampCreate3dText(%s, %s, %s, %s, %s, %d, false, -1, -1)', text_text, text_color, text_x, text_y, text_z, text_distance))
-				text_id = nil
-			end 
-		end
 	end
-end
-
-function editObjectBySampId(id, playerobj)
-    if isSampAvailable() then
-        local ffi = require("ffi")
-        ffi.cast("void (__thiscall*)(unsigned long, short int, unsigned long)", sampGetBase() + 0x6DE40)(readMemory(sampGetBase() + 0x21A0C4, 4), id, playerobj and 1 or 0)
-    end
 end
 
 function command_r(text)
@@ -854,108 +850,96 @@ function command_fn(text)
 	if not string.match(text, '(.+)') then SCM('Используйте команду /fn [текст].') else sampSendChat('/f (( ' .. text .. ' ))') end
 end
 
-function command_cobject(id)
-	if string.match(id, '(%d+) (.+) (.+)') then
-		id, smove, srotate = string.match(id, '(%d+) (.+) (.+)')
-		x, y, z = getCharCoordinates(PLAYER_PED)
-		object = createObject(id, x, y, z)
-		if doesObjectExist(object) and edit_obj == nil then
-			setObjectCollision(object, false)
-			SCM('Был создан объект {FFCD00}' .. id .. '{ffffff} с хендлом {FFCD00}' .. object .. '{ffffff}.')
-			SCM('Для редактирование объекта используйте стрелки на NumPad, Space (поднять), Alt (опустить), Ctrl + стрелки NumPad (вращение).')
-			SCM('Чтобы сохранить нажмите {FFCD00}ENTER{ffffff}, для удаления используйте команду /del_obj [хендл объекта].')
-			obj_x = x; obj_y = y; obj_z = z
-			obj_qx = 0; obj_qy = 0; obj_qz = 0 
-			edit_obj = object
-			obj_id = id
-			obj_smove = tonumber(smove); obj_srotate = tonumber(srotate)
+function command_account(parametrs)
+	if string.match(parametrs, '(%S+) (%d+) (%S+)') then
+		local name, id, passw = string.match(parametrs, '(%S+) (%d+) (%S+)')
+		if string.len(passw) >= 6 and string.len(passw) <= 15 then
+			local id = tonumber(id)
+			if id >= 1 and id <= 9 then
+				local serv = {'red', 'green', 'yellow', 'orange', 'blue', 'white', 'silver', 'purple', 'chocolate'}
+				SCM(string.format('Вы добавили аккаунт {FFCD00}%s{ffffff} с паролем {FFCD00}%s{ffffff} на сервере %s.', name, string.gsub(passw, '.', '•'), serv[id]))
+				pass[serv[id]][name] = passw
+				inicfg.save(pass, 'password.ini')
+			else
+				SCM('Номер сервера не должен быть менее 1 и более 9.')
+			end
 		else
-			SCM('Произошла ошибка при создании объекта.')
+			SCM('Длина пароля не должна быть менее 6 и более 15 символов.')
 		end
 	else
-		SCM('Используйте команду /add_obj [ид объекта] [шаг движения (рек. 0.04)] [шаг врашения (рек. 1.0)].')
+		SCM('Используйте команду /account [никнейм] [номер сервера] [пароль]')
 	end
 end
 
-function command_eobject(id)
-	if string.match(id, '(%d+) (.+) (.+)') then
-		id, smove, srotate = string.match(id, '(%d+) (.+) (.+)')
-		if doesObjectExist(id) and edit_obj == nil then
-			SCM('Вы начали редактировать объект с хендлом {FFCD00}' .. id .. '{ffffff}.')
-			SCM('Для редактирование объекта используйте стрелки на NumPad, Space (поднять), Alt (опустить), Ctrl + NumPad (вращение).')
-			SCM('Чтобы сохранить нажмите {FFCD00}ENTER{ffffff}, для удаления используйте команду /del_obj [хендл объекта].')
-			_, obj_x, obj_y, obj_z = getObjectCoordinates(id)
-			obj_qx = 0; obj_qy = 0; obj_qz = 0 
-			edit_obj = id
-			obj_id = id
-			obj_smove = tonumber(smove); obj_srotate = tonumber(srotate)
+function command_reconnect(parametrs)
+	if string.match(parametrs, '(%d+)') then
+		local delay = tonumber(parametrs)
+		if delay > 0 and delay <= 60 then
+			reconnect(delay)
 		else
-			SCM('Произошла ошибка при начале редактирования объекта.')
+			SCM('Задержка между переподключениями не должна быть менее 0 и более 60 секунд.')
 		end
 	else
-		SCM('Используйте команду /edit_obj [хендл объекта] [шаг движения] [шаг врашения].')
+		SCM('Используйте команду /rec [задержка].')
 	end
 end
 
-function command_dobject(id)
-	if string.match(id, '(%d+)') then
-		if doesObjectExist(id) and edit_obj == nil then
-			deleteObject(id)
-			SCM('Вы успешно удалили объект с хендлом {FFCD00}' .. id .. '{ffffff}.')
+function command_reconnectwithchange(parametrs)
+	if string.match(parametrs, '(%d+) (%S+)') then
+		local delay, name = string.match(parametrs, '(%d+) (.+)')
+		local delay = tonumber(delay)
+		if delay > 0 and delay <= 60 then
+			sampSetLocalPlayerName(name)
+			reconnect(delay)
 		else
-			SCM('Произошла ошибка при удалении объекта.')
+			SCM('Задержка между переподключениями не должна быть менее 0 и более 60 секунд.')
 		end
 	else
-		SCM('Используйте команду /del_obj [хендл объекта].')
+		SCM('Используйте команду /recn [задержка] [никнейм].')
 	end
 end
 
-function command_ctext(param)
-	if string.match(param, '(%S+) (%d+) (.+)') then
-		local text, distance, color = string.match(param, '(.+) (%d+) (.+)')
-		x, y, z = getCharCoordinates(PLAYER_PED)
-		id = sampCreate3dText(text, color, x, y, z, distance, false, -1, -1)
-		if sampIs3dTextDefined(id) and text_id == nil then
-			SCM('Был создан 3D текст с ID {FFCD00}' ..id .. '{ffffff}.')
-			SCM('Для редактирование 3D текста используйте стрелки на NumPad, Space (поднять), Alt (опустить).')
-			SCM('Чтобы сохранить нажмите {FFCD00}ENTER{ffffff}, для удаления используйте команду /del_text [ид 3D текста].')
-			text_x = x; text_y = y; text_z = z; text_distance = distance; text_color = color; text_text = text
-			text_id = id
+function command_reconnectwithchangeip(parametrs)
+	if string.match(parametrs, '(%d+) (%S+)') then
+		local id, name = string.match(parametrs, '(%d+) (.+)')
+		local id = tonumber(id)
+		if id >= 1 and id <= 9 then
+			sampSetLocalPlayerName(name)
+			reconnect(1, string.format('5.254.104.13%d:7777', id))
 		else
-			SCM('Произошла ошибка при создании 3D текста.')
+			SCM('Номер сервера не должен быть менее 1 и более 9.')
+		end
+	elseif string.match(parametrs, '(%d+)') then
+		local id = tonumber(parametrs)
+		if id >= 1 and id <= 9 then
+			reconnect(1, string.format('5.254.104.13%d:7777', id))
+		else
+			SCM('Номер сервера не должен быть менее 1 и более 9.')
 		end
 	else
-		SCM('Используйте команду /add_text [текст] [дистанция] [цвет]')
+		SCM('Используйте команду /recd [номер сервера] [никнейм (необязательно)]')
 	end
 end
 
-function command_etext(id)
-	if string.match(id, '(%d+)') then
-		if sampIs3dTextDefined(id) and text_id == nil then
-			SCM('Вы начали редактировать #d текст с ID {FFCD00}' .. id .. '{ffffff}.')
-			SCM('Для редактирование 3D текста используйте стрелки на NumPad, Space (поднять), Alt (опустить).')
-			SCM('Чтобы сохранить нажмите {FFCD00}ENTER{ffffff}, для удаления используйте команду /del_text [ид 3D текста].')
-			text, color, x, y, z, distance, _1, _2, _3 = sampGet3dTextInfoById(id)
-			text_x = x; text_y = y; text_z = z; text_distance = distance; text_color = color; text_text = text
-			text_id = id
-		else
-			SCM('Произошла ошибка при создании 3D текста.')
-		end
-	else
-		SCM('Используйте команду /edit_text [ид 3D текста]')
-	end
-end
-
-function command_dtext(id)
-	if string.match(id, '(%d+)') then
-		if sampIs3dTextDefined(id) and text_id == nil then
-			sampDestroy3dText(id)
-			SCM('Вы успешно удалили 3D текст с ID {FFCD00}' .. id .. '{ffffff}.')
-		else
-			SCM('Произошла ошибка при удалении 3D текста.')
-		end
-	else
-		SCM('Используйте команду /del_text [ид 3D текста]')
+function reconnect(delay, ip)
+	if type(delay) == ('number') and ip == nil then
+		lua_thread.create(function()
+			local wdelay = delay * 1000
+			printStyledString(string.format('~w~reconnect with ~p~ %d ~w~ seconds delay', delay), wdelay, 4)
+			sampDisconnectWithReason(1)
+			wait(wdelay)
+			sampSetGamestate(1)
+		end)
+	elseif type(delay) == ('number') and type(ip) == ('string') then
+		lua_thread.create(function()
+			if string.match(ip, '(%S+):(%d+)') then
+				local ipadress, port = string.match(ip, '(.+):(%d+)')
+				local port = tonumber(port)
+				local wdelay = delay * 1000
+				printStyledString(string.format('~w~reconnect with ~p~ %d ~w~ seconds delay', delay), wdelay, 4)
+				sampConnectToServer(ipadress, port)
+			end
+		end)
 	end
 end
 
@@ -1032,7 +1016,7 @@ function command_easyevent(param)
 end
 
 function command_update()
-	local update_info = '{ffffff}Добавлена умная система SMS, теперь вы можете отправить SMS по ID-игрока.\n\nДобавлена команда /bl_name для проверки на ЧС по нику игрока\nДобавлена команда /bl_hist для проверки всего history игрока на ЧС.'
+	local update_info = '{ffffff}Добавлена команда /rec для переподключения к текущему серверу.\nДобавлена команда /recn (аналог /rec) для переподключения со сменой ника.\nДобавлена команда /recd для переподключения между серверами Advance RP.\n\nДобавлена команда /account с помощью которой можно настроить авто-подключение к серверу.\n{FF5555}ПРЕДУПРЕЖДЕНИЕ! Ни в коем случае не пересылайте 3-м лицам файл password.ini, который находится в moonloader/config.\nТак же не показывайте менеджер паролей на скриншотах или демо/видео-записях!\n\n{B2FF66}Автор данного скрипта отвественности за Ваши аккаунты не несёт.\nИспользуйте данную функцию на свой страх и риск.'
 
 	sampShowDialog(10005, '{FFCD00}Обновление', update_info, 'Закрыть', '', 0)
 end
@@ -1210,25 +1194,28 @@ function command_rights()
 end
 
 function command_setskin(param)
-	if string.match(param, '(%d+) (%d+) (%d+)') then
-		local id, skin, state = string.match(param, '(%d+) (%d+) (%d+)')
-		if IPC(id) then
-			if sampGetDistance(PLAYER_PED, id) < 200 then
-				local BS = raknetNewBitStream()
-				raknetBitStreamWriteInt32(BS, id)
-				raknetBitStreamWriteInt32(BS, skin)
-				raknetEmulRpcReceiveBitStream(153, BS)
-				raknetDeleteBitStream(BS)
-				
-				if tonumber(state) ~= 1 then SCM('Вы установили визуальный скин ({FFCD00}' .. skin .. '{ffffff}) для игрока ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. '[' .. id .. ']') end
+	if player_status > 1 then
+		if string.match(param, '(%d+) (%d+) (%d+)') then
+			local id, skin, state = string.match(param, '(%d+) (%d+) (%d+)')
+			if IPC(id) then
+				if sampGetDistance(PLAYER_PED, id) < 200 then
+					local BS = raknetNewBitStream()
+					raknetBitStreamWriteInt32(BS, id)
+					raknetBitStreamWriteInt32(BS, skin)
+					raknetEmulRpcReceiveBitStream(153, BS)
+					raknetDeleteBitStream(BS)
+					
+					local name = string.gsub(sampGetPlayerNickname(id),'_',' ')
+					if tonumber(state) ~= 1 then SCM('Вы установили визуальный скин ({FFCD00}' .. skin .. '{ffffff}) для игрока ' .. name .. '[' .. id .. ']') end
+				else
+					SCM('Данный игрок находится слишком далеко от Вас.')
+				end
 			else
-				SCM('Данный игрок находится слишком далеко от Вас.')
+				SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 			end
 		else
-			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+			SCM('Используйте команду /skin [ид игрока] [ид скина] [0 или 1].')
 		end
-	else
-		SCM('Используйте команду /skin [ид игрока] [ид скина] [0 или 1].')
 	end
 end
 
@@ -1899,6 +1886,11 @@ function command_su(param)
 end
 
 function command_users()
+	async_http_request('GET', 'https://raw.githubusercontent.com/skezz-perry/project/master/users', nil,
+		function(response)
+			users = response.text
+	end)
+
 	local dline = 'Имя\tСтатус\tДополнительно\n'
 	local all = 0
 	local online = 0
@@ -1906,7 +1898,8 @@ function command_users()
 	for line in string.gmatch(users, "[^\n]+") do
 		if string.match(line, '(.+) | (.+) | (.+)') then
 			local name, rang, nrang = string.match(line, '(.+) | (.+) | (.+)')
-			if tonumber(nrang) >= 5 then rang = string.format('{CD5C5C}%s', rang)
+			if tonumber(nrang) > 5 then rang = string.format('{CD5C5C}%s', rang)
+			elseif tonumber(nrang) == 5 then rang = string.format('{EE2C2C}%s', rang)
 			elseif tonumber(nrang) == 4 then rang = string.format('{228B22}%s', rang)
 			elseif tonumber(nrang) == 3 then rang = string.format('{90EE90}%s', rang)
 			elseif tonumber(nrang) == 2 then rang = string.format('{FFD700}%s', rang)
@@ -2093,8 +2086,9 @@ function imgui.OnDrawFrame()
 				if player_status > 1 then 
 					if imgui.Button(u8'Кастомизация', imgui.ImVec2(235, 25))   then show_item.v = 5 end
 				end
+				if imgui.Button(u8'Менеджер паролей', imgui.ImVec2(235, 25)) then show_item.v = 6 end
 			    if player_status > 3 then 	
-					if imgui.Button(u8'Панель лидера', imgui.ImVec2(235, 25))  then show_item.v = 6 end
+					if imgui.Button(u8'Панель лидера', imgui.ImVec2(235, 25))  then show_item.v = 7 end
 				end
 				if imgui.Button(u8'Перезагрузить', imgui.ImVec2(235, 25))  then
 					show_menu.v = not show_menu.v
@@ -2530,8 +2524,39 @@ function imgui.OnDrawFrame()
 					imgui.CenterTextColoredRGB('Coming soon <3')
 				end
 				
-				
 				if show_item.v == 6 then
+					imgui.CenterTextColoredRGB('МЕНЕДЖЕР ПАРОЛЕЙ')
+					local servers = {'RED', 'GREEN', 'YELLOW', 'ORANGE', 'BLUE', 'WHITE', 'SILVER', 'PURPLE', 'CHOCOLATE'}
+					--local servers = {'RED', 'GREEN', 'BLUE'}
+					if spypass.v then
+						if imgui.Button(u8'Включить отображение паролей', imgui.ImVec2(415, 20)) then
+							spypass.v = false
+						end
+					else
+						if imgui.Button(u8'Скрыть отображение паролей', imgui.ImVec2(415, 20)) then
+							spypass.v = true
+						end
+					end
+					
+					for i, val in pairs(servers) do
+						local sname = string.lower(val)
+						for name, apass in pairs(pass[sname]) do
+							imgui.Text('')
+							imgui.CenterTextColoredRGB(string.format('%s SERVER', val))
+							if pass[sname][name]:find('%S+') then
+								imgui.BeginChild('##' .. val, imgui.ImVec2(415, 35), true, imgui.WindowFlags.VerticalScrollbar)
+									if spypass.v then
+										imgui.Button(string.format(u8'Имя [%s] • Пароль [%s]', name, string.gsub(apass, '.', '*')), imgui.ImVec2(400, 20))
+									else
+										imgui.Button(string.format(u8'Имя [%s] • Пароль [%s]', name, apass), imgui.ImVec2(400, 20))
+									end
+								imgui.EndChild()
+							end
+						end
+					end
+				end
+				
+				if show_item.v == 7 then
 					imgui.CenterTextColoredRGB('ГОСУДАРСТВЕННЫЕ НОВОСТИ')
 					
 					imgui.Text('')
@@ -4689,7 +4714,21 @@ function sampev.onServerMessage(color, text)
 end
 
 function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
-	if string.find(title,'Меню игрока') and act then
+	if string.find(title, '{66CCFF}Авторизация') and dialogId == 1 then
+		getServer()
+		local res, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
+		if res then
+			local name = sampGetPlayerNickname(id)
+			if server ~= '' then
+				if pass[server][name] ~= nil then
+					sampSendDialogResponse(dialogId, 1, 1, pass[server][name])
+					return false
+				end
+			end
+		end
+	end
+
+	if string.find(title, 'Меню игрока') and act then
 		sampSendDialogResponse(dialogId, 1, 5, -1)
 		return false
 	end
@@ -5228,6 +5267,43 @@ function pushMessage(text, time, style)
 	end
 end
 
+function getAdvance(ip)
+	local last_n = string.match(ip, '5.254.104.13(%d)')
+	local last_n = tonumber(last_n)
+
+	if last_n == 1 then serv = 'red'
+	elseif last_n == 2 then serv = 'green'
+	elseif last_n == 3 then serv = 'yellow'
+	elseif last_n == 4 then serv = 'orange'
+	elseif last_n == 5 then serv = 'blue'
+	elseif last_n == 6 then serv = 'white'
+	elseif last_n == 7 then serv = 'silver'
+	elseif last_n == 8 then serv = 'purple'
+	elseif last_n == 9 then serv = 'chocolate'
+	end
+	
+	if serv ~= nil then
+		return true, serv
+	else
+		return false
+	end
+end
+
+function getServer()
+	local ip, port = sampGetCurrentServerAddress()
+	if string.match(ip, '5.254.104.13(%d)') then
+		if getAdvance(ip) then
+			_, server = getAdvance(ip) 
+		else
+			SCM('Скрипт работает исключительно на серверах Advance Role Play.')
+			thisScript():unload()
+		end
+	else
+		SCM('Скрипт работает исключительно на серверах Advance Role Play.')
+		thisScript():unload()
+	end
+end
+
 function getWeathers()
 	local weather = {}
 
@@ -5315,4 +5391,44 @@ function sequent_async_http_request(method, url, args, resolve, reject)
             wait(0)
         end
     end, lanes_http.linda)
+end
+
+function submenus_show(menu, caption, select_button, close_button, back_button)
+    select_button, close_button, back_button = select_button or 'Select', close_button or 'Close', back_button or 'Back'
+    prev_menus = {}
+    function display(menu, id, caption)
+        local string_list = {}
+        for i, v in ipairs(menu) do
+            table.insert(string_list, type(v.submenu) == 'table' and v.title .. '  >>' or v.title)
+        end
+        sampShowDialog(id, caption, table.concat(string_list, '\n'), select_button, (#prev_menus > 0) and back_button or close_button, sf.DIALOG_STYLE_LIST)
+        repeat
+            wait(0)
+            local result, button, list = sampHasDialogRespond(id)
+            if result then
+                if button == 1 and list ~= -1 then
+                    local item = menu[list + 1]
+                    if type(item.submenu) == 'table' then -- submenu
+                        table.insert(prev_menus, {menu = menu, caption = caption})
+                        if type(item.onclick) == 'function' then
+                            item.onclick(menu, list + 1, item.submenu)
+                        end
+                        return display(item.submenu, id + 1, item.submenu.title and item.submenu.title or item.title)
+                    elseif type(item.onclick) == 'function' then
+                        local result = item.onclick(menu, list + 1)
+                        if not result then return result end
+                        return display(menu, id, caption)
+                    end
+                else -- if button == 0
+                    if #prev_menus > 0 then
+                        local prev_menu = prev_menus[#prev_menus]
+                        prev_menus[#prev_menus] = nil
+                        return display(prev_menu.menu, id - 1, prev_menu.caption)
+                    end
+                    return false
+                end
+            end
+        until result
+    end
+    return display(menu, 31337, caption or menu.title)
 end

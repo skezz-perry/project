@@ -214,7 +214,7 @@ local pass = inicfg.load({
 	orange = {},
 	blue = {},
 	white = {},
-	silver = {Skezz_Perry = '123123'},
+	silver = {},
 	purple = {},
 	chocolate = {} 
 }, 'password.ini')
@@ -2481,19 +2481,17 @@ function imgui.OnDrawFrame()
 						end
 					end
 					
+					imgui.Text('')
+					
 					for i, val in pairs(servers) do
 						local sname = string.lower(val)
 						for name, apass in pairs(pass[sname]) do
-							imgui.Text('')
-							imgui.CenterTextColoredRGB(string.format('%s SERVER', val))
 							if pass[sname][name]:find('%S+') then
-								imgui.BeginChild('##' .. val, imgui.ImVec2(415, 35), true, imgui.WindowFlags.VerticalScrollbar)
-									if spypass.v then
-										imgui.Button(string.format(u8'Имя [%s] • Пароль [%s]', name, string.gsub(apass, '.', '*')), imgui.ImVec2(400, 20))
-									else
-										imgui.Button(string.format(u8'Имя [%s] • Пароль [%s]', name, apass), imgui.ImVec2(400, 20))
-									end
-								imgui.EndChild()
+								if spypass.v then
+									imgui.Button(string.format(u8'%s • Имя [%s] • Пароль [%s]', val, name, string.gsub(apass, '.', '*')), imgui.ImVec2(400, 20))
+								else
+									imgui.Button(string.format(u8'%s • Имя [%s] • Пароль [%s]', val, name, apass), imgui.ImVec2(400, 20))
+								end
 							end
 						end
 					end

@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(7.1)
+script_version(7.2)
 
 require 'lib.moonloader'
 local sf                = require 'lib.sampfuncs'

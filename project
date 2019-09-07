@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(7.2)
+script_version(7.3)
 
 require 'lib.moonloader'
 local sf                = require 'lib.sampfuncs'
@@ -134,7 +134,8 @@ local commands = {
 	'ПКМ + 1 | Съесть еду',
 	'ПКМ + 2 | Открыть шлагбаум',
 	'ПКМ + 3 | Потребовать автомобиль остановится',
-	'ПКМ + 4 | Объявить игрока в розыск',
+	'ПКМ + 4 | Объявить о пешей погоне',
+	'ПКМ + 5 | Объявить игрока в розыск',
 	'ПКМ + Z | Быстрое меню (взаимод. с игроком)',
 	'ПКМ | Полу-автоматическая отыгровка оружия',
 	'Alt + R | Полу-автоматическая отыгровка оружия',
@@ -255,8 +256,6 @@ local show_menu          = imgui.ImBool(false)
 local piemenu            = imgui.ImBool(false)
 local show_help          = imgui.ImBool(false)
 local show_info          = imgui.ImBool(false)
-local show_epk           = imgui.ImBool(false)
-local show_ustav         = imgui.ImBool(false)
 local show_phone         = imgui.ImBool(false)
 local vfilt              = imgui.ImBool(false)
 local lines              = imgui.ImBool(false)
@@ -333,7 +332,10 @@ function main()
 	sampRegisterChatCommand('ud', command_ud)
 	sampRegisterChatCommand('pas', command_pas)
 	sampRegisterChatCommand('rep', command_report)
-	sampRegisterChatCommand('епк', command_epk)
+	sampRegisterChatCommand('ук', command_uk)
+	sampRegisterChatCommand('ак', command_ak)
+	sampRegisterChatCommand('код', command_code)
+	sampRegisterChatCommand('пдд', command_pdd)
 	sampRegisterChatCommand('устав', command_ustav)
 	sampRegisterChatCommand('sw', command_setweather)
 	sampRegisterChatCommand('st', command_settime)
@@ -460,8 +462,8 @@ function main()
 				command_open()
 			end
 		end
-
-		if wasKeyPressed(KEY.VK_4) and isKeyDown(VK_RBUTTON) then
+		
+		if wasKeyPressed(KEY.VK_5) and isKeyDown(VK_RBUTTON) then
 			if suspect_id[1] ~= nil then
 				if IPC(suspect_id[1]) then 
 					command_su(string.format('%d %d %s', suspect_id[1], suspect_id[2], suspect_id[3])) 
@@ -525,7 +527,7 @@ function main()
 			end
 		end
 		
-		if show_menu.v or piemenu.v or show_info.v or show_epk.v or show_ustav.v or show_phone.v then
+		if show_menu.v or piemenu.v or show_info.v or show_phone.v then
 			imgui.Process = true
 		else
 			imgui.Process = false
@@ -585,32 +587,29 @@ function main()
 
 		end
 
+		if wasKeyPressed(KEY.VK_4) and isKeyDown(VK_RBUTTON) then
+			if isCharSittingInAnyCar(PLAYER_PED) then
+				SCM('Driver')
+			else
+				SCM('Walk')
+			end
+
+			command_r(string.format('%s $m 10-57 F, 10-20 %s (%s), CODE: 3, nRFR, over **', ini.info.rteg, calculateZone(), kvadrat()))
+		end
+		
 		if wasKeyPressed(KEY.VK_3) and isKeyDown(VK_RBUTTON) then
 			lua_thread.create(function()
-				for i, val in pairs(getAllVehicles()) do
-					if doesVehicleExist(val) then
-						local id = getCarModel(val)
-						if id ~= nil then
-							local ped = getDriverOfCar(val)
-							local res, pid = sampGetPlayerIdByCharHandle(ped)
-							if ped ~= nil and res then
-								if sampGetDistance(PLAYER_PED, pid) <= 55 then
-									if not isCharInAnyPoliceVehicle(ped) then
-										if val ~= storeCarCharIsInNoSave(playerPed) then
-											if getDriverOfCar(val) == ped then
-												sampSendChat('/m Внимание! Водитель ' .. tCarsName[id - 399] .. ' с номером ' .. pid .. '!')
-												wait(1500)
-												sampSendChat("/m Немедленно остановите транспортное средство и прижмитесь к обочине!")
-												wait(1000)
-												sampSendChat('/r ' .. ini.info.rteg .. ' 10-57 VICTOR за ' .. tCarsName[id - 399] .. ' с номером ' .. pid .. ' по ' .. calculateZone() .. ' (' .. kvadrat() .. ').')
-												break
-											end
-										end
-									end
-								end
-							end
-						end
-					end
+				local pid, id = sampGetNearestDriver()
+				if id ~= -1 then
+					local z, k = calculateZone(), kvadrat()
+					
+					sampSendChat('/m Внимание! Водитель ' .. tCarsName[id - 399] .. ' с номером ' .. pid .. '!')
+					wait(1500)
+					sampSendChat('/m Немедленно остановите транспортное средство и прижмитесь к обочине!')
+					wait(1000)
+					command_r(string.format('%s $m, 10-57 V за %s с номером %d, 10-20 %s (%s), CODE: 3, nRFR, over **', ini.info.rteg, tCarsName[id - 399], pid, z, k))
+				else
+					sampSendChat('/m Немедленно остановите транспортное средство и прижмитесь к обочине!')
 				end
 			end)
 		end
@@ -778,7 +777,23 @@ function main()
 end
 
 function command_r(text)
-	if not string.match(text, '(.+)') then SCM('Используйте команду /r [текст].') else sampSendChat('/r ' .. ini.info.rteg .. ' ' .. text) end
+	if not string.match(text, '(.+)') then SCM('Используйте команду /r [текст].') 
+	else
+		local mark = sampGetMarkCharByVehicle(PLAYER_PED)
+		text = string.gsub(text, '%$m', mark)
+		text = string.gsub(text, 'tf 55', string.format('%s, Провожу 10-55, CODE: 4, 10-20 %s (%s), nRFR, over **', mark, calculateZone(), kvadrat()))
+		text = string.gsub(text, 'tf 66', string.format('%s, Провожу 10-66, CODE: 3, 10-20 %s (%s), nRFR, over **', mark, calculateZone(), kvadrat()))
+		text = string.gsub(text, 'tf 99', string.format('%s, 10-99 по 10-55, продолжаю патруль, RFR, over **', mark))
+		text = string.gsub(text, 'cod 0', string.format('%s, CODE: 0, требуется срочная помощь!, 10-20 %s (%s), nRFR, over **', mark, calculateZone(), kvadrat()))
+		text = string.gsub(text, 'cod 1', string.format('%s, CODE: 1, требуется помощь!, 10-20 %s (%s), nRFR, over **', mark, calculateZone(), kvadrat()))
+		
+		if string.len(text) > 77 then
+			sampSendChat(string.format('/r %s %s ...', ini.info.rteg, string.sub(text, 0, 77)))
+			sampSendChat(string.format('/r %s ... %s', ini.info.rteg, string.sub(text, 78, string.len(text))))
+		else
+			sampSendChat(string.format('/r %s %s', ini.info.rteg, text))
+		end
+	end
 end
 
 function command_rn(text) 
@@ -959,9 +974,9 @@ function command_easyevent(param)
 end
 
 function command_update()
-	local update_info = '{ffffff}Добавлена команда /rec для переподключения к текущему серверу.\nДобавлена команда /recn (аналог /rec) для переподключения со сменой ника.\nДобавлена команда /recd для переподключения между серверами Advance RP.\n\nДобавлена команда /account с помощью которой можно настроить авто-подключение к серверу.\n{FF5555}ПРЕДУПРЕЖДЕНИЕ! Ни в коем случае не пересылайте 3-м лицам файл password.ini, который находится в moonloader/config.\nТак же не показывайте менеджер паролей на скриншотах или демо/видео-записях!\n\n{B2FF66}Автор данного скрипта отвественности за Ваши аккаунты не несёт.\nИспользуйте данную функцию на свой страх и риск.'
+	local update_info = '{ffffff}Добавлены команды /ук, /ак, /пдд, /устав, /код для просмотра основных мануалов МВД.\n\nДобавлены сокращённые ключевые слова для рации:\n1. $m - обозначение марки патруля (если пешком номер юнита).\n2. tf 55 - Информирование о проведение Traffic Stop`a 10-55.\n3. tf 66 - Информирование о проведение Traffic Stop`a 10-66.\n4. tf 99 - Информирование о окончании Traffic Stop`a.\n5. cod 0 - Объявить CODE 0 в рацию.\n6. cod 1 - Объявить CODE 1 в рацию.\n\nДобавлена горячая клавиша ПКМ + 4 для объявления пешой погони (10-57 FOXFORT).\nСмещена клавиша быстрого объявления в розыск (ПКМ + 4 to ПКМ + 5).'
 
-	sampShowDialog(10005, '{FFCD00}Обновление', update_info, 'Закрыть', '', 0)
+	sampShowDialog(10005, '{FFCD00}Обновление', update_info, 'Закрыть', '', 2)
 end
 
 function command_report(text)
@@ -1263,31 +1278,46 @@ function command_search(id)
 	end
 end
 
-function command_epk(text)
-	if not string.match(text, '(.+)') then show_epk.v = not show_epk.v
-	else
-		for line in io.lines('moonloader\\helper\\epk.txt') do
-			if line:find(text) then
-				for i = 0, string.len(line) / 115 do
-					SCM(string.sub(line, i * 115, i * 115 + 114))
+function search_file(file, text)
+	if type(file) == ('string') and type(text) == ('string') then
+		if doesFileExist(string.format('moonloader\\helper\\%s.txt', file)) then
+			for line in io.lines(string.format('moonloader\\helper\\%s.txt', file)) do
+				if line:find(text) then 
+					for i = 0, string.len(line) / 115 do
+						SCM(string.sub(line, i * 115, i * 115 + 114))
+					end
+					break
 				end
-				break
 			end
 		end
 	end
 end
 
-function command_ustav(text)
-	if not string.match(text, '(.+)') then show_ustav.v = not show_ustav.v
+function command_uk(text)
+	if not string.match(text, '(.+)') then SCM('Используйте команду /ук [часть или номер статьи]')
 	else
-		for line in io.lines('moonloader\\helper\\ustav.txt') do
-			if line:find(text) then
-				for i = 0, string.len(line) / 115 do
-					SCM(string.sub(line, i * 115, i * 115 + 114))
-				end
-				break
-			end
-		end
+		search_file('uk', text)
+	end
+end
+
+function command_ak(text)
+	if not string.match(text, '(.+)') then SCM('Используйте команду /ак [часть или номер статьи]')
+	else
+		search_file('ak', text)
+	end
+end
+
+function command_code(text)
+	if not string.match(text, '(.+)') then SCM('Используйте команду /код [часть или номер кода]')
+	else
+		search_file('code', text)
+	end
+end
+
+function command_pdd(text)
+	if not string.match(text, '(.+)') then SCM('Используйте команду /пдд [часть или номер статьи]')
+	else
+		search_file('pdd', text)
 	end
 end
 
@@ -2486,7 +2516,8 @@ function imgui.OnDrawFrame()
 					for i, val in pairs(servers) do
 						local sname = string.lower(val)
 						for name, apass in pairs(pass[sname]) do
-							if pass[sname][name]:find('%S+') then
+							local test = pass[sname][name]
+							if test:find('%S+') then
 								if spypass.v then
 									imgui.Button(string.format(u8'%s • Имя [%s] • Пароль [%s]', val, name, string.gsub(apass, '.', '*')), imgui.ImVec2(400, 20))
 								else
@@ -2812,38 +2843,7 @@ function imgui.OnDrawFrame()
 		imgui.End()
 	end
 	
-	if show_epk.v then
-		imgui.SetNextWindowSize(imgui.ImVec2(900, 460))
-		imgui.Begin(u8'ЕПК | HELPER FOR MIA', show_epk, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize + imgui.WindowFlags.HorizontalScrollbar)
-			imgui.PushItemWidth(200)
-			imgui.InputText(u8'Введите часть статьи или её номер', search_place)
-			for val in io.lines('moonloader//helper//epk.txt') do
-				if search_place.v ~= nil then
-					if u8(val):find(search_place.v) then
-						imgui.Text(u8(val))
-					end
-				end
-			end
-		imgui.End()
-	end
-	
-	if show_ustav.v then
-		imgui.SetNextWindowSize(imgui.ImVec2(900, 460))
-		imgui.Begin(u8'Устав МВД | HELPER FOR MIA', show_ustav, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize + imgui.WindowFlags.HorizontalScrollbar)
-			imgui.PushItemWidth(200)
-			imgui.InputText(u8'Введите часть статьи или её номер', search_place)
-			for val in io.lines('moonloader//helper//ustav.txt') do
-				if search_place.v ~= nil then
-					if u8(val):find(search_place.v) then
-						imgui.Text(u8(val))
-					end
-				end
-			end
-		imgui.End()
-	end
-	
 	if show_phone.v then
-	
 		imgui.SetNextWindowSize(imgui.ImVec2(250, 400))
 		imgui.Begin('##phone', show_phone, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 		local zsize = imgui.GetWindowSize()
@@ -3135,6 +3135,97 @@ function isPlayerCar(ped)
 	else
 		return 0
 	end
+end
+
+function sampGetMarkCharByVehicle(ped)
+	if isCharInAnyCar(ped) or isCharOnAnyBike(ped) then
+		local vehicle = storeCarCharIsInNoSave(ped)
+		local model = getCarModel(vehicle)
+		
+		if model >= 596 and model <= 599 then
+			local maxp = getMaximumNumberOfPassengers(vehicle)
+			local res, int = getNumberOfPassengers(vehicle)
+		
+			if res then
+				for i = 0, maxp do
+					if not isCarPassengerSeatFree(vehicle, i) then
+						local ped = getCharInCarPassengerSeat(vehicle, i)
+						if doesCharExist(ped) then
+							if sampIsPoliceOfficerById(ped) then
+								return 'A-25 to DISP' 
+							end
+						end
+					end
+				end
+			end
+			
+			return 'L-25 to DISP'
+		elseif model == 601 or model == 427 or model == 528 then
+			return 'C-25 to DISP'
+		elseif model == 415 then
+			return 'H-25 to DISP'
+		elseif model == 523 then
+			return 'M-25 to DISP'
+		end
+	end
+	
+	local _, id = sampGetPlayerIdByCharHandle(ped)
+	return string.format('Unit-%d to DISP', id)
+end
+
+function sampIsPoliceOfficerById(ped)
+	local res, id = sampGetPlayerIdByCharHandle(ped)
+	if res then
+		if IPC(id) then
+			if sampGetPlayerColor(id) == 4278190335 then
+				return true
+			elseif sampGetPlayerColor(id) == 2236962 then
+				local model = getCharModel(ped)
+				
+				if model >= 280 and model <= 286 then 
+					return true 
+				elseif model == 288 then 
+					return true
+				elseif model >= 265 and model <= 267  then 
+					return true
+				elseif model >= 300 and model <= 311 and model ~= 308 then 
+					return true
+				end
+			end
+		end
+	end
+	
+	return false
+end
+
+function sampGetNearestDriver()
+	local drv = {id = -1, vid = -1, dist = 100}
+
+	for i, val in pairs(getAllVehicles()) do
+		if doesVehicleExist(val) then
+			local vid = getCarModel(val)
+			local ped = getDriverOfCar(val)
+			
+			if doesCharExist(ped) and isCharSittingInAnyCar(PLAYER_PED) then
+				if val ~= storeCarCharIsInNoSave(PLAYER_PED) then
+					if not isCharInAnyPoliceVehicle(ped) then
+						local _, id = sampGetPlayerIdByCharHandle(ped)
+						local dist = sampGetDistance(PLAYER_PED, id)
+						
+						if dist < 55 then
+							if dist < drv.dist then 
+								drv.dist = dist
+								drv.id = id
+								drv.vid = vid
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+	
+	return drv.id, drv.vid
 end
 
 function sampIsPlayerCarHaveSuspect(id)
@@ -4457,8 +4548,8 @@ function sampev.onServerMessage(color, text)
 	if text:match('(.+)[^%d](%d+)[^%d] был обнаружен в районе') then
 		local name, id = string.match(text, '(.+)[^%d](%d+)[^%d] был обнаружен в районе')
 		if IPC(id) then
-			SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 2.1 ЕПК нажмите сочетание клавиш ПКМ + 4.', sampGetPlayerNickname(id), id))
-			suspect_id = {id, 1, '2.1 ЕПК', sampGetPlayerNickname(id)}
+			SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 8.1 УК нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerNickname(id), id))
+			suspect_id = {id, 1, '8.1 УК', sampGetPlayerNickname(id)}
 		end
 	end
 	
@@ -4467,8 +4558,8 @@ function sampev.onServerMessage(color, text)
 		local id = sampGetPlayerIdByNickname(name)
 		
 		if IPC(id) then
-			SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 2.7 ЕПК нажмите сочетание клавиш ПКМ + 4.', name, id))
-			suspect_id = {id, 1, '2.7 ЕПК', name}
+			SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 8.3 УК нажмите сочетание клавиш ПКМ + 5.', name, id))
+			suspect_id = {id, 3, '8.3 УК', name}
 		end
 	end
 	
@@ -4873,32 +4964,32 @@ function sampev.onSendTakeDamage(playerId, damage, weapon, bodypart)
 			
 			if sampGetDistance(PLAYER_PED, playerId) <= 35 and sampGetPlayerColor(playerId) ~= 2236962 then
 				if TypeWeapon[tonumber(weapon)] == 2 then
-					if suspect_id[4] ~= name and suspect_id[3] ~= '1.2 ЕПК' then
-						SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 1.2 ЕПК нажмите сочетание клавиш ПКМ + 4.', sampGetPlayerNickname(playerId), playerId))
-						suspect_id = {playerId, 2, '1.2 ЕПК', name}
+					if suspect_id[4] ~= name and suspect_id[3] ~= '1.1 УК' then
+						SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 1.1 УК нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerNickname(playerId), playerId))
+						suspect_id = {playerId, 4, '1.1 УК', name}
 					end
 				elseif TypeWeapon[tonumber(weapon)] == 3 then
-					if suspect_id[4] ~= name  and suspect_id[3] ~= '1.3 ЕПК' then
-						SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 1.3 ЕПК нажмите сочетание клавиш ПКМ + 4.', sampGetPlayerNickname(playerId), playerId))
-						suspect_id = {playerId, 5, '1.3 ЕПК', name}
+					if suspect_id[4] ~= name  and suspect_id[3] ~= '1.6 УК' then
+						SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 1.6 УК нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerNickname(playerId), playerId))
+						suspect_id = {playerId, 6, '1.6 УК', name}
 					end
-				elseif tonumber(weapon) == 49 then
+				--[[elseif tonumber(weapon) == 49 then
 					local res, ped = sampGetCharHandleBySampPlayerId(playerId)
 					if res then
 						if isCharInAnyCar(ped) then
 						local carh = storeCarCharIsInNoSave(ped)
 							if getDriverOfCar(carh) == ped then
 								if suspect_id[4] ~= name and suspect_id[3] ~= '7.9 ЕПК' then
-									SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 7.9 ЕПК нажмите сочетание клавиш ПКМ + 4.', sampGetPlayerNickname(playerId), playerId))
+									SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 7.9 ЕПК нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerNickname(playerId), playerId))
 									suspect_id = {playerId, 1, '7.9 ЕПК', name}
 								end
 							end
 						end
-					end
+					end]]
 				else
-					if suspect_id[4] ~= name and suspect_id[3] ~= '1.1 ЕПК' then
-						SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 1.1 ЕПК нажмите сочетание клавиш ПКМ + 4.', sampGetPlayerNickname(playerId), playerId))
-						suspect_id = {playerId, 1, '1.1 ЕПК', name}
+					if suspect_id[4] ~= name and suspect_id[3] ~= '1.1 УК' then
+						SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 1.1 УК нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerNickname(playerId), playerId))
+						suspect_id = {playerId, 4, '1.1 УК', name}
 					end
 				end
 			end

@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(7.4)
+script_version(7.5)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -327,6 +327,7 @@ local suspect_id         = {}
 local player_rang        = {}
 local object             = {}
 local weapon             = {}
+local sus_table          = {}
 local param_cmd          = 0
 local last_sms           = 0
 local lweap              = 0
@@ -4298,9 +4299,10 @@ function apply_custom_style()
 	colors[clr.WindowBg]              = ImVec4(1.00, 1.00, 1.00, 0.80)
 	colors[clr.ChildWindowBg]         = ImVec4(0.96, 0.96, 0.96, 1.00)
 	colors[clr.PopupBg]               = ImVec4(0.92, 0.92, 0.92, 1.00)
-	colors[clr.Border]                = ImVec4(0.00, 0.00, 0.86, 0.41)
+	colors[clr.Border]                = ImVec4(0.00, 0.45, 1.00, 0.62)
 	colors[clr.BorderShadow]          = ImVec4(0.00, 0.00, 0.00, 0.00)
-	colors[clr.FrameBg]               = ImVec4(0.88, 0.88, 0.88, 0.55)
+	--colors[clr.FrameBg]               = ImVec4(0.88, 0.88, 0.88, 0.55)
+	colors[clr.FrameBg]               = ImVec4(0.97, 0.97, 1.00, 1.00)
 	colors[clr.FrameBgHovered]        = ImVec4(0.82, 0.82, 0.82, 1.00)
 	colors[clr.FrameBgActive]         = ImVec4(0.76, 0.76, 0.76, 1.00)
 	colors[clr.TitleBg]               = ImVec4(0.00, 0.45, 1.00, 0.82)
@@ -4626,8 +4628,6 @@ function sampev.onServerMessage(color, text)
 		ini.number[name] = number
 		inicfg.save(ini, 'Helper for MIA.ini')
 		
-		call_table[tonumber(table.maxn(call_table)) + 1] = string.format('+%d\t%s %s\tВходящий', number, os.date('%d'), os.date('%B'))
-		
 		if sampGetBlackList(name) then
 			bl_call = true
 			
@@ -4642,8 +4642,6 @@ function sampev.onServerMessage(color, text)
 		local number, name = text:match('Исходящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Ожидание[%s]ответа[%s]от[%s](.+)...')
 		ini.number[name] = number
 		inicfg.save(ini, 'Helper for MIA.ini')
-		
-		call_table[tonumber(table.maxn(call_table)) + 1] = string.format('+%d\t%s %s\tИсходящий', number, os.date('%d'), os.date('%B'))
 	end
 	
 	if text:match('Используйте {00CC00}/p {FFFFFF}чтобы ответить или {FF6600}/h {FFFFFF}чтобы отклонить вызов') then

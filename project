@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(7.6)
+script_version(7.7)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -292,7 +292,8 @@ local ini = inicfg.load({
 		rphealme             = false,
 		rpmask               = false,
 		rpfbi                = false,
-		rpbar                = false
+		rpbar                = false,
+		rpradio              = false
 	},
 	number = {
 	}
@@ -380,6 +381,7 @@ local pautopass          = imgui.ImBool(ini.set.autopass)
 local pautoweapon        = imgui.ImBool(ini.set.autoweapon)
 local prpweapon          = imgui.ImBool(ini.set.rpweapon)
 local plowrp             = imgui.ImBool(ini.set.lowrp)
+local prpradio           = imgui.ImBool(ini.lowrp.rpradio)
 local prphealme          = imgui.ImBool(ini.lowrp.rphealme)
 local prpmask            = imgui.ImBool(ini.lowrp.rpmask)
 local prpfbi             = imgui.ImBool(ini.lowrp.rpfbi)
@@ -893,6 +895,19 @@ function command_r(text)
 		else
 			sampSendChat(string.format('/r %s %s', ini.info.rteg, text))
 		end
+		
+		if ini.lowrp.rpradio then
+		
+			lua_thread.create(function()
+				wait(800)
+			
+				if ini.info.male then
+					sampSendChat('/me снял тангету с плеча, зажал кнопку PTT и что-то произнёс по рации')
+				else
+					sampSendChat('/me снял тангету с плеча, зажала кнопку PTT и что-то произнесла по рации')
+				end
+			end)
+		end
 	end
 end
 
@@ -901,7 +916,24 @@ function command_rn(text)
 end
 
 function command_f(text)
-	if not string.match(text, '(.+)') then SCM('Используйте команду /f [текст].') else sampSendChat('/f ' .. ini.info.fteg .. ' ' .. text) end
+	if not string.match(text, '(.+)') then 
+		SCM('Используйте команду /f [текст].') 
+	else 
+		sampSendChat('/f ' .. ini.info.fteg .. ' ' .. text) 
+		
+		if ini.lowrp.rpradio then
+		
+			lua_thread.create(function()
+				wait(800)
+			
+				if ini.info.male then
+					sampSendChat('/me снял тангету с плеча, зажал кнопку PTT и что-то произнёс по рации')
+				else
+					sampSendChat('/me снял тангету с плеча, зажала кнопку PTT и что-то произнесла по рации')
+				end
+			end)
+		end
+	end
 end
 
 function command_fn(text)
@@ -1925,9 +1957,9 @@ function command_su(param)
 				lua_thread.create(function()
 					if sampGetCharHandleBySampPlayerId(id) then
 						if ini.info.male then
-							sampSendChat('/me сняв рацию с плеча, передал диспетчеру информацию о подозреваемом')
+							sampSendChat('/me сняв тангету с плеча, передал диспетчеру информацию о подозреваемом')
 						else
-							sampSendChat('/me сняв рацию с плеча, передала диспетчеру информацию о подозреваемом')
+							sampSendChat('/me сняв тангету с плеча, передала диспетчеру информацию о подозреваемом')
 						end
 						
 						wait(1000)
@@ -2408,6 +2440,10 @@ function imgui.OnDrawFrame()
 						end
 						if imgui.Checkbox(u8'Отыгровка открытия шлагбаума', prpbar) then 
 							ini.lowrp.rpbar = prpbar.v
+							inicfg.save(ini, 'Helper for MIA.ini') 
+						end
+						if imgui.Checkbox(u8'Отыгровка рации', prpradio) then 
+							ini.lowrp.rpradio = prpradio.v
 							inicfg.save(ini, 'Helper for MIA.ini') 
 						end
 					end

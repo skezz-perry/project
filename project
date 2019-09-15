@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(7.5)
+script_version(7.6)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -874,10 +874,14 @@ function command_r(text)
 	else
 		local mark = sampGetMarkCharByVehicle(PLAYER_PED)
 		text = string.gsub(text, 'cod 11', '$m to DISP, занимаю маркировку $m, CODE: 1-1, RFR, over **')
+		text = string.gsub(text, 'cod 13', '$m to DISP, освобождаю маркировку $m, CODE: 1-3, nRFR, over **')
+		text = string.gsub(text, 'cod 14', '$m to DISP, доставляю подозреваемого в департамент, CODE: 1-4, nRFR, over **')
 		text = string.gsub(text, 'tf 55', '$m to DISP, Провожу 10-55, CODE: 4, 10-20 $p, nRFR, over **')
 		text = string.gsub(text, 'tf 66', '$m to DISP, Провожу 10-66, CODE: 3, 10-20 $p, nRFR, over **')
-		text = string.gsub(text, 'tf 995', '$m to DISP, 10-99 по 10-55, продолжаю патруль, RFR, over **')
-		text = string.gsub(text, 'tf 996', '$m to DISP, 10-99 по 10-66, продолжаю патруль, RFR, over **')
+		text = string.gsub(text, 'tf 995', '$m to DISP, 10-99 по 10-55, RFR, over **')
+		text = string.gsub(text, 'tf 996', '$m to DISP, 10-99 по 10-66, RFR, over **')
+		text = string.gsub(text, 'tf 9957v', '$m to DISP, 10-99 по 10-57 V, RFR, over **')
+		text = string.gsub(text, 'tf 9957f', '$m to DISP, 10-99 по 10-57 F, RFR, over **')
 		text = string.gsub(text, 'cod 0', '$m to DISP, CODE: 0, требуется срочная помощь!, 10-20 $p, nRFR, over **')
 		text = string.gsub(text, 'cod 1', '$m to DISP, CODE: 1, требуется помощь!, 10-20 $p, nRFR, over **')
 		text = string.gsub(text, '%$m', mark)
@@ -4758,6 +4762,35 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 
 	if string.find(title, 'Меню игрока') and act then
 		sampSendDialogResponse(dialogId, 1, 5, -1)
+		return false
+	end
+	
+	if string.find(title, 'Список разыскиваемых') then
+		local lines = 'Статус\tИмя\tУровень розыска\tДистанция'
+		
+		for s in string.gmatch(text, "[^\n]+") do
+			if string.match(s, '(%S+)[%s].id[%s](%d+).	(%d+)	 (.+)') then
+				local name, id, stars, dist = string.match(s, '(%S+)[%s].id[%s](%d+).	(%d+)	 (.+)')
+				
+				local result, ped = sampGetCharHandleBySampPlayerId(id)
+				
+				if result then
+					if sampIsPlayerPaused(id) then
+						lines = string.format('%s\n{B22222}[ВНИМАНИЕ]\t{%s}%s{ffffff} (id %d)\t%d\t{ff5c33}%s', lines, sampGetColor(id), name, id, stars, dist)
+					else
+						lines = string.format('%s\n{B22222}[ВНИМАНИЕ]\t{%s}%s{ffffff} (id %d)\t%d\t{00cc99}%s', lines, sampGetColor(id), name, id, stars, dist)
+					end
+				else
+					lines = string.format('%s\n{ffffff}[Недоступно]\t{%s}%s{ffffff} (id %d)\t%d\t{00cc99}%s', lines, sampGetColor(id), name, id, stars, dist)
+				end
+			elseif string.match(s, '(%S+)[%s].id[%s](%d+).	(%d+)	Недоступно') then
+				local name, id, stars = string.match(s, '(%S+)[%s].id[%s](%d+).	(%d+)	Недоступно')
+				lines = string.format('%s\n{ffffff}[Недоступно]\t{%s}%s{ffffff} (id %d)\t%d\t{ff5c33}Недоступно', lines, sampGetColor(id), name, id, stars)
+			end
+		end
+		
+		sampShowDialog(dialogId, title, lines, button1, button2, style)
+		sampSetDialogClientside()
 		return false
 	end
 	

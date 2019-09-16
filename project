@@ -4592,60 +4592,16 @@ function sampev.onServerMessage(color, text)
 	
 	if text:match('SMS.[%s](.+)[%s].[%s]Отправитель.[%s](.+)[%s].т.(%d+).') then
 		local text, name, number = text:match('SMS.[%s](.+)[%s].[%s]Отправитель.[%s](.+)[%s].т.(%d+).')
-		local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-		local pname = sampGetPlayerNickname(id)
+		--local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
+		--local pname = sampGetPlayerNickname(id)
 		
-		if player_rang[name] ~= nil then
-			if player_rang[name] > 4 then
-				local text = u8:decode(text)
-				if string.match(text, 'БАН|(%S+)|(%d+)|(%S+)') and player_rang[name] > player_rang[pname] then
-					local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-					local player_name = sampGetPlayerNickname(id)
-					local name, day, reason = string.match(text, 'БАН|(.+)|(%d+)|(.+)')
-					sampAddChatMessage(string.format('Администратор %s забанил игрока %s на %d дней. Причина: %s', name, player_name, day, reason), 0xFFFF5030)
+		ini.number[name] = number
+		inicfg.save(ini, 'Helper for MIA.ini')
+		last_sms = number
 
-					local dialog_text = '{ffffff}Дата: ' .. os.date('%d') .. ' ' .. sampGetMonthName() .. ' ' .. os.date('%Y') .. ' г.\nВаш ник: ' .. player_name .. '\nНик администратора: ' .. name .. '\nКоличество дней: ' .. day .. '\nПричина: ' .. reason .. '\n\n{B2FF66}Если вы не согласны с наказанием, сделайте скриншот (F8)\nи оставьте жалобу на форуме forum.advance-rp.ru'
-					sampShowDialog(1006, '{FF5555}Бан аккаунта', dialog_text, 'Закрыть', '', 0)
-					closeConnect()
-					return false
-				elseif string.match(text, 'ВАРН|(%S+)|(%d+)|(%S+)') and player_rang[name] > player_rang[pname] then
-					local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-					local player_name = sampGetPlayerNickname(id)
-					local name, day, reason = string.match(text, 'ВАРН|(.+)|(%d+)|(.+)')
-					sampAddChatMessage(string.format('Администратор %s выдал предупреждение игроку %s [%d|3]. Причина: %s', name, player_name, day, reason), 0xFFFF5030)
-					sampAddChatMessage('Предупреждение снимется автоматически через 10 дней', 0xFFFF6600)
-					sampAddChatMessage('Вы также можете воспользоваться ускоренным снятием {FFCD00}(/mn > 10)', 0xFFFF6600)
-					sampAddChatMessage('До снятия всех предупреждений Вам запрещено вступать в любые организации', 0xFFFF6600)
-
-					local dialog_text = '{ffffff}Дата: ' .. os.date('%d') .. ' ' .. sampGetMonthName() .. ' ' .. os.date('%Y') .. ' г.\nВаш ник: ' .. player_name .. '\nНик администратора: ' .. name .. '\nПричина: ' .. reason .. '\n\n{B2FF66}Если вы не согласны с наказанием, сделайте скриншот (F8)\nи оставьте жалобу на форуме forum.advance-rp.ru'
-					sampShowDialog(1006, '{FF5555}Предупреждение (варн)', dialog_text, 'Закрыть', '', 0)
-					if ini.info.male then
-						command_setskin(id .. ' 230 1')
-					else
-						command_setskin(id .. ' 90 1')
-					end
-					closeConnect()
-					return false
-				elseif string.match(text, 'КИК|(%S+)|(%S+)') and player_rang[name] > player_rang[pname] then
-					local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-					local player_name = sampGetPlayerNickname(id)
-					local name,  reason = string.match(text, 'КИК|(.+)|(.+)')
-					sampAddChatMessage(string.format('Администратор %s кикнул игрока %s. Причина: %s', name, player_name, reason), 0xFFFF5030)
-					closeConnect()
-					return false
-				else
-					return true
-				end
-			else
-				ini.number[name] = number
-				inicfg.save(ini, 'Helper for MIA.ini')
-				last_sms = number
-
-				if sampGetBlackList(name) then
-					local sms = string.format('SMS: {CD5C5C}СООБЩЕНИЕ ЗАБЛОКИРОВАНО{FFFF00} | Отправитель: %s [т.%d]', name, number)
-					return {color, sms}
-				end
-			end
+		if sampGetBlackList(name) then
+			local sms = string.format('SMS: {CD5C5C}СООБЩЕНИЕ ЗАБЛОКИРОВАНО{FFFF00} | Отправитель: %s [т.%d]', name, number)
+			return {color, sms}
 		end
 	end
 	

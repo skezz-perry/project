@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(7.8)
+script_version(7.9)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -76,74 +76,74 @@ local InfoWeapon = {{'Щит', false, 'shit', 'bshit', 1},
 }
 
 local commands = {
-	'КОМАНДА | ОПИСАНИЕ',
-	'[1] /r | Сообщение в обычную рацию',
-	'[1] /rn | NRP-chat обычной рации',
-	'[1] /f | Сообщение в общую волну',
-	'[1] /fn | NRP-chat общей волны',
-	'[1] /cuff | Надеть наручники на подозреваемого',
-	'[1] /uncuff | Снять наручники с подозреваемого',
-	'[1] /arrest | Отправить подозреваемого в департамент',
-	'[1] /pull | Вытащить подозреваемого из автомобиля',
-	'[1] /su | Объявить подозреваемого в розыск',
-	'[1] /skip | Выдать временный пропуск игроку',
-	'[1] /clear | Очистить уровень розыска для игрока',
-	'[1] /follow | Начать прослушивание',
-	'[1] /hold | Тащить игрока за собой',
-	'[1] /ticket | Выписать штраф нарушителю',
-	'[1] /takelic | Изъять лицензию на вождение',
-	'[1] /rights | Зачитать права игроку',
-	'[1] /putpl | Посадить подозреваемого в автомобиль',
-	'[1] /search | Обыскать подозреваемого',
-	'[1] /hack | Взломать дверь дома',
-	'[1] /ud | Показать удостоверение',
-	'[1] /pas | Запросить документы у игрока',
-	'[3] /invite | Принять игрока в организацию',
-	'[3] /uninvite | Уволить игрока из организации',
-	'[3] /rang | Изменить ранг игрока',
-	'[3] /changeskin | Изменить внешность игрока',
-	'  |  ',
-	'ДОП. КОМАНДА | ОПИСАНИЕ',
-	'[1] /mh | Открыть основное меню',
-	'[1] /update | Информация о последнем обновлении',
-	'[2] /admins | Открыть админ-список',
-	'[1] /users | Открыть список пользователей',
-	'[4] /gov | Отправить гос. новость',
-	'[1] /rec | Переподключится к серверу',
-	'[1] /recn | Переподключится к серверу со сменой ника',
-	'[1] /recd | Переподключится к другому серверу',
-	'[1] /account | Авто-подключение к серверу',
-	'[1] /bl_name | Проверить никнейм на наличие в ЧС',
-	'[1] /bl_hist | Проверить весь history на наличие в ЧС',
-	'[1] /ainfo | Открыть информационное меню',
-	'[1] /rkinfo | Получить информацию о RK',
-	'[1] /rep | Быстрая отправка сообщения в репорт',
-	'[1] /asms | Быстрая отправка SMS-сообщений',
-	'[1] /addbl | Добавить в чёрный список телефона',
-	'[1] /delbl | Удалить из чёрного списка телефона',
-	'[1] /епк | Найти информацию о ЕПК',
-	'[1] /устав | Найти информацию о УМВД',
-	'[1] /sw | Изменить погоду',
-	'[1] /st | Изменить время',
-	'[2] /skin | Установить визуальный скин для игрока',
-	'[1] /hist | Открыть history игрока по его ID',
-	'[1] /strobes | Включить стробоскопы',
-	'  |  ',
-	'КЛАВИША | ОПИСАНИЕ',
-	'NumPad3 | Открыть основное меню',
-	'ПКМ + 1 | Съесть еду',
-	'ПКМ + 2 | Открыть шлагбаум',
-	'ПКМ + 3 | Потребовать автомобиль остановится',
-	'ПКМ + 4 | Объявить о пешей погоне',
-	'ПКМ + 5 | Объявить игрока в розыск',
-	'ПКМ + Z | Быстрое меню (взаимод. с игроком)',
-	'ПКМ | Полу-автоматическая отыгровка оружия',
-	'Alt + R | Полу-автоматическая отыгровка оружия',
-	'C + 1 | Включить CamHack',
-	'C + 2 | Выключить CamHack',
-	'Z | Быстрое меню',
-	'Alt | Включить стробоскопы',
-	'L | Открыть или закрыть свою машину'
+	'КОМАНДА | УРОВЕНЬ | ОПИСАНИЕ',
+	'/r | 1 | Сообщение в обычную рацию',
+	'/rn | 1 | NRP-chat обычной рации',
+	'/f | 1 | Сообщение в общую волну',
+	'/fn | 1 | NRP-chat общей волны',
+	'/cuff | 1 | Надеть наручники на подозреваемого',
+	'/uncuff | 1 | Снять наручники с подозреваемого',
+	'/arrest | 1 | Отправить подозреваемого в департамент',
+	'/pull | 1 | Вытащить подозреваемого из автомобиля',
+	'/su | 1 | Объявить подозреваемого в розыск',
+	'/skip | 1 | Выдать временный пропуск игроку',
+	'/clear | 1 | Очистить уровень розыска для игрока',
+	'/follow | 1 | Начать прослушивание',
+	'/hold | 1 | Тащить игрока за собой',
+	'/ticket | 1 | Выписать штраф нарушителю',
+	'/takelic | 1 | Изъять лицензию на вождение',
+	'/rights | 1 | Зачитать права игроку',
+	'/putpl | 1 | Посадить подозреваемого в автомобиль',
+	'/search | 1 | Обыскать подозреваемого',
+	'/hack | 1 | Взломать дверь дома',
+	'/ud | 1 | Показать удостоверение',
+	'/pas | 1 | Запросить документы у игрока',
+	'/invite | 1 | Принять игрока в организацию',
+	'/uninvite | 1 | Уволить игрока из организации',
+	'/rang | 1 | Изменить ранг игрока',
+	'/changeskin | 1 | Изменить внешность игрока',
+	'  |   |  ',
+	'ДОП. КОМАНДА | УРОВЕНЬ | ОПИСАНИЕ',
+	'/mh | 1 | Открыть основное меню',
+	'/update | 1 | Информация о последнем обновлении',
+	'/admins | 2 | Открыть админ-список',
+	'/users | 1 | Открыть список пользователей',
+	'/gov | 4 | Отправить гос. новость',
+	'/rec | 1 | Переподключится к серверу',
+	'/recn | 1 | Переподключится к серверу со сменой ника',
+	'/recd | 1 | Переподключится к другому серверу',
+	'/account | 1 | Авто-подключение к серверу',
+	'/bl_name | 1 | Проверить никнейм на наличие в ЧС',
+	'/bl_hist | 1 | Проверить весь history на наличие в ЧС',
+	'/ainfo | 1 | Открыть информационное меню',
+	'/rkinfo | 1 | Получить информацию о RK',
+	'/rep | 1 | Быстрая отправка сообщения в репорт',
+	'/asms | 1 | Быстрая отправка SMS-сообщений',
+	'/addbl | 1 | Добавить в чёрный список телефона',
+	'/delbl | 1 | Удалить из чёрного списка телефона',
+	'/епк | 1 | Найти информацию о ЕПК',
+	'/устав | 1 | Найти информацию о УМВД',
+	'/sw | 1 | Изменить погоду',
+	'/st | 1 | Изменить время',
+	'/skin | 2 | Установить визуальный скин для игрока',
+	'/hist | 1 | Открыть history игрока по его ID',
+	'/strobes | 1 | Включить стробоскопы',
+	'  |   |  ',
+	'КЛАВИША | УРОВЕНЬ | ОПИСАНИЕ',
+	'NumPad3 | 1 | Открыть основное меню',
+	'ПКМ + 1 | 1 | Съесть еду',
+	'ПКМ + 2 | 1 | Открыть шлагбаум',
+	'ПКМ + 3 | 1 | Потребовать автомобиль остановится',
+	'ПКМ + 4 | 1 | Объявить о пешей погоне',
+	'ПКМ + 5 | 1 | Объявить игрока в розыск',
+	'ПКМ + Z | 1 | Быстрое меню (взаимод. с игроком)',
+	'ПКМ | 1 | Полу-автоматическая отыгровка оружия',
+	'Alt + R | 1 | Полу-автоматическая отыгровка оружия',
+	'C + 1 | 1 | Включить CamHack',
+	'C + 2 | 1 | Выключить CamHack',
+	'Z | 1 | Быстрое меню',
+	'Alt | 1 | Включить стробоскопы',
+	'L | 1 | Открыть или закрыть свою машину'
 }
 
 local frac = {
@@ -325,6 +325,7 @@ local logdmg             = {}
 local dreason            = {}
 local gnews              = {}
 local suspect_id         = {}
+local last_message       = {name = '', id = -1}
 local player_rang        = {}
 local object             = {}
 local weapon             = {}
@@ -350,8 +351,10 @@ local show_help          = imgui.ImBool(false)
 local show_info          = imgui.ImBool(false)
 local vfilt              = imgui.ImBool(false)
 local lines              = imgui.ImBool(false)
+local command_edit       = imgui.ImBool(false)
 local spypass            = imgui.ImBool(true)
 local show_item          = imgui.ImInt(0)
+local set_item           = imgui.ImInt(0)
 local page_num           = imgui.ImInt(0)
 local weaponid           = imgui.ImInt(46)
 local pgaline1           = imgui.ImBuffer(250)
@@ -457,6 +460,18 @@ function main()
 	sampRegisterChatCommand('recn', command_reconnectwithchange)
 	sampRegisterChatCommand('recd', command_reconnectwithchangeip)
 	sampRegisterChatCommand('account', command_account)
+	
+	sampRegisterChatCommand('param', function(v)
+		if v:match('(%S+)') then
+			local n_tab = {}
+			
+			for l in v:gmatch('%S+') do
+				n_tab[#n_tab] = l
+			end
+		else
+			SCM('Use a /param [parametrs]')
+		end
+	end)
 
 	sampRegisterChatCommand('nhold', function(param)
 		if not param:match('(%d+)') then SCM('Используйте команду /nhold [ид игрока]') else sampSendChat('/hold '..param) end
@@ -683,12 +698,6 @@ function main()
 		end
 
 		if wasKeyPressed(KEY.VK_4) and isKeyDown(VK_RBUTTON) then
-			if isCharSittingInAnyCar(PLAYER_PED) then
-				SCM('Driver')
-			else
-				SCM('Walk')
-			end
-
 			command_r(string.format('$m to DISP 10-57 F, 10-20 %s (%s), CODE: 3, nRFR, over **', calculateZone(), kvadrat()))
 		end
 		
@@ -703,6 +712,16 @@ function main()
 					sampSendChat('/m Немедленно остановите транспортное средство и прижмитесь к обочине!')
 					wait(1000)
 					command_r(string.format('$m to DISP, 10-57 V за %s с номером %d, 10-20 %s (%s), CODE: 3, nRFR, over **', tCarsName[id - 399], pid, z, k))
+					
+					if last_message.name == sampGetPlayerNickname(pid) then
+						wait(1000)
+						sampSendChat('/m В случае неподчинения будет открыт огонь на поражение!')
+						wait(100)
+						SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 8.1 УК нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerNickname(pid), pid))
+						suspect_id = {id, 1, '8.1 УК', sampGetPlayerNickname(pid)}
+					end
+					
+					last_message = {id = pid, name = sampGetPlayerNickname(pid)}
 				else
 					sampSendChat('/m Немедленно остановите транспортное средство и прижмитесь к обочине!')
 				end
@@ -880,24 +899,24 @@ function command_r(text)
 		text = string.gsub(text, 'cod 14', '$m to DISP, доставляю подозреваемого в департамент, CODE: 1-4, nRFR, over **')
 		text = string.gsub(text, 'tf 55', '$m to DISP, Провожу 10-55, CODE: 4, 10-20 $p, nRFR, over **')
 		text = string.gsub(text, 'tf 66', '$m to DISP, Провожу 10-66, CODE: 3, 10-20 $p, nRFR, over **')
-		text = string.gsub(text, 'tf 995', '$m to DISP, 10-99 по 10-55, RFR, over **')
-		text = string.gsub(text, 'tf 996', '$m to DISP, 10-99 по 10-66, RFR, over **')
 		text = string.gsub(text, 'tf 9957v', '$m to DISP, 10-99 по 10-57 V, RFR, over **')
 		text = string.gsub(text, 'tf 9957f', '$m to DISP, 10-99 по 10-57 F, RFR, over **')
+		text = string.gsub(text, 'tf 995', '$m to DISP, 10-99 по 10-55, RFR, over **')
+		text = string.gsub(text, 'tf 996', '$m to DISP, 10-99 по 10-66, RFR, over **')
 		text = string.gsub(text, 'cod 0', '$m to DISP, CODE: 0, требуется срочная помощь!, 10-20 $p, nRFR, over **')
 		text = string.gsub(text, 'cod 1', '$m to DISP, CODE: 1, требуется помощь!, 10-20 $p, nRFR, over **')
 		text = string.gsub(text, '%$m', mark)
 		text = string.gsub(text, '%$p', string.format('%s (%s)', calculateZone(), kvadrat()))
+		text = string.format(text, '%s %s', ini.info.rteg, text)
 		
 		if string.len(text) > 77 then
-			sampSendChat(string.format('/r %s %s ...', ini.info.rteg, string.sub(text, 0, 77)))
-			sampSendChat(string.format('/r %s ... %s', ini.info.rteg, string.sub(text, 78, string.len(text))))
+			sampSendChat(string.format('/r %s ...', string.sub(text, 0, 77)))
+			sampSendChat(string.format('/r ... %s', string.sub(text, 78, string.len(text))))
 		else
-			sampSendChat(string.format('/r %s %s', ini.info.rteg, text))
+			sampSendChat(string.format('/r %s', text))
 		end
 		
-		if ini.lowrp.rpradio then
-		
+		if ini.lowrp.rpradio and ini.set.lowrp then
 			lua_thread.create(function()
 				wait(800)
 			
@@ -2111,7 +2130,7 @@ function command_namebl(param)
 			pushMessage('Ожидайте...', 3, 4)
 		
 			local name = sampGetPlayerNickname(param)
-			async_http_request('GET', 'https://forum.advance-rp.ru/threads/mvd-chjornyj-spisok-ministerstva-vnutrennix-del.1511869/', nil,
+			async_http_request('GET', 'https://forum.advance-rp.ru/threads/ic-sotrudniki-sostojaschie-v-chjornom-spiske-ministerstva-vnutrennix-del.1919256/', nil,
 				function(response)
 				
 				if u8:decode(response.text):find(name) or u8:decode(response.text):find(string.gsub(name, '_', ' ')) then
@@ -2125,7 +2144,7 @@ function command_namebl(param)
 		end
 	elseif string.match(param, '(%S+)') then
 		pushMessage('Ожидайте...', 3, 4)
-		async_http_request('GET', 'https://forum.advance-rp.ru/threads/mvd-chjornyj-spisok-ministerstva-vnutrennix-del.1511869/', nil,
+		async_http_request('GET', 'https://forum.advance-rp.ru/threads/ic-sotrudniki-sostojaschie-v-chjornom-spiske-ministerstva-vnutrennix-del.1919256/', nil,
 			function(response)
 			
 			if u8:decode(response.text):find(param) or u8:decode(response.text):find(string.gsub(param, '_', ' ')) then
@@ -2165,7 +2184,7 @@ function CheckPlayersOfBlackList(name, tab)
 	if type(tab) == ('table') then
 		local blfound = false
 	
-		async_http_request('GET', 'https://forum.advance-rp.ru/threads/mvd-chjornyj-spisok-ministerstva-vnutrennix-del.1511869/', nil,
+		async_http_request('GET', 'https://forum.advance-rp.ru/threads/ic-sotrudniki-sostojaschie-v-chjornom-spiske-ministerstva-vnutrennix-del.1919256/', nil,
 			function(response) 
 			
 			for i, val in pairs(tab) do
@@ -2187,7 +2206,7 @@ function imgui.OnDrawFrame()
 	if show_menu.v then
 		local w, h = getScreenResolution()
 		imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
-		imgui.SetNextWindowSize(imgui.ImVec2(700, 600))
+		imgui.SetNextWindowSize(imgui.ImVec2(800, 600))
 		imgui.Begin(u8'##menu', show_menu, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 
 			imgui.BeginChild('##button_block', imgui.ImVec2(250, 565), true, imgui.WindowFlags.VerticalScrollbar)
@@ -2201,13 +2220,10 @@ function imgui.OnDrawFrame()
 					if imgui.Button(u8'Администрация', imgui.ImVec2(235, 25))  then show_item.v = 2 end
 				end
 				if imgui.Button(u8'Информация', imgui.ImVec2(235, 25))     then show_item.v = 3 end
-				if imgui.Button(u8'Доп. команды', imgui.ImVec2(235, 25))   then show_item.v = 4 end
-				if player_status > 1 then 
-					if imgui.Button(u8'Кастомизация', imgui.ImVec2(235, 25))   then show_item.v = 5 end
-				end
-				if imgui.Button(u8'Менеджер паролей', imgui.ImVec2(235, 25)) then show_item.v = 6 end
+				if imgui.Button(u8'Дополнительные команды', imgui.ImVec2(235, 25))   then show_item.v = 4 end
+				if imgui.Button(u8'Менеджер паролей', imgui.ImVec2(235, 25)) then show_item.v = 5 end
 			    if player_status > 3 then 	
-					if imgui.Button(u8'Панель лидера', imgui.ImVec2(235, 25))  then show_item.v = 7 end
+					if imgui.Button(u8'Панель лидера', imgui.ImVec2(235, 25))  then show_item.v = 6 end
 				end
 				if imgui.Button(u8'Перезагрузить', imgui.ImVec2(235, 25))  then
 					show_menu.v = not show_menu.v
@@ -2223,7 +2239,7 @@ function imgui.OnDrawFrame()
 			imgui.SameLine()
 				
 			if show_item.v == 0 then
-				imgui.BeginChild('##another_block', imgui.ImVec2(430, 565), true)
+				imgui.BeginChild('##another_block', imgui.ImVec2(530, 565), true)
 					
 					imgui.CenterTextColoredRGB('ОСНОВНЫЕ НАСТРОЙКИ')
 					
@@ -2271,54 +2287,61 @@ function imgui.OnDrawFrame()
 					
 					imgui.Text('')
 					
-					if imgui.Checkbox(u8'Режим женских отыгровок', male) then 
-						ini.info.male = not male.v
-						inicfg.save(ini, 'Helper for MIA.ini') 
-					end
-					if imgui.Checkbox(u8'Объявления от СМИ', pstopad) then 
-						ini.set.stopad = pstopad.v
-						inicfg.save(ini, 'Helper for MIA.ini') 
-					end
-					if imgui.Checkbox(u8'Стробоскопы', pstrobes) then 
-						ini.set.strobes = pstrobes.v
-						inicfg.save(ini, 'Helper for MIA.ini') 
-					end
-					if imgui.Checkbox(u8'Изменённая рация', pradio) then 
-						ini.set.radio = pradio.v
-						inicfg.save(ini, 'Helper for MIA.ini') 
-					end
-					if imgui.Checkbox(u8'Таймер маски', pmasktimer) then 
-						ini.set.masktimer = pmasktimer.v
-						inicfg.save(ini, 'Helper for MIA.ini') 
-					end
-					if imgui.Checkbox(u8'Отыгровка камеры', pcamera) then 
-						ini.set.camera = pcamera.v
-						inicfg.save(ini, 'Helper for MIA.ini') 
-					end
-					if imgui.Checkbox(u8'Мелкие отыгровки', plowrp) then 
-						ini.set.lowrp = plowrp.v
-						inicfg.save(ini, 'Helper for MIA.ini') 
-						
-						if plowrp.v then pushMessage('Вам доступно новое подменю «Мелкие отыгровки» в разделе расширенных настроек', 3, 1) end
-					end
-					if imgui.Checkbox(u8'Отыгровки оружия', prpweapon) then 
-						ini.set.rpweapon = prpweapon.v
-						inicfg.save(ini, 'Helper for MIA.ini')
-						
-						if prpweapon.v then pushMessage('Вам доступно новое подменю «Отыгровки оружия» в разделе расширенных настроек', 3, 1) end
-					end
-					if imgui.Checkbox(u8'Авто-взятие оружия', pautoweapon) then 
-						ini.set.autoweapon = pautoweapon.v
-						inicfg.save(ini, 'Helper for MIA.ini') 
-						
-						if pautoweapon.v then pushMessage('Вам доступно новое подменю «Авто-взятие оружия» в разделе расширенных настроек', 3, 1) end
-					end
-					if imgui.Checkbox(u8'Авто-проверка паспорта', pautopass) then 
-						ini.set.autopass = pautopass.v
-						inicfg.save(ini, 'Helper for MIA.ini') 
-					end
-
-					if imgui.Button('DONT PRESS!') then
+					imgui.BeginChild('##first_block', imgui.ImVec2(250, 270), true)
+						if imgui.Checkbox(u8'Режим женских отыгровок', male) then 
+							ini.info.male = not male.v
+							inicfg.save(ini, 'Helper for MIA.ini') 
+						end
+						if imgui.Checkbox(u8'Объявления от СМИ', pstopad) then 
+							ini.set.stopad = pstopad.v
+							inicfg.save(ini, 'Helper for MIA.ini') 
+						end
+						if imgui.Checkbox(u8'Стробоскопы', pstrobes) then 
+							ini.set.strobes = pstrobes.v
+							inicfg.save(ini, 'Helper for MIA.ini') 
+						end
+						if imgui.Checkbox(u8'Изменённая рация', pradio) then 
+							ini.set.radio = pradio.v
+							inicfg.save(ini, 'Helper for MIA.ini') 
+						end
+						if imgui.Checkbox(u8'Таймер маски', pmasktimer) then 
+							ini.set.masktimer = pmasktimer.v
+							inicfg.save(ini, 'Helper for MIA.ini') 
+						end
+					imgui.EndChild()
+					
+					imgui.SameLine()
+					
+					imgui.BeginChild('##second_block', imgui.ImVec2(250, 250), true)
+						if imgui.Checkbox(u8'Отыгровка камеры', pcamera) then 
+							ini.set.camera = pcamera.v
+							inicfg.save(ini, 'Helper for MIA.ini') 
+						end
+						if imgui.Checkbox(u8'Мелкие отыгровки', plowrp) then 
+							ini.set.lowrp = plowrp.v
+							inicfg.save(ini, 'Helper for MIA.ini') 
+							
+							if plowrp.v then pushMessage('Вам доступно новое подменю «Мелкие отыгровки» в разделе расширенных настроек', 3, 2) end
+						end
+						if imgui.Checkbox(u8'Отыгровки оружия', prpweapon) then 
+							ini.set.rpweapon = prpweapon.v
+							inicfg.save(ini, 'Helper for MIA.ini')
+							
+							if prpweapon.v then pushMessage('Вам доступно новое подменю «Отыгровки оружия» в разделе расширенных настроек', 3, 2) end
+						end
+						if imgui.Checkbox(u8'Авто-взятие оружия', pautoweapon) then 
+							ini.set.autoweapon = pautoweapon.v
+							inicfg.save(ini, 'Helper for MIA.ini') 
+							
+							if pautoweapon.v then pushMessage('Вам доступно новое подменю «Умный склад оружия» в разделе расширенных настроек', 3, 2) end
+						end
+						if imgui.Checkbox(u8'Авто-проверка паспорта', pautopass) then 
+							ini.set.autopass = pautopass.v
+							inicfg.save(ini, 'Helper for MIA.ini') 
+						end
+					imgui.EndChild()
+					
+					if imgui.Button('RETURN TO THE NORMAL ENCODING', imgui.ImVec2(515, 20)) then
 						decode()
 					end
 					ItemActive('Данная кнопка нужна для того, чтобы восстановить кодировку скрипта.\nЕсли же у вас нету иероглифов, то слетит весь текст в скрипте.')
@@ -2326,147 +2349,163 @@ function imgui.OnDrawFrame()
 			end
 				
 			if show_item.v == 1 then
-				imgui.BeginChild('##another_block', imgui.ImVec2(430, 565), true)
+				imgui.BeginChild('##another_block', imgui.ImVec2(530, 565), true)
 					imgui.CenterTextColoredRGB('РАСШИРЕННЫЕ НАСТРОЙКИ')
 					
-					if ini.set.rpweapon then
+					imgui.Text('')
+					
+					if imgui.Button(u8'Авто-взятие оружия', imgui.ImVec2(170, 25)) then set_item.v = 0 end
+					imgui.SameLine()
+					if imgui.Button(u8'Отыгровки оружия', imgui.ImVec2(165, 25)) then set_item.v = 1 end
+					imgui.SameLine()
+					if imgui.Button(u8'Мелкие отыгровки', imgui.ImVec2(170, 25)) then set_item.v = 2 end
+					
+					if set_item.v == 0 then
 						imgui.Text('')
-						imgui.Separator()
-						imgui.Text('')
-						
-						if ini.set.halfrpweapon then
-							if imgui.Button(u8'Полуавтоматические отыгровки оружия', imgui.ImVec2(415, 20)) then
-								ini.set.halfrpweapon = false
-								ini.set.autorpweapon = true
-								inicfg.save(ini, 'Helper for MIA.ini') 
+						if ini.set.autoweapon then
+							imgui.CenterTextColoredRGB('Добавление оружия                                Множитель боеприпасов')
+							for i, val in pairs(InfoWeapon) do
+								if ini.weapon[val[3]] then
+									if imgui.Button(u8(val[1] .. ' • Убрать'), imgui.ImVec2(250, 20)) then
+										ini.weapon[val[3]] = not ini.weapon[val[3]]
+										inicfg.save(ini, 'Helper for MIA.ini')
+									end
+								else
+									if imgui.Button(u8(val[1] .. ' • Добавить'), imgui.ImVec2(250, 20)) then
+										ini.weapon[val[3]] = not ini.weapon[val[3]]
+										inicfg.save(ini, 'Helper for MIA.ini') 
+									end
+								end
+								
+								imgui.SameLine()
+								
+								if val[2] then
+									imgui.PushItemWidth(250)
+									if imgui.SliderInt('##' .. val[3], imgui.ImInt(ini.weapon[val[4]]), 1, 2) then
+										if ini.weapon[val[4]] == 1 then 
+											ini.weapon[val[4]] = 2
+										elseif ini.weapon[val[4]] == 2 then
+											ini.weapon[val[4]] = 1
+										end
+										inicfg.save(ini, 'Helper for MIA.ini') 
+									end
+								else
+									imgui.Button(u8'Не настривается', imgui.ImVec2(250, 20))
+								end
 							end
 						else
-							if imgui.Button(u8'Автоматические отыгровки оружия', imgui.ImVec2(415, 20)) then
-								ini.set.halfrpweapon = true
-								ini.set.autorpweapon = false
-								inicfg.save(ini, 'Helper for MIA.ini')
-							end
-						end
-						
-						imgui.Text('')
-						
-						imgui.TextColoredRGB(string.format('{000000}Оружие выбранное для редактирования: {B22222}%s', weapons.get_name(rpweaponid)))
-						local _, rpweap = sampWeaponScene(rpweaponid)
-						local _, rpweapoff = sampWeaponSceneOff(rpweaponid)
-						
-						if rpweap == '' then rpweap = 'Введите отыгровку изъятия оружия.' end
-						if rpweapoff == '' then rpweapoff = 'Введите отыгровку скрытия оружия.' end
-						
-						imgui.TextColoredRGB(string.format('{000000}Д: {EE2C2C}%s', rpweap))
-						imgui.InputText('##takeweap', takeweap)
-						imgui.TextColoredRGB(string.format('{000000}У: {EE2C2C}%s', rpweapoff))
-						imgui.InputText('##takeweapoff', takeweapoff)
-						
-						if imgui.Button(u8'Сохранить', imgui.ImVec2(415, 20)) then
-							local wname = weapons.get_name(rpweaponid)
-							if wname == '9mm' then wname = 'p9mm' end
-							local wname = string.gsub(wname, '-', '_')
-							local wname = string.gsub(wname, ' ', '_')
-							
-							ini.rpweapon[wname]     = u8:decode(takeweap.v)
-							ini.rpweaponoff[wname]  = u8:decode(takeweapoff.v)
-							inicfg.save(ini, 'Helper for MIA.ini')
-							
-							pushMessage('Отыгровка успешно сохранена.', 3, 4)
-						end
-						
-						imgui.Text(u8'Выберите нужное оружие для редактирования из списка ниже.')
-						
-						imgui.PushItemWidth(415)
-						if imgui.ListBox('##weapons', weaponid, weapon, 5) then
-							if weapons.get_name(weaponid.v + 1) ~= nil then
-								rpweaponid = weaponid.v + 1 
-							end
+							imgui.CenterTextColoredRGB('Вам недоступен данный подраздел.')
 						end
 					end
 					
-					if ini.set.autoweapon then
-						imgui.Text('')
-						imgui.Separator()
-						imgui.Text('')
-						
-						for i, val in pairs(InfoWeapon) do
-							if ini.weapon[val[3]] then
-								if imgui.Button(u8(val[1] .. ' • Убрать'), imgui.ImVec2(205, 20)) then
-									ini.weapon[val[3]] = not ini.weapon[val[3]]
-									inicfg.save(ini, 'Helper for MIA.ini')
-								end
-							else
-								if imgui.Button(u8(val[1] .. ' • Добавить'), imgui.ImVec2(205, 20)) then
-									ini.weapon[val[3]] = not ini.weapon[val[3]]
+					if set_item.v == 1 then
+						if ini.set.rpweapon then
+							if ini.set.halfrpweapon then
+								if imgui.Button(u8'Полуавтоматические отыгровки оружия', imgui.ImVec2(515, 25)) then
+									ini.set.halfrpweapon = false
+									ini.set.autorpweapon = true
 									inicfg.save(ini, 'Helper for MIA.ini') 
 								end
+							else
+								if imgui.Button(u8'Автоматические отыгровки оружия', imgui.ImVec2(515, 25)) then
+									ini.set.halfrpweapon = true
+									ini.set.autorpweapon = false
+									inicfg.save(ini, 'Helper for MIA.ini')
+								end
 							end
+							
+							imgui.Text('')
+							
+							imgui.BeginChild('##first_block', imgui.ImVec2(120, 170), true)
+								imgui.PushItemWidth(110)
+								if imgui.ListBox('##weapons', weaponid, weapon, 7) then
+									if weapons.get_name(weaponid.v + 1) ~= nil then
+										rpweaponid = weaponid.v + 1
+										local _, t = sampWeaponScene(rpweaponid)
+										local _, to = sampWeaponSceneOff(rpweaponid)
+										
+										takeweap.v, takeweapoff.v = u8(t), u8(to)
+									end
+								end
+							imgui.EndChild()
 							
 							imgui.SameLine()
 							
-							if val[2] then
-								imgui.PushItemWidth(205)
-								if imgui.SliderInt('##' .. val[3], imgui.ImInt(ini.weapon[val[4]]), 1, 2) then
-									if ini.weapon[val[4]] == 1 then 
-										ini.weapon[val[4]] = 2
-									elseif ini.weapon[val[4]] == 2 then
-										ini.weapon[val[4]] = 1
-									end
-									inicfg.save(ini, 'Helper for MIA.ini') 
+							imgui.BeginChild('##second_block', imgui.ImVec2(400, 150), true)
+								imgui.TextColoredRGB(string.format('{EEEEEE}Оружие выбранное для редактирования: {B22222}%s', weapons.get_name(rpweaponid)))
+								
+								imgui.PushItemWidth(385)
+								imgui.Text(u8'> Отыгровки при взятие оружия в руки')
+								imgui.InputText('##takeweap', takeweap)
+								imgui.Text(u8'< Отыгровки при скрытие оружия')
+								imgui.InputText('##takeweapoff', takeweapoff)
+								
+								if imgui.Button(u8'Сохранить', imgui.ImVec2(385, 20)) then
+									local wname = weapons.get_name(rpweaponid)
+									if wname == '9mm' then wname = 'p9mm' end
+									local wname = string.gsub(wname, '-', '_')
+									local wname = string.gsub(wname, ' ', '_')
+									
+									ini.rpweapon[wname]     = u8:decode(takeweap.v)
+									ini.rpweaponoff[wname]  = u8:decode(takeweapoff.v)
+									inicfg.save(ini, 'Helper for MIA.ini')
+									
+									pushMessage('Отыгровка успешно сохранена.', 3, 4)
 								end
-							else
-								imgui.Button(u8'Не настривается', imgui.ImVec2(205, 20))
-							end
+							imgui.EndChild()
+						else
+							imgui.Text('')
+							imgui.CenterTextColoredRGB('Вам недоступен данный подраздел.')
 						end
 					end
 					
-					if ini.set.lowrp then
+					if set_item.v == 2 then
 						imgui.Text('')
-						imgui.Separator()
-						imgui.Text('')
-						
-						if imgui.Checkbox(u8'Отыгровка аптечки', prphealme) then 
-							ini.lowrp.rphealme = prphealme.v
-							inicfg.save(ini, 'Helper for MIA.ini') 
-						end
-						if imgui.Checkbox(u8'Отыгровка маски', prpmask) then 
-							ini.lowrp.rpmask = prpmask.v
-							inicfg.save(ini, 'Helper for MIA.ini') 
-						end
-						if imgui.Checkbox(u8'Отыгровка открытия спецблока', prpfbi) then 
-							ini.lowrp.rpfbi = prpfbi.v
-							inicfg.save(ini, 'Helper for MIA.ini') 
-						end
-						if imgui.Checkbox(u8'Отыгровка открытия шлагбаума', prpbar) then 
-							ini.lowrp.rpbar = prpbar.v
-							inicfg.save(ini, 'Helper for MIA.ini') 
-						end
-						if imgui.Checkbox(u8'Отыгровка рации', prpradio) then 
-							ini.lowrp.rpradio = prpradio.v
-							inicfg.save(ini, 'Helper for MIA.ini') 
+						if ini.set.lowrp then
+							if imgui.Checkbox(u8'Отыгровка при использовании аптечки', prphealme) then 
+								ini.lowrp.rphealme = prphealme.v
+								inicfg.save(ini, 'Helper for MIA.ini') 
+							end
+							if imgui.Checkbox(u8'Отыгровка при использовании маски', prpmask) then 
+								ini.lowrp.rpmask = prpmask.v
+								inicfg.save(ini, 'Helper for MIA.ini') 
+							end
+							if imgui.Checkbox(u8'Отыгровка при открытии спецблока в здание Федерального Бюро', prpfbi) then 
+								ini.lowrp.rpfbi = prpfbi.v
+								inicfg.save(ini, 'Helper for MIA.ini') 
+							end
+							if imgui.Checkbox(u8'Отыгровка при открытии шлагбаума', prpbar) then 
+								ini.lowrp.rpbar = prpbar.v
+								inicfg.save(ini, 'Helper for MIA.ini') 
+							end
+							if imgui.Checkbox(u8'Отыгровка при использовании рации', prpradio) then 
+								ini.lowrp.rpradio = prpradio.v
+								inicfg.save(ini, 'Helper for MIA.ini') 
+							end
+						else
+							imgui.CenterTextColoredRGB('Вам недоступен данный подраздел.')
 						end
 					end
 				imgui.EndChild()
 			end
 				
 			if show_item.v == 2 then
-				imgui.BeginChild('##another_block', imgui.ImVec2(430, 565), true, imgui.WindowFlags.HorizontalScrollbar)
+				imgui.BeginChild('##another_block', imgui.ImVec2(530, 565), true, imgui.WindowFlags.HorizontalScrollbar)
 					imgui.CenterTextColoredRGB('СПИСОК АДМИНИСТРАЦИИ')
 					
 					imgui.Text('')
 					
-					if imgui.Button(u8'Подгрузить', imgui.ImVec2(135, 20)) then
+					if imgui.Button(u8'Подгрузить', imgui.ImVec2(170, 25)) then
 						local line = ''
 						for val in io.lines('moonloader//helper//Admins.txt') do line = string.format('%s%s\n', line, val) end
 						admins.v = u8(line)
 					end
 					imgui.SameLine()
-					if imgui.Button(u8'Редактировать', imgui.ImVec2(135, 20)) then
+					if imgui.Button(u8'Редактировать', imgui.ImVec2(165, 25)) then
 						editor.v = not editor.v
 					end
 					imgui.SameLine()
-					if imgui.Button(u8'Сохранить', imgui.ImVec2(135, 20)) and editor.v then
+					if imgui.Button(u8'Сохранить', imgui.ImVec2(170, 25)) and editor.v then
 						local filew = io.open('moonloader//helper//Admins.txt', 'w')
 						filew:write(u8:decode(admins.v))
 						filew:close()
@@ -2484,43 +2523,47 @@ function imgui.OnDrawFrame()
 			end
 				
 			if show_item.v == 3 then
-				imgui.BeginChild('##another_block', imgui.ImVec2(430, 565), true)
-					imgui.Columns(2)
+				imgui.BeginChild('##another_block', imgui.ImVec2(530, 565), true)
+					imgui.Columns(3)
 					imgui.SetColumnWidth(-1, 100)
 					imgui.NextColumn()
-					imgui.SetColumnWidth(-1, 400)
+					imgui.SetColumnWidth(-1, 70)
+					imgui.NextColumn()
+					imgui.SetColumnWidth(-1, 330)
 					for i, val in pairs(commands) do
-						local cmd, info = string.match(val, '(.+) | (.+)')
+						local cmd, lvl, info = string.match(val, '(.+) | (.+) | (.+)')
 						imgui.Separator()
 						imgui.NextColumn()
-						imgui.TextColoredRGB(string.format('{1E90FF}%s', cmd))
+						imgui.TextColoredRGB(string.format('{6930a1}%s', cmd))
 						imgui.NextColumn()
-						imgui.TextColoredRGB(string.format('{000000}%s', info))
+						imgui.TextColoredRGB(string.format('{4d408c}%s', lvl))
+						imgui.NextColumn()
+						imgui.TextColoredRGB(string.format('{EEEEEE}%s', info))
 					end
 				imgui.EndChild()
 			end
 				
 			if show_item.v == 4 then
-				imgui.BeginChild('##another_block', imgui.ImVec2(430, 565), true, imgui.WindowFlags.HorizontalScrollbar)
+				imgui.BeginChild('##another_block', imgui.ImVec2(530, 565), true, imgui.WindowFlags.HorizontalScrollbar)
 					imgui.Text(u8'Команда: /')
 					imgui.SameLine()
-					imgui.PushItemWidth(150)
+					imgui.PushItemWidth(190)
 					imgui.InputText('', name_cmd)
 					
 					imgui.SameLine()
 					
 					if param_cmd == 1 then
-						if imgui.Button(u8'Убрать параметр', imgui.ImVec2(150, 20)) then
+						if imgui.Button(u8'Убрать параметр', imgui.ImVec2(250, 20)) then
 							param_cmd = 0
 						end
 					else
-						if imgui.Button(u8'Добавить параметр', imgui.ImVec2(150, 20)) then
+						if imgui.Button(u8'Добавить параметр', imgui.ImVec2(250, 20)) then
 							param_cmd = 1
 						end
 					end
 					
 					ItemActive('Кол-во параметров в команде ' .. param_cmd .. '/1')
-					if imgui.Button(u8'Найти', imgui.ImVec2(80, 20)) then
+					if imgui.Button(u8'Найти', imgui.ImVec2(100, 20)) then
 						if name_cmd.v ~= '' then
 							if io.open('moonloader//helper//commands//' .. name_cmd.v .. '.txt') then
 								cmd_text = ''
@@ -2544,7 +2587,7 @@ function imgui.OnDrawFrame()
 					
 					imgui.SameLine()
 					
-					if imgui.Button(u8'Создать', imgui.ImVec2(80, 20)) then
+					if imgui.Button(u8'Создать', imgui.ImVec2(100, 20)) then
 						if name_cmd.v ~= '' and not string.match(name_cmd.v, '[(%s+)]') then
 							if not io.open('moonloader//helper//commands//' .. name_cmd.v .. '.txt') then
 								local file = 'moonloader//helper//commands//' .. name_cmd.v .. '.txt'
@@ -2572,7 +2615,7 @@ function imgui.OnDrawFrame()
 					
 					imgui.SameLine()
 					
-					if imgui.Button(u8'Сохранить', imgui.ImVec2(75, 20)) then
+					if imgui.Button(u8'Сохранить', imgui.ImVec2(93, 20)) then
 						if name_cmd.v ~= '' and not string.match(name_cmd.v, '[(%s+)]') then
 							if io.open('moonloader//helper//commands//' .. name_cmd.v .. '.txt') then
 								local file = 'moonloader//helper//commands//' .. name_cmd.v .. '.txt'
@@ -2592,106 +2635,35 @@ function imgui.OnDrawFrame()
 					
 					imgui.SameLine()
 					
-					if imgui.Button(u8'Функции', imgui.ImVec2(80, 20)) then
+					if imgui.Button(u8'Функции', imgui.ImVec2(100, 20)) then
 						show_help.v = not show_help.v
 					end
 					
 					imgui.SameLine()
 					
-					if imgui.Button(u8'Очистить', imgui.ImVec2(80, 20)) then
+					if imgui.Button(u8'Очистить', imgui.ImVec2(100, 20)) then
 						text_cmd.v = ''
 						name_cmd.v = ''
 						param_cmd = 0
 					end
 					
-					imgui.InputTextMultiline('##TextForCmd', text_cmd, imgui.ImVec2(-1, imgui.GetTextLineHeight() * 14))
-					if imgui.Button(u8'Пример #1', imgui.ImVec2(100, 20)) then
-						name_cmd.v = 'show1'
-						param_cmd = 1
-						text_cmd.v = u8'text: {hello}, {name_id}, вы находитесь в федеральном розыске!'
-					end
-					
-					imgui.SameLine()
-					
-					if imgui.Button(u8'Пример #2', imgui.ImVec2(100, 20)) then
-						name_cmd.v = 'show2'
-						param_cmd = 0
-						text_cmd.v = u8'text: /r [Оповещение] {rang} находится в опасности! 10-20 {area} ({kvadrat}).\nsleep: 1000\ntext: /su {myid} 1 GPS-on'
-					end
-					
-					imgui.SameLine()
-					
-					if imgui.Button(u8'Пример #3', imgui.ImVec2(100, 20)) then
-						name_cmd.v = 'show3'
-						param_cmd = 0
-						text_cmd.v = u8'send: Текущее время: {time}\nsend: Текущая дата: {date}\nsend: Как бы да, всё...'
-					end
-					
-					imgui.SameLine()
-					
-					if imgui.Button(u8'Пример #4', imgui.ImVec2(100, 20)) then
-						name_cmd.v = 'show4'
-						param_cmd = 1
-						text_cmd.v = u8'text: /me взявшись за маску, стянул её с лица {name_id}\nsleep: 1000\ntext: /n {name_id}, пропиши /unmask.\nsleep: 150\nsend: Если етот мистер {color_id}{name_id}{ffffff} не снимит маску, то используй команду /rep {id} nRP!'
-					end
-					
-					imgui.Text('')
-					
-					imgui.Separator()
-					
-					imgui.Text('')
-					
-					imgui.CenterTextColoredRGB('РЕЗУЛЬТАТ')
-					
-					imgui.Text('')
-					
-					local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-					local resultext = text_cmd.v
-					local resultext = resultext:gsub('{param=(%d+)}', '')
-					local resultext = resultext:gsub('{name}', u8(ini.info.name))
-					local resultext = resultext:gsub('{rTeg}', u8(ini.info.rteg))
-					local resultext = resultext:gsub('{fTeg}', u8(ini.info.fteg))
-					local resultext = resultext:gsub('{frac}', u8(ini.info.frac))
-					local resultext = resultext:gsub('{num}', u8('№000' .. ini.info.number))
-					local resultext = resultext:gsub('{rang}', u8(ini.info.rang))
-					local resultext = resultext:gsub('{hello}', u8(sampGetHelloByTime()))
-					local resultext = resultext:gsub('{area}', u8(calculateZone()))
-					local resultext = resultext:gsub('{kvadrat}', u8(kvadrat()))
-					local resultext = resultext:gsub('{time}', os.date('%X'))
-					local resultext = resultext:gsub('{date}', os.date('%x'))
-					local resultext = resultext:gsub('{myid}', id)
-					local resultext = resultext:gsub('{id}', u8('<Ид игрока>'))
-					local resultext = resultext:gsub('{name_id}', u8('<Имя игрока>'))
-					local resultext = resultext:gsub('{color_id}', u8('<Клист игрока>'))
-					local resultext = resultext:gsub('{ping_id}', u8('<Пинг игрока>'))
-					local resultext = resultext:gsub('{score_id}', u8('<Счёт игрока>'))
-					local resultext = resultext:gsub('{frac_id}', u8('<Фракция игрока>'))
-					local resultext = resultext:gsub('sleep: ', u8('Задержка (в мс)	 '))
-					local resultext = resultext:gsub('text: ', u8('Сообщение в чат	'))
-					local resultext = resultext:gsub('send: ', u8('Серв. сообщение	'))
-					imgui.Text(string.format('%s', resultext))
+					imgui.InputTextMultiline('##TextForCmd', text_cmd, imgui.ImVec2(-1, imgui.GetTextLineHeight() * 36))
 				imgui.EndChild()
 			end
 				
 			if show_item.v == 5 then
-				imgui.BeginChild('##another_block', imgui.ImVec2(430, 565), true)
-					imgui.CenterTextColoredRGB('В вечной разработке...')
-					ItemActive('Ето гавно будет работать, но когда это будет известно лишь...')
-					imgui.CenterTextColoredRGB('Coming soon <3')
-				imgui.EndChild()
-			end
-				
-			if show_item.v == 6 then
-				imgui.BeginChild('##another_block', imgui.ImVec2(430, 565), true)
+				imgui.BeginChild('##another_block', imgui.ImVec2(530, 565), true)
 					imgui.CenterTextColoredRGB('МЕНЕДЖЕР ПАРОЛЕЙ')
-					local servers = {'RED', 'GREEN', 'YELLOW', 'ORANGE', 'BLUE', 'WHITE', 'SILVER', 'PURPLE', 'CHOCOLATE'}
-					--local servers = {'RED', 'GREEN', 'BLUE'}
+					local servers = {'RED', 'GREEN', 'BLUE'}
+					
+					imgui.Text('')
+					
 					if spypass.v then
-						if imgui.Button(u8'Включить отображение паролей', imgui.ImVec2(415, 20)) then
+						if imgui.Button(u8'Включить отображение паролей', imgui.ImVec2(515, 25)) then
 							spypass.v = false
 						end
 					else
-						if imgui.Button(u8'Скрыть отображение паролей', imgui.ImVec2(415, 20)) then
+						if imgui.Button(u8'Скрыть отображение паролей', imgui.ImVec2(515, 25)) then
 							spypass.v = true
 						end
 					end
@@ -2704,9 +2676,9 @@ function imgui.OnDrawFrame()
 							local test = pass[sname][name]
 							if test:find('%S+') then
 								if spypass.v then
-									imgui.Button(string.format(u8'%s • Имя [%s] • Пароль [%s]', val, name, string.gsub(apass, '.', '*')), imgui.ImVec2(400, 20))
+									imgui.Button(string.format(u8'%s • Имя [%s] • Пароль [%s]', val, name, string.gsub(apass, '.', '*')), imgui.ImVec2(515, 20))
 								else
-									imgui.Button(string.format(u8'%s • Имя [%s] • Пароль [%s]', val, name, apass), imgui.ImVec2(400, 20))
+									imgui.Button(string.format(u8'%s • Имя [%s] • Пароль [%s]', val, name, apass), imgui.ImVec2(515, 20))
 								end
 							end
 						end
@@ -2714,8 +2686,8 @@ function imgui.OnDrawFrame()
 				imgui.EndChild()
 			end
 				
-			if show_item.v == 7 then
-				imgui.BeginChild('##another_block', imgui.ImVec2(430, 565), true, imgui.WindowFlags.HorizontalScrollbar)
+			if show_item.v == 6 then
+				imgui.BeginChild('##another_block', imgui.ImVec2(530, 565), true, imgui.WindowFlags.HorizontalScrollbar)
 					imgui.CenterTextColoredRGB('ГОСУДАРСТВЕННЫЕ НОВОСТИ')
 					
 					imgui.Text('')
@@ -2730,7 +2702,7 @@ function imgui.OnDrawFrame()
 					
 					imgui.SameLine()
 					
-					if imgui.Button(u8'Найти', imgui.ImVec2(85, 20)) then
+					if imgui.Button(u8'Найти', imgui.ImVec2(115, 20)) then
 						if string.match(idnews.v, '(%d+)') then
 							if doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
 								pushMessage('Новость найдена и открыта для настройки', 3, 4)
@@ -2761,7 +2733,7 @@ function imgui.OnDrawFrame()
 					
 					imgui.SameLine()
 					
-					if imgui.Button(u8'Создать', imgui.ImVec2(85, 20)) then
+					if imgui.Button(u8'Создать', imgui.ImVec2(120, 20)) then
 						if string.match(idnews.v, '(%d+)') then
 							if not doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
 								pushMessage('Новость создана и открыта для настройки', 3, 4)
@@ -2781,7 +2753,7 @@ function imgui.OnDrawFrame()
 					
 					imgui.SameLine()
 					
-					if imgui.Button(u8'Сохранить', imgui.ImVec2(80, 20)) then
+					if imgui.Button(u8'Сохранить', imgui.ImVec2(115, 20)) then
 						if string.match(idnews.v, '(%d+)') then
 							if doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
 								local file = string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)
@@ -2804,9 +2776,9 @@ function imgui.OnDrawFrame()
 					ItemActive('С помощь этой кнопки вы можете сохранить созданую гос. новость.')
 					
 					if lines.v then
-						if imgui.Button(u8'Изменить на 1 строку', imgui.ImVec2(415, 20)) then lines.v = not lines.v end
+						if imgui.Button(u8'Изменить на 1 строку', imgui.ImVec2(515, 20)) then lines.v = not lines.v end
 					else
-						if imgui.Button(u8'Изменить на 3 строки', imgui.ImVec2(415, 20)) then lines.v = not lines.v end
+						if imgui.Button(u8'Изменить на 3 строки', imgui.ImVec2(515, 20)) then lines.v = not lines.v end
 					end
 					ItemActive('С помощью этой кнопки вы сможете выбрать сколько строк будет в гос. новости.')
 					
@@ -2820,7 +2792,7 @@ function imgui.OnDrawFrame()
 					
 					imgui.Text('')
 					
-					imgui.PushItemWidth(350)
+					imgui.PushItemWidth(450)
 					if lines.v then
 						imgui.InputText(u8'1-я строка ##gnews1', pgline1)
 						imgui.InputText(u8'2-я строка ##gnews2', pgline2)
@@ -2871,9 +2843,9 @@ function imgui.OnDrawFrame()
 				'{kvadrat} | Квадрат на карте | ' .. kvadrat(),
 				'{time} | Текущее время | ' .. os.date('%X'),
 				'{date} | Текущая дата | ' .. os.date('%x'),
-				'text: | Сообщение в обычный чат | <Сообщение>',
-				'send: | Серв. сообщение | <Сообщение>',
-				'sleep: | Задержка | <Задержка>'
+				'sendChat(text) | Сообщение в обычный чат | <Сообщение>',
+				'addChat(text) | Серв. сообщение | <Сообщение>',
+				'wait(delay) | Задержка | <Задержка>'
 			}
 			
 			imgui.SetNextWindowSize(imgui.ImVec2(550, 430))
@@ -3183,34 +3155,36 @@ function sampGetMarkCharByVehicle(ped)
 		end
 	end
 
-	if isCharInAnyCar(ped) or isCharOnAnyBike(ped) then
-		local vehicle = storeCarCharIsInNoSave(ped)
-		local model = getCarModel(vehicle)
-		
-		if model >= 596 and model <= 599 then
-			local maxp = getMaximumNumberOfPassengers(vehicle)
-			local res, int = getNumberOfPassengers(vehicle)
-		
-			if res and int > 0 then
-				for i = 0, maxp do
-					if not isCarPassengerSeatFree(vehicle, i) then
-						local ped = getCharInCarPassengerSeat(vehicle, i)
-						if doesCharExist(ped) then
-							if sampIsPoliceOfficerById(ped) then
-								return string.format('A-%s', uid) 
+	if isCharSittingInAnyCar(ped) then
+		if isCharInAnyCar(ped) or isCharOnAnyBike(ped) then
+			local vehicle = storeCarCharIsInNoSave(ped)
+			local model = getCarModel(vehicle)
+			
+			if model >= 596 and model <= 599 then
+				local maxp = getMaximumNumberOfPassengers(vehicle)
+				local res, int = getNumberOfPassengers(vehicle)
+			
+				if res and int > 0 then
+					for i = 0, maxp do
+						if not isCarPassengerSeatFree(vehicle, i) then
+							local ped = getCharInCarPassengerSeat(vehicle, i)
+							if doesCharExist(ped) then
+								if sampIsPoliceOfficerById(ped) then
+									return string.format('A-%s', uid) 
+								end
 							end
 						end
 					end
 				end
+				
+				return string.format('L-%d', uid) 
+			elseif model == 601 or model == 427 or model == 528 then
+				return string.format('C-%d', uid) 
+			elseif model == 415 then
+				return string.format('H-%d', uid) 
+			elseif model == 523 then
+				return string.format('M-%d', uid) 
 			end
-			
-			return string.format('L-%d', uid) 
-		elseif model == 601 or model == 427 or model == 528 then
-			return string.format('C-%d', uid) 
-		elseif model == 415 then
-			return string.format('H-%d', uid) 
-		elseif model == 523 then
-			return string.format('M-%d', uid) 
 		end
 	end
 	
@@ -3246,6 +3220,8 @@ function sampGetNearestDriver()
 	local drv = {id = -1, vid = -1, dist = 100}
 
 	for i, val in pairs(getAllVehicles()) do
+		wait(0)
+		
 		if doesVehicleExist(val) then
 			local vid = getCarModel(val)
 			local ped = getDriverOfCar(val)
@@ -4308,7 +4284,7 @@ function ItemActive(text)
 end
 
 function apply_custom_style()
-	imgui.SwitchContext()
+    imgui.SwitchContext()
 	local style = imgui.GetStyle()
 	local colors = style.Colors
 	local clr = imgui.Col
@@ -4319,53 +4295,49 @@ function apply_custom_style()
 	style.ChildWindowRounding = 2.0
 	style.FrameRounding = 2.0
 	style.ItemSpacing = imgui.ImVec2(5.0, 4.0)
-	style.ScrollbarSize = 13.0
+	style.ScrollbarSize = 5.0
 	style.ScrollbarRounding = 0
 	style.GrabMinSize = 8.0
 	style.GrabRounding = 1.0
 	
-	colors[clr.Text]                  = ImVec4(0.00, 0.00, 0.00, 0.85)
-	colors[clr.TextDisabled]          = ImVec4(0.24, 0.24, 0.24, 1.00)
-	colors[clr.WindowBg]              = ImVec4(1.00, 1.00, 1.00, 0.80)
-	colors[clr.ChildWindowBg]         = ImVec4(0.96, 0.96, 0.96, 1.00)
-	colors[clr.PopupBg]               = ImVec4(0.92, 0.92, 0.92, 1.00)
-	colors[clr.Border]                = ImVec4(0.00, 0.45, 1.00, 0.62)
-	colors[clr.BorderShadow]          = ImVec4(0.00, 0.00, 0.00, 0.00)
-	--colors[clr.FrameBg]               = ImVec4(0.88, 0.88, 0.88, 0.55)
-	colors[clr.FrameBg]               = ImVec4(0.97, 0.97, 1.00, 1.00)
-	colors[clr.FrameBgHovered]        = ImVec4(0.82, 0.82, 0.82, 1.00)
-	colors[clr.FrameBgActive]         = ImVec4(0.76, 0.76, 0.76, 1.00)
-	colors[clr.TitleBg]               = ImVec4(0.00, 0.45, 1.00, 0.82)
-	colors[clr.TitleBgCollapsed]      = ImVec4(0.00, 0.45, 1.00, 0.82)
-	colors[clr.TitleBgActive]         = ImVec4(0.00, 0.45, 1.00, 0.82)
-	colors[clr.MenuBarBg]             = ImVec4(0.00, 0.37, 0.78, 1.00)
-	colors[clr.ScrollbarBg]           = ImVec4(0.00, 0.00, 0.00, 0.00)
-	colors[clr.ScrollbarGrab]         = ImVec4(0.00, 0.35, 1.00, 0.78)
-	colors[clr.ScrollbarGrabHovered]  = ImVec4(0.00, 0.33, 1.00, 0.84)
-	colors[clr.ScrollbarGrabActive]   = ImVec4(0.00, 0.31, 1.00, 0.88)
-	colors[clr.ComboBg]               = ImVec4(0.92, 0.92, 0.92, 1.00)
-	colors[clr.CheckMark]             = ImVec4(0.00, 0.49, 1.00, 0.59)
-	colors[clr.SliderGrab]            = ImVec4(0.00, 0.49, 1.00, 0.59)
-	colors[clr.SliderGrabActive]      = ImVec4(0.00, 0.39, 1.00, 0.71)
-	colors[clr.Button]                = ImVec4(0.00, 0.49, 1.00, 0.50)
-	colors[clr.ButtonHovered]         = ImVec4(0.00, 0.49, 1.00, 0.75)
-	colors[clr.ButtonActive]          = ImVec4(0.00, 0.49, 1.00, 0.80)
-	colors[clr.Header]                = ImVec4(0.00, 0.49, 1.00, 0.78)
-	colors[clr.HeaderHovered]         = ImVec4(0.00, 0.49, 1.00, 0.71)
-	colors[clr.HeaderActive]          = ImVec4(0.00, 0.49, 1.00, 0.78)
-	colors[clr.ResizeGrip]            = ImVec4(0.00, 0.39, 1.00, 0.59)
-	colors[clr.ResizeGripHovered]     = ImVec4(0.00, 0.27, 1.00, 0.59)
-	colors[clr.ResizeGripActive]      = ImVec4(0.00, 0.25, 1.00, 0.63)
-	colors[clr.CloseButton]           = ImVec4(1.00, 1.00, 1.00, 1.00)
-	colors[clr.CloseButtonHovered]    = ImVec4(0.98, 0.39, 0.36, 1.00)
-	colors[clr.CloseButtonActive]     = ImVec4(0.98, 0.39, 0.36, 1.00)
-	colors[clr.PlotLines]             = ImVec4(0.00, 0.39, 1.00, 0.75)
-	colors[clr.PlotLinesHovered]      = ImVec4(0.00, 0.39, 1.00, 0.75)
-	colors[clr.PlotHistogram]         = ImVec4(0.00, 0.39, 1.00, 0.75)
-	colors[clr.PlotHistogramHovered]  = ImVec4(0.00, 0.35, 0.92, 0.78)
-	colors[clr.TextSelectedBg]        = ImVec4(0.00, 0.47, 1.00, 0.59)
-	colors[clr.Separator]             = colors[clr.Border]
-	colors[clr.ModalWindowDarkening]  = ImVec4(0.20, 0.20, 0.20, 0.35)
+    colors[clr.WindowBg]              = ImVec4(0.14, 0.12, 0.16, 0.99);
+    colors[clr.ChildWindowBg]         = ImVec4(0.30, 0.20, 0.39, 0.00);
+    colors[clr.PopupBg]               = ImVec4(0.05, 0.05, 0.10, 0.90);
+    colors[clr.Border]                = ImVec4(0.89, 0.85, 0.92, 0.00);
+    colors[clr.BorderShadow]          = ImVec4(0.00, 0.00, 0.00, 0.00);
+    colors[clr.FrameBg]               = ImVec4(0.30, 0.20, 0.39, 1.00);
+    colors[clr.FrameBgHovered]        = ImVec4(0.41, 0.19, 0.63, 0.68);
+    colors[clr.FrameBgActive]         = ImVec4(0.41, 0.19, 0.63, 1.00);
+    colors[clr.TitleBg]               = ImVec4(0.41, 0.19, 0.63, 1.00);
+    colors[clr.TitleBgCollapsed]      = ImVec4(0.41, 0.19, 0.63, 1.00);
+    colors[clr.TitleBgActive]         = ImVec4(0.41, 0.19, 0.63, 1.00);
+    colors[clr.MenuBarBg]             = ImVec4(0.30, 0.20, 0.39, 0.57);
+    colors[clr.ScrollbarBg]           = ImVec4(0.30, 0.20, 0.39, 1.00);
+    colors[clr.ScrollbarGrab]         = ImVec4(0.41, 0.19, 0.63, 0.31);
+    colors[clr.ScrollbarGrabHovered]  = ImVec4(0.41, 0.19, 0.63, 0.78);
+    colors[clr.ScrollbarGrabActive]   = ImVec4(0.41, 0.19, 0.63, 1.00);
+    colors[clr.ComboBg]               = ImVec4(0.30, 0.20, 0.39, 1.00);
+    colors[clr.CheckMark]             = ImVec4(0.56, 0.61, 1.00, 1.00);
+    colors[clr.SliderGrab]            = ImVec4(0.41, 0.19, 0.63, 0.24);
+    colors[clr.SliderGrabActive]      = ImVec4(0.41, 0.19, 0.63, 1.00);
+    colors[clr.Button]                = ImVec4(0.41, 0.19, 0.63, 0.44);
+    colors[clr.ButtonHovered]         = ImVec4(0.41, 0.19, 0.63, 0.86);
+    colors[clr.ButtonActive]          = ImVec4(0.64, 0.33, 0.94, 1.00);
+    colors[clr.Header]                = ImVec4(0.41, 0.19, 0.63, 0.76);
+    colors[clr.HeaderHovered]         = ImVec4(0.41, 0.19, 0.63, 0.86);
+    colors[clr.HeaderActive]          = ImVec4(0.41, 0.19, 0.63, 1.00);
+    colors[clr.ResizeGrip]            = ImVec4(0.41, 0.19, 0.63, 0.20);
+    colors[clr.ResizeGripHovered]     = ImVec4(0.41, 0.19, 0.63, 0.78);
+    colors[clr.ResizeGripActive]      = ImVec4(0.41, 0.19, 0.63, 1.00);
+    colors[clr.CloseButton]           = ImVec4(0.88, 0.74, 1.00, 0.59);
+    colors[clr.CloseButtonHovered]    = ImVec4(0.88, 0.74, 1.00, 0.59);
+    colors[clr.CloseButtonActive]     = ImVec4(0.88, 0.85, 0.92, 1.00);
+    colors[clr.PlotLines]             = ImVec4(0.89, 0.85, 0.92, 0.63);
+    colors[clr.PlotLinesHovered]      = ImVec4(0.41, 0.19, 0.63, 1.00);
+    colors[clr.PlotHistogram]         = ImVec4(0.89, 0.85, 0.92, 0.63);
+    colors[clr.PlotHistogramHovered]  = ImVec4(0.41, 0.19, 0.63, 1.00);
+    colors[clr.TextSelectedBg]        = ImVec4(0.41, 0.19, 0.63, 0.43);
+    colors[clr.ModalWindowDarkening]  = ImVec4(0.20, 0.20, 0.20, 0.35);
 end
 
 function imgui.CenterTextColoredRGB(text)
@@ -4778,7 +4750,7 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 		return false
 	end
 	
-	if string.find(title, 'В подразделении') then
+	if string.find(title, 'В подразделении') or string.find(title, 'В организации') then
 		local lines = '{FFFFFF}Имя	{FFFFFF}Ранг и должность	{FFFFFF}Телефон	{FFFFFF}Дополнительно'
 		for s in string.gmatch(text, "[^\n]+") do
 			if string.match(s, '(%d+). (.+)	(%d+) ранг. (.+)	(%d+)	(.+)') then
@@ -4962,7 +4934,7 @@ end
 
 function sampev.onPlayerChatBubble(id, color, dis, dur, mess)
 	if not string.find(mess, 'На паузе') and IPC(id) then
-		logchat[tonumber(table.maxn(logchat)) + 1] = 'BUBBLE\t[' .. os.date('%H') .. ':' .. os.date('%M') .. ':' .. os.date('%S') .. '] ' .. sampGetPlayerNickname(id) .. '[' .. id .. ']: ' .. mess
+		logchat[tonumber(table.maxn(logchat)) + 1] = string.format('BUUBLE\t[%d:%d:%d] %s[%d]: %s', os.date('%H'), os.date('%M'), os.date('%S'), sampGetPlayerNickname(id), id, mess)
     end
 	
 	if flymode then
@@ -5017,93 +4989,94 @@ function sampev.onSendDeathNotification(reas, id)
 end
 
 function sampev.onSendCommand(param)
-    if string.match(param, '(.+) (%d+)') then file, id = string.match(param, '(.+) (%d+)') else file = param end
-	if io.open('moonloader//helper/commands//' .. file .. '.txt') then
-		lua_thread.create(function()
-			local FileRead = io.open('moonloader//helper/commands//' .. file .. '.txt', 'r+')
-			local params = FileRead:read('*l')
-			FileRead:close()
-			if string.match(params, '{param = 0}') then
-				if string.match(param, '(%a)') then
-					for line in io.lines('moonloader//helper/commands//' .. file .. '.txt') do
-						if string.match(line, 'text: (.+)') or string.match(line, 'send: (.+)') then
-							local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-							local line = line:gsub('{name}', ini.info.name)
-							local line = line:gsub('{rTeg}', ini.info.rteg)
-							local line = line:gsub('{fTeg}', ini.info.fteg)
-							local line = line:gsub('{frac}', ini.info.frac)
-							local line = line:gsub('{num}', '№000' .. ini.info.number)
-							local line = line:gsub('{rang}', ini.info.rang)
-							local line = line:gsub('{myid}', id)
-							local line = line:gsub('{hello}', sampGetHelloByTime())
-							local line = line:gsub('{area}', calculateZone())
-							local line = line:gsub('{kvadrat}', kvadrat())
-							local line = line:gsub('{time}', os.date('%X'))
-							local line = line:gsub('{date}', os.date('%x'))
-							
-							if string.match(line, 'text: (.+)') then 
-								sampSendChat(string.match(line, 'text: (.+)')) 
-							elseif string.match(line, 'send: (.+)') then
-								SCM(string.match(line, 'send: (.+)')) 
-							end
-						elseif string.match(line, 'sleep: (%d+)') then
-							wait(string.match(line, 'sleep: (%d+)'))
-						elseif string.match(line, '{param = (%d+)}') then
-							wait(0)
-						else
-							SCM('Ошибка. Неизсветнная линия: ' .. line .. '.')
-						end
-					end
-				end
-			elseif string.match(params, '{param = 1}') then 
-				if string.match(param, '(.+) (%d+)') then
-					if IPC(id) then
-						for line in io.lines('moonloader//helper/commands//' .. file .. '.txt') do
-							if string.match(line, 'text: (.+)') or string.match(line, 'send: (.+)') then
-								local _, pid = sampGetPlayerIdByCharHandle(PLAYER_PED)
-								local line = line:gsub('{name}', ini.info.name)
-								local line = line:gsub('{rTeg}', ini.info.rteg)
-								local line = line:gsub('{fTeg}', ini.info.fteg)
-								local line = line:gsub('{frac}', ini.info.frac)
-								local line = line:gsub('{num}', '№000' .. ini.info.number)
-								local line = line:gsub('{rang}', ini.info.rang)
-								local line = line:gsub('{hello}', sampGetHelloByTime())
-								local line = line:gsub('{area}', calculateZone())
-								local line = line:gsub('{kvadrat}', kvadrat())
-								local line = line:gsub('{time}', os.date('%X'))
-								local line = line:gsub('{date}', os.date('%x'))
-								local line = line:gsub('{id}', id)
-								local line = line:gsub('{myid}', pid)
-								local line = line:gsub('{name_id}', string.gsub(sampGetPlayerNickname(id),'_',' '))
-								local line = line:gsub('{color_id}', '{' .. sampGetColor(id) .. '}')
-								local line = line:gsub('{ping_id}', sampGetPlayerPing(id))
-								local line = line:gsub('{score_id}', sampGetPlayerScore(id))
-								local line = line:gsub('{frac_id}', sampGetPlayerFractionByid(id))
+	if string.match(param, '(%S+)[%s](%S+)') then file, var = string.match(param, '(%S+)[%s](%S+)') else file, var = param, nil end
+	
+	local namefile = string.format('moonloader//helper/commands//%s.txt', file)
+	local linen, parametr = 0, false
+	local n_tab = {}
 
-								if string.match(line, 'text: (.+)') then 
-									sampSendChat(string.match(line, 'text: (.+)')) 
-								elseif string.match(line, 'send: (.+)') then
-									SCM(string.match(line, 'send: (.+)')) 
-								end
-							elseif string.match(line, 'sleep: (%d+)') then
-								wait(string.match(line, 'sleep: (%d+)'))
-							elseif string.match(line, '{param = (%d+)}') then
-								wait(0)
-							else
-								SCM('Ошибка. Неизсветнная линия: ' .. line .. '.')
+	if doesFileExist(namefile) then
+		lua_thread.create(function()
+			id = var
+			
+			for val in io.lines(namefile) do
+				wait(0)
+				
+				if string.match(val, '{param[%s]=[%s](%d+)}') and linen == 0 then
+					local n_param = tonumber(string.match(val, '{param[%s]=[%s](%d+)}'))
+					if n_param > 0 then
+						parametr = true
+						
+						if id == nil then
+							SCM(string.format('Используйте команду %s [ид игрока].', file))
+							break
+						elseif not IPC(id) then
+							SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+							break
+						end
+						
+						--[[if id == nil then
+							SCM(string.format('Используйте команду %s [{FFD700}параметры (%d){ffffff}].', file, n_param))
+							break
+						else
+							for l in id:gmatch('%S+') do
+								n_tab[#n_tab + 1] = l
 							end
 						end
-					else
-						SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+						
+						if (#n_tab) ~= n_param then
+							SCM(string.format('Используйте команду %s [{FFD700}параметры (%d){ffffff}].', file, n_param))
+							break
+						end]]
 					end
+				elseif string.match(val, 'sendChat.(%S+).') then
+					sampSendChat(func_to_text(string.match(val, 'sendChat.(.+).'), parametr, id))
+				elseif string.match(val, 'addChat.(%S+).') then
+					SCM(func_to_text(string.match(val, 'addChat.(.+).'), parametr, id))
+				elseif string.match(val, 'wait%((%d+)%)') then 
+					wait(tonumber(string.match(val, 'wait%((%d+)%)')))
 				else
-					SCM('Используйте команду ' .. file .. ' [ид игрока].')
-				end 
-			else
-				SCM('В команде не заданы параметры.')
+					print(string.format('Неизвестная линия: %s', val))
+				end
+				
+				linen = linen + 1
 			end
 		end)
 	end
+end
+
+function func_to_text(line, state, id)
+	local _, pid = sampGetPlayerIdByCharHandle(PLAYER_PED)
+	line = line:gsub('{name}', ini.info.name)
+	line = line:gsub('{rTeg}', ini.info.rteg)
+	line = line:gsub('{fTeg}', ini.info.fteg)
+	line = line:gsub('{frac}', ini.info.frac)
+	line = line:gsub('{num}', '№000' .. ini.info.number)
+	line = line:gsub('{rang}', ini.info.rang)
+	line = line:gsub('{hello}', sampGetHelloByTime())
+	line = line:gsub('{area}', calculateZone())
+	line = line:gsub('{kvadrat}', kvadrat())
+	line = line:gsub('{time}', os.date('%X'))
+	line = line:gsub('{date}', os.date('%x'))
+	line = line:gsub('{myid}', pid)
+	
+	if state and id ~= nil then
+		--[[local n_p = tonumber(string.match(line, '{var (%d+)}'))
+		if n_p ~= nil then
+			if tab[n_p] ~= nil then
+				line = line:gsub('{var (%d+)}', tab[n_p])
+			end
+		end]]
+		
+		line = line:gsub('{id}', id)
+		line = line:gsub('{name_id}', string.gsub(sampGetPlayerNickname(id),'_',' '))
+		line = line:gsub('{color_id}', '{' .. sampGetColor(id) .. '}')
+		line = line:gsub('{ping_id}', sampGetPlayerPing(id))
+		line = line:gsub('{score_id}', sampGetPlayerScore(id))
+		line = line:gsub('{frac_id}', sampGetPlayerFractionByid(id))
+	end
+	
+	return line
 end
 
 function startMaskTimer() 

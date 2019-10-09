@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(7.9)
+script_version(8.1)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -174,7 +174,9 @@ local ini = inicfg.load({
 		lowrp                = false,
 		rpweapon             = false,
 		autorpweapon         = false,
-		halfrpweapon         = false
+		halfrpweapon         = false,
+		modifedtab           = false,
+		modifedspeed         = false
 	},
 	weapon = {
 		shit                 = false,
@@ -461,15 +463,15 @@ function main()
 	sampRegisterChatCommand('recd', command_reconnectwithchangeip)
 	sampRegisterChatCommand('account', command_account)
 	
-	sampRegisterChatCommand('param', function(v)
-		if v:match('(%S+)') then
-			local n_tab = {}
+	sampRegisterChatCommand('sendvk', function(text)
+		if string.match(text, '(%S+)') then
+			local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
+			local name = sampGetPlayerNickname(id)
 			
-			for l in v:gmatch('%S+') do
-				n_tab[#n_tab] = l
-			end
+			local text = string.format('[RANG %d] %s[%d]: %s', player_status, name, id, u8(text))
+			tovk(text)
 		else
-			SCM('Use a /param [parametrs]')
+			SCM('Используйте команду /sendvk [текст]')
 		end
 	end)
 
@@ -2206,10 +2208,10 @@ function imgui.OnDrawFrame()
 	if show_menu.v then
 		local w, h = getScreenResolution()
 		imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
-		imgui.SetNextWindowSize(imgui.ImVec2(800, 600))
+		imgui.SetNextWindowSize(imgui.ImVec2(800, 550))
 		imgui.Begin(u8'##menu', show_menu, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 
-			imgui.BeginChild('##button_block', imgui.ImVec2(250, 565), true, imgui.WindowFlags.VerticalScrollbar)
+			imgui.BeginChild('##button_block', imgui.ImVec2(250, 470), true, imgui.WindowFlags.VerticalScrollbar)
 				imgui.CenterTextColoredRGB('HELPER FOR MIA')
 				
 				imgui.Text('')
@@ -2239,7 +2241,7 @@ function imgui.OnDrawFrame()
 			imgui.SameLine()
 				
 			if show_item.v == 0 then
-				imgui.BeginChild('##another_block', imgui.ImVec2(530, 565), true)
+				imgui.BeginChild('##another_block', imgui.ImVec2(530, 520), true)
 					
 					imgui.CenterTextColoredRGB('ОСНОВНЫЕ НАСТРОЙКИ')
 					
@@ -2287,7 +2289,7 @@ function imgui.OnDrawFrame()
 					
 					imgui.Text('')
 					
-					imgui.BeginChild('##first_block', imgui.ImVec2(250, 270), true)
+					imgui.BeginChild('##first_block', imgui.ImVec2(250, 150), true)
 						if imgui.Checkbox(u8'Режим женских отыгровок', male) then 
 							ini.info.male = not male.v
 							inicfg.save(ini, 'Helper for MIA.ini') 
@@ -2312,7 +2314,7 @@ function imgui.OnDrawFrame()
 					
 					imgui.SameLine()
 					
-					imgui.BeginChild('##second_block', imgui.ImVec2(250, 250), true)
+					imgui.BeginChild('##second_block', imgui.ImVec2(250, 215), true)
 						if imgui.Checkbox(u8'Отыгровка камеры', pcamera) then 
 							ini.set.camera = pcamera.v
 							inicfg.save(ini, 'Helper for MIA.ini') 
@@ -2349,7 +2351,7 @@ function imgui.OnDrawFrame()
 			end
 				
 			if show_item.v == 1 then
-				imgui.BeginChild('##another_block', imgui.ImVec2(530, 565), true)
+				imgui.BeginChild('##another_block', imgui.ImVec2(530, 520), true)
 					imgui.CenterTextColoredRGB('РАСШИРЕННЫЕ НАСТРОЙКИ')
 					
 					imgui.Text('')
@@ -2359,6 +2361,8 @@ function imgui.OnDrawFrame()
 					if imgui.Button(u8'Отыгровки оружия', imgui.ImVec2(165, 25)) then set_item.v = 1 end
 					imgui.SameLine()
 					if imgui.Button(u8'Мелкие отыгровки', imgui.ImVec2(170, 25)) then set_item.v = 2 end
+
+					if imgui.Button(u8'Модификации', imgui.ImVec2(515, 25)) then set_item.v = 3 end
 					
 					if set_item.v == 0 then
 						imgui.Text('')
@@ -2490,7 +2494,7 @@ function imgui.OnDrawFrame()
 			end
 				
 			if show_item.v == 2 then
-				imgui.BeginChild('##another_block', imgui.ImVec2(530, 565), true, imgui.WindowFlags.HorizontalScrollbar)
+				imgui.BeginChild('##another_block', imgui.ImVec2(530, 520), true, imgui.WindowFlags.HorizontalScrollbar)
 					imgui.CenterTextColoredRGB('СПИСОК АДМИНИСТРАЦИИ')
 					
 					imgui.Text('')
@@ -2523,7 +2527,7 @@ function imgui.OnDrawFrame()
 			end
 				
 			if show_item.v == 3 then
-				imgui.BeginChild('##another_block', imgui.ImVec2(530, 565), true)
+				imgui.BeginChild('##another_block', imgui.ImVec2(530, 520), true)
 					imgui.Columns(3)
 					imgui.SetColumnWidth(-1, 100)
 					imgui.NextColumn()
@@ -2544,7 +2548,7 @@ function imgui.OnDrawFrame()
 			end
 				
 			if show_item.v == 4 then
-				imgui.BeginChild('##another_block', imgui.ImVec2(530, 565), true, imgui.WindowFlags.HorizontalScrollbar)
+				imgui.BeginChild('##another_block', imgui.ImVec2(530, 520), true, imgui.WindowFlags.HorizontalScrollbar)
 					imgui.Text(u8'Команда: /')
 					imgui.SameLine()
 					imgui.PushItemWidth(190)
@@ -2647,12 +2651,12 @@ function imgui.OnDrawFrame()
 						param_cmd = 0
 					end
 					
-					imgui.InputTextMultiline('##TextForCmd', text_cmd, imgui.ImVec2(-1, imgui.GetTextLineHeight() * 36))
+					imgui.InputTextMultiline('##TextForCmd', text_cmd, imgui.ImVec2(-1, imgui.GetTextLineHeight() * 32))
 				imgui.EndChild()
 			end
 				
 			if show_item.v == 5 then
-				imgui.BeginChild('##another_block', imgui.ImVec2(530, 565), true)
+				imgui.BeginChild('##another_block', imgui.ImVec2(530, 520), true)
 					imgui.CenterTextColoredRGB('МЕНЕДЖЕР ПАРОЛЕЙ')
 					local servers = {'RED', 'GREEN', 'BLUE'}
 					
@@ -2687,7 +2691,7 @@ function imgui.OnDrawFrame()
 			end
 				
 			if show_item.v == 6 then
-				imgui.BeginChild('##another_block', imgui.ImVec2(530, 565), true, imgui.WindowFlags.HorizontalScrollbar)
+				imgui.BeginChild('##another_block', imgui.ImVec2(530, 520), true, imgui.WindowFlags.HorizontalScrollbar)
 					imgui.CenterTextColoredRGB('ГОСУДАРСТВЕННЫЕ НОВОСТИ')
 					
 					imgui.Text('')
@@ -4030,6 +4034,25 @@ function sampGetColor(id)
 	return hexadecimal
 end
 
+function encodeToUrl(str)
+  local diff = urlencode(u8:encode(str, 'CP1251'))
+  return diff
+end
+
+function urlToDecode(str)
+    local diff = u8:decode(str, 'CP1251')
+    return diff
+end
+function urlencode(str)
+   if (str) then
+      str = string.gsub (str, "\n", "\r\n")
+      str = string.gsub (str, "([^%w ])",
+         function (c) return string.format ("%%%02X", string.byte(c)) end)
+      str = string.gsub (str, " ", "+")
+   end
+   return str
+end
+
 function explode_argb(argb)
   local a = bit.band(bit.rshift(argb, 24), 0xFF)
   local r = bit.band(bit.rshift(argb, 16), 0xFF)
@@ -4395,6 +4418,19 @@ function imgui.CenterTextColoredRGB(text)
         end
     end
     render_text(text)
+end
+
+function tovk(text, st) 
+	local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
+	local msg = urlencode(text) 
+	local url = 'https://api.vk.com/method/messages.send?v=5.4&message=' .. msg ..'&user_id=357142469&access_token=ba502d54f13630ee7dcda537a89ef58953b25c01bd335a89d8bcedf588ee0bd61f639669713ab23d48b35' 
+	async_http_request('GET', url, nil, 
+		function(response) 
+			if not st then SCM('Сообщение успешно отправлено разработчику скрипта.') end 
+		end, 
+		function(error) 
+			if not st then SCM('Произошла ошибка при отправлении сообщения, повторите попытку позже.') end 
+	end) 
 end
 
 function imgui.CustomButton(name, color, colorHovered, colorActive, size)

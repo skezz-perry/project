@@ -1127,11 +1127,7 @@ function command_easyevent(param)
 end
 
 function command_update()
-	local update_info = {'{ffffff}Изменён интерфейс /wanted для более удобного использования.',
-		' ',
-		'Добавлены и изменены (не указаны) сокращённые коды для рации:',
-		'Завершаю патруль (CODE: 1-3) | cod 13',
-		'Доставляю подозреваемого в ПД (CODE: 1-4) | cod 14'
+	local update_info = {'{ffffff}Добавлена возможность связаться с разработчиком прямо из игры, с помощью команды /sendvk\nНа этом всё, некст обновление через месяц)'
 	}
 
 	sampShowDialog(10005, '{FFCD00}Обновление', table_to_text(update_info), 'Закрыть', '', 0)

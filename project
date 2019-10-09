@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(8.3) 
+script_version(8.4)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -396,8 +396,8 @@ local editor             = imgui.ImBool(false)
 function main()
 	if not isSampLoaded() or not isSampfuncsLoaded() then return end
 	while not isSampAvailable() do wait(100) end
-
-	autoUpdate('https://raw.githubusercontent.com/skezz-perry/project/master/project')
+	
+	autoupdate('https://raw.githubusercontent.com/skezz-perry/project/master/version', 'https://raw.githubusercontent.com/skezz-perry/project/master/project')
 
 	for i = 1, 46 do
 		if weapons.get_name(i) == nil then
@@ -5216,39 +5216,7 @@ function sampev.onMoveObject(id, pos, npos, speed, rot)
 	end
 end
 
-function autoUpdate(url)
-	local file = thisScript().path
-	local version = thisScript().version
-	
-	async_http_request('GET', url, nil,
-		function(response)
-			if string.match(response.text, 'script_version%((%S+)%)') then
-				local update_version = string.match(response.text, 'script_version%((%S+)%)')
-				if version == update_version then
-					SCM('Игровой помощник для МВД был успешно запущен. Вы используйте актуальную версию скрипта.')
-					getUsers()
-				else
-					local text = u8:decode(response.text)
-					
-					local file_up = io.open(file, 'w')
-					file_up:write(text)
-					file_up:close()
-					SCM(string.format('Игровой помощник для МВД был автоматически обновлён до новейшей версии. Подробнее /update.'))
-					
-					lua_thread.create(function() wait(1000) thisScript():reload() end)
-				end
-			else
-				SCM('Произошла ошибка при попытке обновления. Не удаётся определить актуальную версию.')
-			end
-		end,
-		
-		function(err)
-			SCM('Произошла ошибка при попытке обновления. Подробнее в консоле.')
-			print(err)
-	end)
-end
-
---[[function autoupdate(json_url, url) -- Author: http://qrlk.me/samp
+function autoupdate(json_url, url) -- Author: http://qrlk.me/samp
   local json = getWorkingDirectory() .. '\\'..thisScript().name..'-version.json'
   if doesFileExist(json) then os.remove(json) end
   downloadUrlToFile(json_url, json,
@@ -5288,6 +5256,7 @@ end
             else
               update = false
               SCM('Игровой помощник для МВД был успешно запущен. Вы используйте актуальную версию скрипта.')
+			  getUsers()
             end
           end
         else
@@ -5298,7 +5267,7 @@ end
     end
   )
   while update ~= false do wait(100) end
-end]]
+end
 
 function rkeys.onHotKey(id, keys)
     if sampIsChatInputActive() or sampIsDialogActive() or isSampfuncsConsoleActive() then

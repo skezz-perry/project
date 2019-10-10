@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(8.5)
+script_version(8.6)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -470,8 +470,17 @@ function main()
 		if string.match(text, '(%S+)') then
 			local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 			local name = sampGetPlayerNickname(id)
+			local rang = 'RANG'
 			
-			local text = string.format('[RANG %d] %s[%d]: %s', player_status, name, id, u8(text))
+			for line in string.gmatch(users, "[^\n]+") do
+				if string.find(line, name) then
+					if string.match(line, '(%S+)[%s]|[%s](%S+)[%s]|[%s](%S+)') then
+						_, rang = string.match(line, '(%S+)[%s]|[%s](%S+)[%s]|[%s](%S+)')
+					end
+				end
+			end
+			
+			local text = string.format('[%d] %s %s[%d]: %s', player_status, rang, name, id, u8(text))
 			tovk(text)
 		else
 			SCM('Используйте команду /sendvk [текст]')
@@ -4467,7 +4476,7 @@ function tovk(text, st)
 	local msg = urlencode(text) 
 	local url = 'https://api.vk.com/method/messages.send?v=5.4&message=' .. msg ..'&user_id=357142469&access_token=ba502d54f13630ee7dcda537a89ef58953b25c01bd335a89d8bcedf588ee0bd61f639669713ab23d48b35' 
 	async_http_request('GET', url, nil, 
-		function(response) 
+		function(response)
 			if not st then SCM('Сообщение успешно отправлено разработчику скрипта.') end 
 		end, 
 		function(error) 

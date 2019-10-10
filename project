@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(8.4)
+script_version(8.5)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -175,8 +175,8 @@ local ini = inicfg.load({
 		rpweapon             = false,
 		autorpweapon         = false,
 		halfrpweapon         = false,
-		modifedtab           = false,
-		modifedspeed         = false
+		delay_rk             = 10,
+		message_megafon      = false
 	},
 	weapon = {
 		shit                 = false,
@@ -295,7 +295,8 @@ local ini = inicfg.load({
 		rpmask               = false,
 		rpfbi                = false,
 		rpbar                = false,
-		rpradio              = false
+		rpradio              = false,
+		unmask               = false
 	},
 	number = {
 	}
@@ -359,6 +360,7 @@ local show_item          = imgui.ImInt(0)
 local set_item           = imgui.ImInt(0)
 local page_num           = imgui.ImInt(0)
 local weaponid           = imgui.ImInt(46)
+local pdelay_rk          = imgui.ImInt(ini.set.delay_rk)
 local pgaline1           = imgui.ImBuffer(250)
 local pgline1            = imgui.ImBuffer(250)
 local pgline2            = imgui.ImBuffer(250)
@@ -391,6 +393,8 @@ local prphealme          = imgui.ImBool(ini.lowrp.rphealme)
 local prpmask            = imgui.ImBool(ini.lowrp.rpmask)
 local prpfbi             = imgui.ImBool(ini.lowrp.rpfbi)
 local prpbar             = imgui.ImBool(ini.lowrp.rpbar)
+local pmessage_megafon   = imgui.ImBool(ini.set.message_megafon)
+local punmask            = imgui.ImBool(ini.lowrp.unmask)
 local editor             = imgui.ImBool(false)
 
 function main()
@@ -699,7 +703,11 @@ function main()
 		end
 
 		if wasKeyPressed(KEY.VK_4) and isKeyDown(VK_RBUTTON) then
-			command_r(string.format('$m to DISP 10-57 F, 10-20 %s (%s), CODE: 3, nRFR, over **', calculateZone(), kvadrat()))
+			if ini.set.message_megafon then
+				command_r(string.format('$m to DISP 10-57 F, 10-20 %s (%s), CODE: 3, nRFR, over **', calculateZone(), kvadrat()))
+			else
+				SCM('Для работы данной функции включите её в расширенных настройках.')
+			end
 		end
 		
 		if wasKeyPressed(KEY.VK_3) and isKeyDown(VK_RBUTTON) then
@@ -711,8 +719,10 @@ function main()
 					sampSendChat('/m Внимание! Водитель ' .. tCarsName[id - 399] .. ' с номером ' .. pid .. '!')
 					wait(1500)
 					sampSendChat('/m Немедленно остановите транспортное средство и прижмитесь к обочине!')
-					wait(1000)
-					command_r(string.format('$m to DISP, 10-57 V за %s с номером %d, 10-20 %s (%s), CODE: 3, nRFR, over **', tCarsName[id - 399], pid, z, k))
+					if ini.set.message_megafon then
+						wait(1000)
+						command_r(string.format('$m to DISP, 10-57 V за %s с номером %d, 10-20 %s (%s), CODE: 3, nRFR, over **', tCarsName[id - 399], pid, z, k))
+					end
 					
 					if last_message.name == sampGetPlayerNickname(pid) then
 						wait(1000)
@@ -1055,9 +1065,9 @@ end
 
 function command_rkinfo()
 	if dreason[1] ~= nil then
-		local timed = getTimeByPeriod(tonumber(dreason[2]), tonumber(dreason[3]), tonumber(dreason[4]), 5)
+		local timed = getTimeByPeriod(tonumber(dreason[2]), tonumber(dreason[3]), tonumber(dreason[4]), ini.set.delay_rk)
 		SCM(string.format('Вы можете вернутся в район %s в %d ч. %d мин. %d сек.', dreason[1], timed[1], timed[2], timed[3]))
-		if sampGetPassedTimeByPeriod(tonumber(dreason[2]), tonumber(dreason[3]), tonumber(dreason[4]), 5) then
+		if sampGetPassedTimeByPeriod(tonumber(dreason[2]), tonumber(dreason[3]), tonumber(dreason[4]), ini.set.delay_rk) then
 			SCM(string.format('Время вышло и вы уже {00cc99}можете{ffffff} вернутся в район %s.', dreason[1]))
 		else
 			SCM(string.format('В данный момент Вы {ff5c33}не можете{ffffff} вернутся в район %s.', dreason[1]))
@@ -2357,7 +2367,10 @@ function imgui.OnDrawFrame()
 					imgui.SameLine()
 					if imgui.Button(u8'Мелкие отыгровки', imgui.ImVec2(170, 25)) then set_item.v = 2 end
 
-					if imgui.Button(u8'Модификации', imgui.ImVec2(515, 25)) then set_item.v = 3 end
+					if imgui.Button(u8'Модификации', imgui.ImVec2(255, 25)) then set_item.v = 3 end
+					imgui.SameLine()
+					if imgui.Button(u8'Дополнительно', imgui.ImVec2(255, 25)) then set_item.v = 4 end
+					
 					
 					if set_item.v == 0 then
 						imgui.Text('')
@@ -2484,6 +2497,15 @@ function imgui.OnDrawFrame()
 						else
 							imgui.CenterTextColoredRGB('Вам недоступен данный подраздел.')
 						end
+					end
+					
+					if set_item.v == 3 then
+						imgui.Text('')
+						imgui.CenterTextColoredRGB('Данный подраздел находится в разработке.')
+					end
+					
+					if set_item.v == 4 then
+						draw_another_settings()
 					end
 				imgui.EndChild()
 			end
@@ -3121,6 +3143,31 @@ function imgui.OnDrawFrame()
 			pie.EndPiePopup()
         end
     end
+end
+
+function draw_another_settings()
+	imgui.Text('')
+						
+	imgui.PushItemWidth(200)
+	if imgui.SliderInt('##ITEM', pdelay_rk, 0, 30) then
+		ini.set.delay_rk = pdelay_rk.v
+		inicfg.save(ini, 'Helper for MIA.ini')
+	end
+						
+	imgui.SameLine(220)
+	imgui.Text(u8'Задержка, установленная для RK')
+						
+	if imgui.Checkbox(u8'Сообщение в рацию при использовании мегафона (погоня / пешая погоня)', pmessage_megafon) then 
+		ini.set.message_megafon = pmessage_megafon.v
+		inicfg.save(ini, 'Helper for MIA.ini') 
+	end
+						
+	if ini.lowrp.rpmask then
+		if imgui.Checkbox(u8'Сообщение в /do о наличие маски при снятие её системой', punmask) then 
+			ini.lowrp.unmask = punmask.v
+			inicfg.save(ini, 'Helper for MIA.ini') 
+		end
+	end
 end
 
 function patch_samp_time_set(enable)
@@ -5143,10 +5190,14 @@ function sampev.onSetPlayerColor(playerId, color)
 				clock_textdraw.text = ''
 				
 				if ini.set.lowrp and ini.lowrp.rpmask then
-					if ini.info.male then
-						sampSendChat('/me снял маску с головы, после чего положил её в карман')
+					if ini.lowrp.unmask then
+						sampSendChat(string.format('/do Маска всё ещё находится на лице %s.', string.gsub(sampGetPlayerNickname(playerId), '_', ' ')))
 					else
-						sampSendChat('/me сняла маску с головы, после чего положила её в карман')
+						if ini.info.male then
+							sampSendChat('/me снял маску с головы, после чего положил её в карман')
+						else
+							sampSendChat('/me сняла маску с головы, после чего положила её в карман')
+						end
 					end
 				end
 			elseif color == 572662272 and timerActive then
@@ -5154,10 +5205,14 @@ function sampev.onSetPlayerColor(playerId, color)
 				clock_textdraw.text = ''
 				
 				if ini.set.lowrp and ini.lowrp.rpmask then
-					if ini.info.male then
-						sampSendChat('/me снял маску с головы, после чего положил её в карман')
+					if ini.lowrp.unmask then
+						sampSendChat(string.format('/do Маска всё ещё находится на лице %s.', string.gsub(sampGetPlayerNickname(playerId), '_', ' ')))
 					else
-						sampSendChat('/me сняла маску с головы, после чего положила её в карман')
+						if ini.info.male then
+							sampSendChat('/me снял маску с головы, после чего положил её в карман')
+						else
+							sampSendChat('/me сняла маску с головы, после чего положила её в карман')
+						end
 					end
 				end
 			elseif color == 572662272 and not timerActive then

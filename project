@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(8.6)
+script_version(8.7)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -302,6 +302,35 @@ local ini = inicfg.load({
 	}
 }, 'Helper for MIA.ini')
 
+local iini = {
+	custom = {
+		WindowBg = imgui.ImFloat4(imgui.ImColor(0.14 * 255, 0.12 * 255, 0.16 * 255, 0.99 * 255):GetFloat4()),
+		ChildWindowBg = imgui.ImFloat4(imgui.ImColor(0.30 * 255, 0.20 * 255, 0.39 * 255, 0.00 * 255):GetFloat4()),
+		TitleBg = imgui.ImFloat4(imgui.ImColor(0.41 * 255, 0.19 * 255, 0.63 * 255, 1.00 * 255):GetFloat4()),
+		TitleBgCollapsed = imgui.ImFloat4(imgui.ImColor(0.41 * 255, 0.19 * 255, 0.63 * 255, 1.00 * 255):GetFloat4()),
+		TitleBgActive = imgui.ImFloat4(imgui.ImColor(0.41 * 255, 0.19 * 255, 0.63 * 255, 1.00 * 255):GetFloat4()),
+		ScrollbarBg = imgui.ImFloat4(imgui.ImColor(0.30 * 255, 0.20 * 255, 0.39 * 255, 1.00 * 255):GetFloat4()),
+		ScrollbarGrab = imgui.ImFloat4(imgui.ImColor(0.41 * 255, 0.19 * 255, 0.63 * 255, 0.31 * 255):GetFloat4()),
+		ScrollbarGrabHovered = imgui.ImFloat4(imgui.ImColor(0.41 * 255, 0.19 * 255, 0.63 * 255, 0.78 * 255):GetFloat4()),
+		ScrollbarGrabActive = imgui.ImFloat4(imgui.ImColor(0.41 * 255, 0.19 * 255, 0.63 * 255, 1.00 * 255):GetFloat4()),
+		ComboBg = imgui.ImFloat4(imgui.ImColor(0.30 * 255, 0.20 * 255, 0.39 * 255, 1.00 * 255):GetFloat4()),
+		CheckMark = imgui.ImFloat4(imgui.ImColor(0.56 * 255, 0.61 * 255, 1.00 * 255, 1.00 * 255):GetFloat4()),
+		SliderGrab = imgui.ImFloat4(imgui.ImColor(0.41 * 255, 0.19 * 255, 0.63 * 255, 0.24 * 255):GetFloat4()),
+		SliderGrabActive = imgui.ImFloat4(imgui.ImColor(0.41 * 255, 0.19 * 255, 0.63 * 255, 1.00 * 255):GetFloat4()),
+		Button = imgui.ImFloat4(imgui.ImColor(0.41 * 255, 0.19 * 255, 0.63 * 255, 0.44 * 255):GetFloat4()),
+		ButtonHovered = imgui.ImFloat4(imgui.ImColor(0.41 * 255, 0.19 * 255, 0.63 * 255, 0.86 * 255):GetFloat4()),
+		ButtonActive = imgui.ImFloat4(imgui.ImColor(0.41 * 255, 0.19 * 255, 0.63 * 255, 1.00 * 255):GetFloat4()),
+		Header = imgui.ImFloat4(imgui.ImColor(0.41 * 255, 0.19 * 255, 0.63 * 255, 0.76 * 255):GetFloat4()),
+		HeaderHovered = imgui.ImFloat4(imgui.ImColor(0.41 * 255, 0.19 * 255, 0.63 * 255, 0.86 * 255):GetFloat4()),
+		HeaderActive = imgui.ImFloat4(imgui.ImColor(0.41 * 255, 0.19 * 255, 0.63 * 255, 1.00 * 255):GetFloat4()),
+		CloseButton = imgui.ImFloat4(imgui.ImColor(0.88 * 255, 0.74 * 255, 1.00 * 255, 0.59 * 255):GetFloat4()),
+		CloseButtonHovered = imgui.ImFloat4(imgui.ImColor(0.88 * 255, 0.74 * 255, 1.00 * 255, 0.59 * 255):GetFloat4()),
+		CloseButtonActive = imgui.ImFloat4(imgui.ImColor(0.88 * 255, 0.74 * 255, 1.00 * 255, 1.00 * 255):GetFloat4()),
+		Text = imgui.ImFloat4(imgui.ImColor(255, 255, 255, 255):GetFloat4()),
+		TextSelectedBg = imgui.ImFloat4(imgui.ImColor(0.41 * 255, 0.19 * 255, 0.63 * 255, 0.43 * 255):GetFloat4()),
+	}
+}
+
 local pass = inicfg.load({
 	red = {},
 	green = {},
@@ -360,6 +389,7 @@ local show_item          = imgui.ImInt(0)
 local set_item           = imgui.ImInt(0)
 local page_num           = imgui.ImInt(0)
 local weaponid           = imgui.ImInt(46)
+local inpball            = imgui.ImInt(5)
 local pdelay_rk          = imgui.ImInt(ini.set.delay_rk)
 local pgaline1           = imgui.ImBuffer(250)
 local pgline1            = imgui.ImBuffer(250)
@@ -375,6 +405,7 @@ local fteg               = imgui.ImBuffer(256)
 local name_cmd           = imgui.ImBuffer(256)
 local takeweap           = imgui.ImBuffer(256)
 local takeweapoff        = imgui.ImBuffer(256)
+local inpcomment         = imgui.ImBuffer(1000)
 local search_place       = imgui.ImBuffer(1000)
 local text_cmd           = imgui.ImBuffer(9999)
 local admins             = imgui.ImBuffer(9999)
@@ -470,17 +501,8 @@ function main()
 		if string.match(text, '(%S+)') then
 			local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 			local name = sampGetPlayerNickname(id)
-			local rang = 'RANG'
 			
-			for line in string.gmatch(users, "[^\n]+") do
-				if string.find(line, name) then
-					if string.match(line, '(%S+)[%s]|[%s](%S+)[%s]|[%s](%S+)') then
-						_, rang = string.match(line, '(%S+)[%s]|[%s](%S+)[%s]|[%s](%S+)')
-					end
-				end
-			end
-			
-			local text = string.format('[%d] %s %s[%d]: %s', player_status, rang, name, id, u8(text))
+			local text = string.format('-\n%s\n[id %d | rang %d] %s ~ %s\n-', u8(sampGetCurrentServerName()), id, player_status, name, u8(text))
 			tovk(text)
 		else
 			SCM('Используйте команду /sendvk [текст]')
@@ -672,7 +694,7 @@ function main()
 			end
 		end
 		
-		if wasKeyPressed(KEY.VK_Z) and isKeyCheckAvailable() then
+		--[[if wasKeyPressed(KEY.VK_Z) and isKeyCheckAvailable() then
 			local res, ped = getCharPlayerIsTargeting(PLAYER_HANDLE)
 			if res then
 				_, targetid = sampGetPlayerIdByCharHandle(ped)
@@ -683,7 +705,7 @@ function main()
 				targetid = nil
 				piemenu.v = not piemenu.v
 			end
-        end
+        end]]
 
 		if isCharInAnyCar(PLAYER_PED) and ini.set.strobes then
 
@@ -1144,20 +1166,10 @@ function command_easyevent(param)
 	end
 end
 
-function command_update()
-	local update_info = {'{ffffff}Добавлена возможность связаться с разработчиком прямо из игры, с помощью команды /sendvk\nНа этом всё, некст обновление через месяц)'
-	}
-
-	sampShowDialog(10005, '{FFCD00}Обновление', table_to_text(update_info), 'Закрыть', '', 0)
-end
-
 function table_to_text(tab)
-	local text = '{ffffff}Информация о обновлении.\n'
 	for i, val in pairs(tab) do
-		text = string.format('%s\n%s', text, val)
+		imgui.TextColoredRGB(val)
 	end
-	
-	return text
 end
 
 function command_report(text)
@@ -2230,20 +2242,25 @@ function imgui.OnDrawFrame()
 				
 				imgui.Text('')
 				
-				if imgui.Button(u8'Настройки', imgui.ImVec2(235, 25))      then show_item.v = 0 end
+				if imgui.Button(u8'Главная страница', imgui.ImVec2(235, 25)) then show_item.v = 8 end
+				if imgui.Button(u8'Настройки', imgui.ImVec2(235, 25)) then show_item.v = 0 end
 				if imgui.Button(u8'Расширенные настройки', imgui.ImVec2(235, 25)) then show_item.v = 1 end
 				if player_status > 1 then
-					if imgui.Button(u8'Администрация', imgui.ImVec2(235, 25))  then show_item.v = 2 end
+					if imgui.Button(u8'Администрация', imgui.ImVec2(235, 25)) then show_item.v = 2 end
 				end
-				if imgui.Button(u8'Информация', imgui.ImVec2(235, 25))     then show_item.v = 3 end
-				if imgui.Button(u8'Дополнительные команды', imgui.ImVec2(235, 25))   then show_item.v = 4 end
-				if imgui.Button(u8'Менеджер паролей', imgui.ImVec2(235, 25)) then show_item.v = 5 end
+				if imgui.Button(u8'Информация', imgui.ImVec2(235, 25)) then show_item.v = 3 end
+				if imgui.Button(u8'Дополнительные команды', imgui.ImVec2(235, 25)) then show_item.v = 4 end
+				if imgui.Button(u8'Кастомизация', imgui.ImVec2(235, 25)) then show_item.v = 5 end
+				if imgui.Button(u8'Менеджер паролей', imgui.ImVec2(235, 25)) then show_item.v = 6 end
 			    if player_status > 3 then 	
-					if imgui.Button(u8'Панель лидера', imgui.ImVec2(235, 25))  then show_item.v = 6 end
+					if imgui.Button(u8'Панель лидера', imgui.ImVec2(235, 25)) then show_item.v = 7 end
 				end
-				if imgui.Button(u8'Перезагрузить', imgui.ImVec2(235, 25))  then
+				if imgui.Button(u8'Перезагрузить', imgui.ImVec2(235, 25)) then
 					show_menu.v = not show_menu.v
 					lua_thread.create(function() wait(1000) thisScript():reload() end)
+				end
+				if imgui.Button(u8'Выключить', imgui.ImVec2(235, 25)) then
+					thisScript():unload()
 				end
 				
 				imgui.Text('')
@@ -2253,7 +2270,51 @@ function imgui.OnDrawFrame()
 			imgui.EndChild()
 			
 			imgui.SameLine()
-				
+			
+			if show_item.v == 8 then
+				imgui.BeginChild('##another_block', imgui.ImVec2(530, 520), true)
+					
+					imgui.CenterTextColoredRGB('ГЛАВНАЯ СТРАНИЦА')
+					
+					imgui.Text('')
+					
+					local update_info = {
+						'Добавлена кастомизация в тестовом режиме (без возможности сохранить значение)',
+						'Добавлена связь с разработчиком прямо из игры, с помощью команды /sendvk',
+						' ',
+						'Временно убраны горячие клавиши Z и ПКМ + Z',
+					}
+					table_to_text(update_info)
+					
+					imgui.Text('')
+					imgui.Text('')
+					
+					imgui.CenterTextColoredRGB('Оставьте оценку и комментарий к обновлению')
+					imgui.Text('')
+					
+					if imgui.Button(u8'Отправить', imgui.ImVec2(515, 20)) then
+						local comment = u8'Пользователь не оставил комментарий.'
+						
+						if inpcomment.v ~= '' then
+							comment = inpcomment.v
+						end
+						
+						local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
+						local name = sampGetPlayerNickname(id)
+
+						tovk(string.format(u8'-\n%s\n[id %d | rang %d] %s оценил обновление на %d балл(-ов)\nКомментарий: %s\n-', u8(sampGetCurrentServerName()), id, player_status, name, inpball.v, comment), true)
+						
+						inpball.v, inpcomment.v = 5, ''
+					end
+					
+					imgui.Text(u8'Оценка: '); imgui.SameLine()
+					imgui.PushItemWidth(460)
+					imgui.SliderInt('##inpball', inpball, 1, 5)
+					imgui.PushItemWidth(420)
+					imgui.InputTextMultiline('##update_com', inpcomment, imgui.ImVec2(-1, imgui.GetTextLineHeight() * 8))
+				imgui.EndChild()
+			end
+			
 			if show_item.v == 0 then
 				imgui.BeginChild('##another_block', imgui.ImVec2(530, 520), true)
 					
@@ -2680,8 +2741,23 @@ function imgui.OnDrawFrame()
 					imgui.InputTextMultiline('##TextForCmd', text_cmd, imgui.ImVec2(-1, imgui.GetTextLineHeight() * 32))
 				imgui.EndChild()
 			end
-				
+			
 			if show_item.v == 5 then
+				imgui.BeginChild('##another_block', imgui.ImVec2(530, 520), true)
+					imgui.CenterTextColoredRGB('КАСТОМИЗАЦИЯ')
+					imgui.Text('')
+					
+					if imgui.Button(u8'Применить новые значения', imgui.ImVec2(515, 25)) then
+						--inicfg.save(ini, 'Helper for MIA.ini')
+						apply_custom_style()
+					end
+					imgui.Text('')
+					
+					draw_customization()
+				imgui.EndChild()
+			end
+			
+			if show_item.v == 6 then
 				imgui.BeginChild('##another_block', imgui.ImVec2(530, 520), true)
 					imgui.CenterTextColoredRGB('МЕНЕДЖЕР ПАРОЛЕЙ')
 					local servers = {'RED', 'GREEN', 'BLUE'}
@@ -2716,7 +2792,7 @@ function imgui.OnDrawFrame()
 				imgui.EndChild()
 			end
 				
-			if show_item.v == 6 then
+			if show_item.v == 7 then
 				imgui.BeginChild('##another_block', imgui.ImVec2(530, 520), true, imgui.WindowFlags.HorizontalScrollbar)
 					imgui.CenterTextColoredRGB('ГОСУДАРСТВЕННЫЕ НОВОСТИ')
 					
@@ -3179,7 +3255,17 @@ function draw_another_settings()
 	end
 end
 
-function patch_samp_time_set(enable)
+function draw_customization()
+	for obj in pairs(iini.custom) do
+		local color = iini.custom[obj] 
+		
+		if imgui.ColorEdit4(obj, color) then
+			iini.custom[obj] = color
+		end
+	end
+end
+
+function patch_samp_time_set(enable) 
 	if enable and default == nil then
 		default = readMemory(sampGetBase() + 0x9C0A0, 4, true)
 		writeMemory(sampGetBase() + 0x9C0A0, 4, 0x000008C2, true)
@@ -3300,7 +3386,7 @@ function sampGetNearestDriver()
 		end
 	end
 	
-	return drv.id, drv.vid
+	return drv.id, drv.vid 
 end
 
 function sampIsPlayerCarHaveSuspect(id)
@@ -4374,43 +4460,25 @@ function apply_custom_style()
 	style.GrabMinSize = 8.0
 	style.GrabRounding = 1.0
 	
-    colors[clr.WindowBg]              = ImVec4(0.14, 0.12, 0.16, 0.99);
-    colors[clr.ChildWindowBg]         = ImVec4(0.30, 0.20, 0.39, 0.00);
+	for obj in pairs(iini.custom) do
+		local object = iini.custom[obj]
+		colors[clr[obj]] = ImVec4(object.v[1], object.v[2], object.v[3], object.v[4])
+	end
+	
     colors[clr.PopupBg]               = ImVec4(0.05, 0.05, 0.10, 0.90);
     colors[clr.Border]                = ImVec4(0.89, 0.85, 0.92, 0.00);
     colors[clr.BorderShadow]          = ImVec4(0.00, 0.00, 0.00, 0.00);
     colors[clr.FrameBg]               = ImVec4(0.30, 0.20, 0.39, 1.00);
     colors[clr.FrameBgHovered]        = ImVec4(0.41, 0.19, 0.63, 0.68);
     colors[clr.FrameBgActive]         = ImVec4(0.41, 0.19, 0.63, 1.00);
-    colors[clr.TitleBg]               = ImVec4(0.41, 0.19, 0.63, 1.00);
-    colors[clr.TitleBgCollapsed]      = ImVec4(0.41, 0.19, 0.63, 1.00);
-    colors[clr.TitleBgActive]         = ImVec4(0.41, 0.19, 0.63, 1.00);
     colors[clr.MenuBarBg]             = ImVec4(0.30, 0.20, 0.39, 0.57);
-    colors[clr.ScrollbarBg]           = ImVec4(0.30, 0.20, 0.39, 1.00);
-    colors[clr.ScrollbarGrab]         = ImVec4(0.41, 0.19, 0.63, 0.31);
-    colors[clr.ScrollbarGrabHovered]  = ImVec4(0.41, 0.19, 0.63, 0.78);
-    colors[clr.ScrollbarGrabActive]   = ImVec4(0.41, 0.19, 0.63, 1.00);
-    colors[clr.ComboBg]               = ImVec4(0.30, 0.20, 0.39, 1.00);
-    colors[clr.CheckMark]             = ImVec4(0.56, 0.61, 1.00, 1.00);
-    colors[clr.SliderGrab]            = ImVec4(0.41, 0.19, 0.63, 0.24);
-    colors[clr.SliderGrabActive]      = ImVec4(0.41, 0.19, 0.63, 1.00);
-    colors[clr.Button]                = ImVec4(0.41, 0.19, 0.63, 0.44);
-    colors[clr.ButtonHovered]         = ImVec4(0.41, 0.19, 0.63, 0.86);
-    colors[clr.ButtonActive]          = ImVec4(0.64, 0.33, 0.94, 1.00);
-    colors[clr.Header]                = ImVec4(0.41, 0.19, 0.63, 0.76);
-    colors[clr.HeaderHovered]         = ImVec4(0.41, 0.19, 0.63, 0.86);
-    colors[clr.HeaderActive]          = ImVec4(0.41, 0.19, 0.63, 1.00);
     colors[clr.ResizeGrip]            = ImVec4(0.41, 0.19, 0.63, 0.20);
     colors[clr.ResizeGripHovered]     = ImVec4(0.41, 0.19, 0.63, 0.78);
     colors[clr.ResizeGripActive]      = ImVec4(0.41, 0.19, 0.63, 1.00);
-    colors[clr.CloseButton]           = ImVec4(0.88, 0.74, 1.00, 0.59);
-    colors[clr.CloseButtonHovered]    = ImVec4(0.88, 0.74, 1.00, 0.59);
-    colors[clr.CloseButtonActive]     = ImVec4(0.88, 0.85, 0.92, 1.00);
     colors[clr.PlotLines]             = ImVec4(0.89, 0.85, 0.92, 0.63);
     colors[clr.PlotLinesHovered]      = ImVec4(0.41, 0.19, 0.63, 1.00);
     colors[clr.PlotHistogram]         = ImVec4(0.89, 0.85, 0.92, 0.63);
     colors[clr.PlotHistogramHovered]  = ImVec4(0.41, 0.19, 0.63, 1.00);
-    colors[clr.TextSelectedBg]        = ImVec4(0.41, 0.19, 0.63, 0.43);
     colors[clr.ModalWindowDarkening]  = ImVec4(0.20, 0.20, 0.20, 0.35);
 end
 

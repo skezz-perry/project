@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(8.7)
+script_version(8.8)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -2241,24 +2241,24 @@ function imgui.OnDrawFrame()
 				
 				imgui.Text('')
 				
-				if imgui.Button(u8'Главная страница', imgui.ImVec2(235, 25)) then show_item.v = 8 end
-				if imgui.Button(u8'Настройки', imgui.ImVec2(235, 25)) then show_item.v = 0 end
-				if imgui.Button(u8'Расширенные настройки', imgui.ImVec2(235, 25)) then show_item.v = 1 end
+				if imgui.Button(u8'Главная страница', imgui.ImVec2(235, 20)) then show_item.v = 8 end
+				if imgui.Button(u8'Настройки', imgui.ImVec2(235, 20)) then show_item.v = 0 end
+				if imgui.Button(u8'Расширенные настройки', imgui.ImVec2(235, 20)) then show_item.v = 1 end
 				if player_status > 1 then
-					if imgui.Button(u8'Администрация', imgui.ImVec2(235, 25)) then show_item.v = 2 end
+					if imgui.Button(u8'Администрация', imgui.ImVec2(235, 20)) then show_item.v = 2 end
 				end
-				if imgui.Button(u8'Информация', imgui.ImVec2(235, 25)) then show_item.v = 3 end
-				if imgui.Button(u8'Дополнительные команды', imgui.ImVec2(235, 25)) then show_item.v = 4 end
-				if imgui.Button(u8'Кастомизация', imgui.ImVec2(235, 25)) then show_item.v = 5 end
-				if imgui.Button(u8'Менеджер паролей', imgui.ImVec2(235, 25)) then show_item.v = 6 end
+				if imgui.Button(u8'Информация', imgui.ImVec2(235, 20)) then show_item.v = 3 end
+				if imgui.Button(u8'Дополнительные команды', imgui.ImVec2(235, 20)) then show_item.v = 4 end
+				if imgui.Button(u8'Кастомизация', imgui.ImVec2(235, 20)) then show_item.v = 5 end
+				if imgui.Button(u8'Менеджер паролей', imgui.ImVec2(235, 20)) then show_item.v = 6 end
 			    if player_status > 3 then 	
-					if imgui.Button(u8'Панель лидера', imgui.ImVec2(235, 25)) then show_item.v = 7 end
+					if imgui.Button(u8'Панель лидера', imgui.ImVec2(235, 20)) then show_item.v = 7 end
 				end
-				if imgui.Button(u8'Перезагрузить', imgui.ImVec2(235, 25)) then
+				if imgui.Button(u8'Перезагрузить', imgui.ImVec2(235, 20)) then
 					show_menu.v = not show_menu.v
 					lua_thread.create(function() wait(1000) thisScript():reload() end)
 				end
-				if imgui.Button(u8'Выключить', imgui.ImVec2(235, 25)) then
+				if imgui.Button(u8'Выключить', imgui.ImVec2(235, 20)) then
 					thisScript():unload()
 				end
 				

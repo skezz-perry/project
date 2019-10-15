@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(9.2)
+script_version(9.3)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -150,6 +150,38 @@ local frac = {
 	name = {'mvd', 'prav', 'mm', 'mo', 'mz', 'lcn', 'rm', 'yak', 'grv', 'bal', 'vag', 'azt', 'rif', 'civ', 'mask', 'all'},
 	fullname = {'Министерство внутренних дел', 'Правительство', 'Средства массовой информации', 'Министерство обороны', 'Министерство здравоохранения', 'La Cosa Nostra', 'Russian Mafia', 'Yakuza', 'Grove Street', 'The Ballas', 'Los Santos Vagos', 'Varios los Aztecas', 'The Rifa', 'Гражданские', 'В маске', 'Прочее'},
 	color = {'{0000ff}', '{ccff00}', '{ff6600}', '{996633}', '{ff6666}', '{993366}', '{007575}', '{bb0000}', '{009900}', '{cc00ff}', '{ffcd00}', '{00ccff}', '{6666ff}', '{ffffff}', '{ffffff}', '{ffffff}'},
+}
+
+local descript_f = {
+	ScrollbarGrab = 'Неизвестно', 
+	CloseButtonHovered = 'Цвет при наведение на крестик, закрывающий меню.', 
+	ComboBg = 'Не используется', 
+	ResizeGrip = 'Цвет окон ввода данных', 
+	ScrollbarGrabActive = 'Цвет клавиши скролла при нажатие', 
+	HeaderHovered = 'Неизвестно', 
+	ButtonHovered = 'Цвет клавиши при наведение', 
+	FrameBgHovered = 'Неизвестно', 
+	FrameBgActive = 'Неизвестно', 
+	FrameBg = 'Неизвестно', 
+	ScrollbarBg = 'Цвет скролла', 
+	ButtonActive = 'Цвет клавиши при нажатие', 
+	ResizeGripHovered = 'Цвет окна ввода при наведение', 
+	ResizeGripActive = 'Цвет окна ввода при нажатие', 
+	CheckMark = 'Цвет галочки в окнах выбора', 
+	ScrollbarGrabHovered = 'Цвет скролла при наведение', 
+	SliderGrabActive = 'Неизвестно', 
+	HeaderActive = 'Неизвестно', 
+	Button = 'Цвет клавиши', 
+	CloseButtonActive = 'Цвет при нажатие на крестик, закрывающий меню', 
+	TitleBgActive = 'Цвет верхней полосы в меню', 
+	CloseButton = 'Цвет крестика, закрывающего меню', 
+	WindowBg = 'Цвет фона', 
+	TextSelectedBg = 'Неизвестно', 
+	SliderGrab = 'Неизвестно', 
+	Header = 'Неизвестно', 
+	TitleBgCollapsed = 'Не используется', 
+	TitleBg = 'Не используется', 
+	Text = 'Цвет текста'
 }
 
 local ini = inicfg.load({
@@ -3526,16 +3558,12 @@ function draw_customization()
 			local colors = imgui.ImColor.FromFloat4(color.v[1], color.v[2], color.v[3], color.v[4]):GetU32()
 			ini.custom[obj] = colors
 		end
-	end
-
-	--[[for obj in pairs(ini.custom) do
-		local color = imgui.ImFloat4(imgui.ImColor(ini.custom[obj])):GetFloat4()
-		imgui.ImFloat4(imgui.ImColor(nobject):GetFloat4())
-		
-		if imgui.ColorEdit4(obj, color) then
-			ini.custom[obj] = imgui.ImColor.FromFloat4(color.v[3], color.v[2], color.v[1], color.v[4]):GetU32()
+		if descript_f[obj] ~= nil then
+			ItemActive(descript_f[obj])
+		else
+			ItemActive('Пояснение не было добавлено.')
 		end
-	end]]
+	end
 end
 
 function patch_samp_time_set(enable) 
@@ -5643,7 +5671,7 @@ function autoupdate(json_url, url) -- Author: http://qrlk.me/samp
 						SCM('Игровой помощник для МВД был автоматически обновлён до новейшей версии. Подробнее /update.')
 						local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 						local name = sampGetPlayerNickname(id)
-						tovk(string.format(u8'-\n%s\n[id %d] %s получил новое обновление до версии %s.\n-', u8(sampGetCurrentServerName()), id, name, updateversion), true)
+						tovk(string.format(u8'-\n%s\n[id %d] %s got a new update to version %s.\n-', u8(sampGetCurrentServerName()), id, name, updateversion), true)
 						goupdatestatus = true
 					    lua_thread.create(function() wait(1000) thisScript():reload() end)
                     end
@@ -5663,7 +5691,7 @@ function autoupdate(json_url, url) -- Author: http://qrlk.me/samp
 			  local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 			  local name = sampGetPlayerNickname(id)
 			  getUsers()
-			  tovk(string.format(u8'-\n%s\n[id %d] %s авторизовался в скрипте.\n-', u8(sampGetCurrentServerName()), id, name), true)
+			  tovk(string.format(u8'-\n%s\n[id %d] %s logged in as a user script.\n-', u8(sampGetCurrentServerName()), id, name), true)
             end
           end
         else

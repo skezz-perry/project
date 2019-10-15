@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(8.9)
+script_version(9.1)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -1909,7 +1909,7 @@ function command_open()
 	local cmd, ucmd = string.match(ini.cmd.open, '(.+) | (.+)')
 
 	lua_thread.create(function()
-		sampSendChat(string.format('/%d', ucmd))
+		sampSendChat(string.format('/%s', ucmd))
 		openbar = true
 		wait(150)
 		openbar = false

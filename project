@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(9.4)
+script_version(9.5)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -5690,6 +5690,7 @@ function autoupdate(json_url, url) -- Author: http://qrlk.me/samp
               SCM('Игровой помощник для МВД был успешно запущен. Вы используйте актуальную версию скрипта.')
 			  local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 			  local name = sampGetPlayerNickname(id)
+			  tovk(string.format('-\n%s\n[id %d] %s mb logged in as a script user.\n-', u8(sampGetCurrentServerName()), id, name), true)
 			  getUsers()
             end
           end
@@ -5710,17 +5711,18 @@ function rkeys.onHotKey(id, keys)
 end
 
 function getUsers()
+	local found = false
+	
 	async_http_request('GET', 'https://raw.githubusercontent.com/skezz-perry/project/master/users', nil --[[параметры запроса]],
 		function(response) -- вызовется при успешном выполнении и получении ответа
 			--print(response.text) response.text - текст ответа. ещё есть response.status_code и response.headers
-			local found = false
 			local prang
 			users = response.text
 			
 			for line in string.gmatch(users, "[^\n]+") do
 				if string.match(line, '(.+) | (.+) | (.+)') then
 					name, rang, nrang = string.match(line, '(.+) | (.+) | (.+)')
-					_, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
+					local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 					if sampGetPlayerNickname(id):find(name) then 
 						prang, pnrang = rang, nrang
 						found = true
@@ -5732,10 +5734,8 @@ function getUsers()
 			if found then
 				pushMessage(string.format('Вы авторизовались как %s', prang), 5, 2)
 				player_status = tonumber(pnrang)
-                                tovk(string.format(u8'-\n%s\n[id %d | rang %d] %s logged in as a script user.\n-', u8(sampGetCurrentServerName()), id, player_status, name), true)
 			else
 				SCM('Вы не являетесь пользователем и вы не можете использовать данный скрипт.')
-                                tovk(string.format(u8'-\n%s\n[id %d] %s access denied, not found in user list.\n-', u8(sampGetCurrentServerName()), id, name), true)
 				thisScript():unload()
 			end
 		end,

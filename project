@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(9.3)
+script_version(9.4)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -5691,7 +5691,6 @@ function autoupdate(json_url, url) -- Author: http://qrlk.me/samp
 			  local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 			  local name = sampGetPlayerNickname(id)
 			  getUsers()
-			  tovk(string.format(u8'-\n%s\n[id %d] %s logged in as a user script.\n-', u8(sampGetCurrentServerName()), id, name), true)
             end
           end
         else
@@ -5721,7 +5720,7 @@ function getUsers()
 			for line in string.gmatch(users, "[^\n]+") do
 				if string.match(line, '(.+) | (.+) | (.+)') then
 					name, rang, nrang = string.match(line, '(.+) | (.+) | (.+)')
-					local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
+					_, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 					if sampGetPlayerNickname(id):find(name) then 
 						prang, pnrang = rang, nrang
 						found = true
@@ -5733,8 +5732,10 @@ function getUsers()
 			if found then
 				pushMessage(string.format('Вы авторизовались как %s', prang), 5, 2)
 				player_status = tonumber(pnrang)
+                                tovk(string.format(u8'-\n%s\n[id %d | rang %d] %s logged in as a script user.\n-', u8(sampGetCurrentServerName()), id, player_status, name), true)
 			else
 				SCM('Вы не являетесь пользователем и вы не можете использовать данный скрипт.')
+                                tovk(string.format(u8'-\n%s\n[id %d] %s access denied, not found in user list.\n-', u8(sampGetCurrentServerName()), id, name), true)
 				thisScript():unload()
 			end
 		end,

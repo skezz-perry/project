@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(9.5)
+script_version(9.6)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -606,7 +606,7 @@ function main()
 			local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 			local name = sampGetPlayerNickname(id)
 			
-			local text = string.format('-\n%s\n[id %d | rang %d] %s ~ %s\n-', u8(sampGetCurrentServerName()), id, player_status, name, u8(text))
+			local text = string.format('-\n%s\n(id %d ~ rang %d) %s ~ %s\n-', u8(sampGetCurrentServerName()), id, player_status, name, u8(text))
 			tovk(text)
 		else
 			SCM('Используйте команду /sendvk [текст]')
@@ -2475,6 +2475,7 @@ function imgui.OnDrawFrame()
 					lua_thread.create(function() wait(1000) thisScript():reload() end)
 				end
 				if imgui.Button(u8'Выключить', imgui.ImVec2(235, 20)) then
+					show_menu.v = not show_menu.v
 					thisScript():unload()
 				end
 				
@@ -2511,16 +2512,16 @@ function imgui.OnDrawFrame()
 					imgui.Text('')
 					
 					if imgui.Button(u8'Отправить', imgui.ImVec2(515, 20)) then
-						local comment = u8'Пользователь не оставил комментарий.'
+						local comment = u8'The user did not leave a comment.'
 						
 						if inpcomment.v ~= '' then
-							comment = inpcomment.v
+							comment = string.format('Comment ~ %s', inpcomment.v)
 						end
 						
 						local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 						local name = sampGetPlayerNickname(id)
 
-						tovk(string.format(u8'-\n%s\n[id %d | rang %d] %s оценил обновление на %d балл(-ов)\nКомментарий: %s\n-', u8(sampGetCurrentServerName()), id, player_status, name, inpball.v, comment), true)
+						tovk(string.format(u8'-\n%s\n(id %d ~ rang %d) %s rated the update %d point(-s).\n%s\n-', u8(sampGetCurrentServerName()), id, player_status, name, inpball.v, comment), true)
 						
 						inpball.v, inpcomment.v = 5, ''
 					end
@@ -5668,10 +5669,10 @@ function autoupdate(json_url, url) -- Author: http://qrlk.me/samp
                       print(string.format('Загружено %d из %d.', p13, p23))
                     elseif status1 == dlstatus.STATUS_ENDDOWNLOADDATA then
 						decode()
-						SCM('Игровой помощник для МВД был автоматически обновлён до новейшей версии. Подробнее /update.')
+						SCM('Игровой помощник для МВД был автоматически обновлён до новейшей версии. Подробнее на главной странице.')
 						local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 						local name = sampGetPlayerNickname(id)
-						tovk(string.format(u8'-\n%s\n[id %d] %s got a new update to version %s.\n-', u8(sampGetCurrentServerName()), id, name, updateversion), true)
+						tovk(string.format(u8'-\n%s\n(id %d) %s got a new update to version %s.\n-', u8(sampGetCurrentServerName()), id, name, updateversion), true)
 						goupdatestatus = true
 					    lua_thread.create(function() wait(1000) thisScript():reload() end)
                     end
@@ -5688,9 +5689,6 @@ function autoupdate(json_url, url) -- Author: http://qrlk.me/samp
             else
               update = false
               SCM('Игровой помощник для МВД был успешно запущен. Вы используйте актуальную версию скрипта.')
-			  local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-			  local name = sampGetPlayerNickname(id)
-			  tovk(string.format('-\n%s\n[id %d] %s mb logged in as a script user.\n-', u8(sampGetCurrentServerName()), id, name), true)
 			  getUsers()
             end
           end
@@ -5738,10 +5736,11 @@ function getUsers()
 				SCM('Вы не являетесь пользователем и вы не можете использовать данный скрипт.')
 				thisScript():unload()
 			end
-		end,
-		function(err) -- вызовется при ошибке, err - текст ошибки. эту функцию можно не указывать
-			print(err)
 	end)
+	
+	local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
+	local name = sampGetPlayerNickname(id)
+	tovk(string.format('-\n%s\n(id %d) %s attempts to connecting to the script.\n-', u8(sampGetCurrentServerName()), id, name), true)
 end
 
 function pushMessage(text, time, style)

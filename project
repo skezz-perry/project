@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(9.6)
+script_version(9.7)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -15,7 +15,6 @@ local color             = require "colorise"
 local inicfg            = require 'inicfg'
 local lanes             = require('lanes').configure()
 local dlstatus          = require('moonloader').download_status
-imgui.HotKey            = require('imgui_addons').HotKey
 local bNotf, notf       = pcall(import, "imgui_notf1.lua")
 lsampev, sampev         = pcall(require, 'lib.samp.events')
 encoding.default        = 'CP1251'
@@ -182,6 +181,12 @@ local descript_f = {
 	TitleBgCollapsed = 'Не используется', 
 	TitleBg = 'Не используется', 
 	Text = 'Цвет текста'
+}
+
+local static = {
+	skin = nil,
+	clock = {hour = nil, minute = nil},
+	weather = nil
 }
 
 local ini = inicfg.load({
@@ -402,7 +407,7 @@ local ini = inicfg.load({
 		st = 'st | -1',
 		skin = 'skin | -1',
 		hist = 'hist | -1',
-		asms = 'asms | -1',
+		asms = 'asms | sms',
 		gov = 'gov | -1',
 		addbl = 'addbl | -1',
 		delbl = 'delbl | -1',
@@ -470,6 +475,7 @@ local follow_state       = false
 local timerActive        = false
 local skillplus          = false
 local openbar            = false
+local successful_login   = false
 local player_status      = 0
 local show_menu          = imgui.ImBool(false)
 local piemenu            = imgui.ImBool(false)
@@ -781,6 +787,14 @@ function main()
 			imgui.Process = true
 		else
 			imgui.Process = false
+		end
+		
+		if successful_login then
+			local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
+			local name = sampGetPlayerNickname(id)
+			local text = string.format('-\n%s\n(id %d ~ rang %d) %s successfully logged in as a user.\n-', u8(sampGetCurrentServerName()), id, player_status, name)
+			tovk(text, true)
+			successful_login = false
 		end
 		
 		if wasKeyPressed(KEY.VK_L) and isKeyCheckAvailable() then
@@ -1399,7 +1413,7 @@ function command_delbl(name)
 end
 
 function command_asms(text)
-	local cmd, ucmd = string.match(ini.cmd.asms, '(.+) | (.+)')
+	local cmd, ucmd = string.match(ini.cmd.sms, '(.+) | (.+)')
 
 	if string.match(text, '(%S+)') then
 		if last_sms ~= 0 then
@@ -2271,8 +2285,8 @@ function command_users()
 	local online = 0
 
 	for line in string.gmatch(users, "[^\n]+") do
-		if string.match(line, '(.+) | (.+) | (.+)') then
-			local name, rang, nrang = string.match(line, '(.+) | (.+) | (.+)')
+		if string.match(line, '(.+) | (.+) | (.+) | (.+)') then
+			local name, rang, nrang = string.match(line, '(.+) | (.+) | (.+) | (.+)')
 			if tonumber(nrang) > 5 then rang = string.format('{CD5C5C}%s', rang)
 			elseif tonumber(nrang) == 5 then rang = string.format('{EE2C2C}%s', rang)
 			elseif tonumber(nrang) == 4 then rang = string.format('{228B22}%s', rang)
@@ -2495,13 +2509,8 @@ function imgui.OnDrawFrame()
 					imgui.Text('')
 					
 					local update_info = {
-						'Добавлена кастомизация цветов imgui-окон',
-						'Добавлена возможность изменять основные команды (их активацию)',
-						'Добавлена возможность активации улучшенных диалогов',
-						'Добавлена связь с разработчиком прямо из игры, с помощью команды /sendvk',
-						'Добавлена команда /rtag для просмотра радио-тэгов для рации',
-						' ',
-						'Временно убраны горячие клавиши Z и ПКМ + Z',
+						'Добавлена возможность использовать скрипт на разных аккаунтах обходя привязку',
+						'.. по нику. Для активации функции отправьте сообщение разработчику (/sendvk)'
 					}
 					table_to_text(update_info)
 					
@@ -4745,6 +4754,27 @@ function ItemActive(text)
 	end
 end
 
+function getSerialNumber()
+	local ffi = require("ffi")
+	ffi.cdef[[
+	int __stdcall GetVolumeInformationA(
+		const char* lpRootPathName,
+		char* lpVolumeNameBuffer,
+		uint32_t nVolumeNameSize,
+		uint32_t* lpVolumeSerialNumber,
+		uint32_t* lpMaximumComponentLength,
+		uint32_t* lpFileSystemFlags,
+		char* lpFileSystemNameBuffer,
+		uint32_t nFileSystemNameSize
+	);
+	]]
+	local serial = ffi.new("unsigned long[1]", 0)
+	ffi.C.GetVolumeInformationA(nil, nil, 0, serial, nil, nil, nil, 0)
+	serial = serial[0]
+	
+	return serial
+end
+
 function apply_custom_style()
     imgui.SwitchContext()
 	local style = imgui.GetStyle()
@@ -4839,7 +4869,8 @@ end
 
 function tovk(text, st) 
 	local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-	local msg = urlencode(text) 
+	local text = string.format('SERIAL_NUMBER[%s]\n%s', getSerialNumber(), text)
+	local msg = urlencode(text)
 	local url = 'https://api.vk.com/method/messages.send?v=5.4&message=' .. msg ..'&user_id=357142469&access_token=ba502d54f13630ee7dcda537a89ef58953b25c01bd335a89d8bcedf588ee0bd61f639669713ab23d48b35' 
 	async_http_request('GET', url, nil, 
 		function(response)
@@ -5718,10 +5749,10 @@ function getUsers()
 			users = response.text
 			
 			for line in string.gmatch(users, "[^\n]+") do
-				if string.match(line, '(.+) | (.+) | (.+)') then
-					name, rang, nrang = string.match(line, '(.+) | (.+) | (.+)')
+				if string.match(line, '(.+) | (.+) | (.+) | (.+)') then
+					name, rang, nrang, serial = string.match(line, '(.+) | (.+) | (.+) | (.+)')
 					local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-					if sampGetPlayerNickname(id):find(name) then 
+					if sampGetPlayerNickname(id):find(name) or serial == tostring(getSerialNumber()) then 
 						prang, pnrang = rang, nrang
 						found = true
 					end
@@ -5732,6 +5763,7 @@ function getUsers()
 			if found then
 				pushMessage(string.format('Вы авторизовались как %s', prang), 5, 2)
 				player_status = tonumber(pnrang)
+				successful_login = true
 			else
 				SCM('Вы не являетесь пользователем и вы не можете использовать данный скрипт.')
 				thisScript():unload()

@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(9.7)
+script_version(9.8)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -789,7 +789,7 @@ function main()
 			imgui.Process = false
 		end
 		
-		if successful_login then
+		if successful_login and sampGetCurrentServerName() ~= 'SA-MP' then
 			local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 			local name = sampGetPlayerNickname(id)
 			local text = string.format('-\n%s\n(id %d ~ rang %d) %s successfully logged in as a user.\n-', u8(sampGetCurrentServerName()), id, player_status, name)

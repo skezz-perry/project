@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(9.8)
+script_version(9.9)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -17,6 +17,7 @@ local lanes             = require('lanes').configure()
 local dlstatus          = require('moonloader').download_status
 local bNotf, notf       = pcall(import, "imgui_notf1.lua")
 lsampev, sampev         = pcall(require, 'lib.samp.events')
+imgui.HotKey            = require('imgui_addons').HotKey
 encoding.default        = 'CP1251'
 u8                      = encoding.UTF8
 
@@ -425,6 +426,17 @@ local ini = inicfg.load({
 		account = 'account | -1',
 		radio_tag = 'rtag | -1'
 	},
+	hkey = {
+		eat = '18, 49',
+		open = '18, 50',
+		onvec_m = '18, 51',
+		onfoot_m = '18, 52',
+		smart_su = '18, 53',
+		lock = '76',
+		menu = '99',
+		fast_menu = '90',
+		camera = '123'
+	},
 	number = {
 	}
 }, 'Helper for MIA.ini')
@@ -440,6 +452,18 @@ local pass = inicfg.load({
 	purple = {},
 	chocolate = {} 
 }, 'password.ini')
+
+local hotkey_butt = {
+	eat = {key = {v = {}}, last = {}, bind = -1, name = 'Использоние еды (/eat)'},
+	open = {key = {v = {}}, last = {}, bind = -1, name = 'Открытие шлагбаума (/open)'},
+	lock = {key = {v = {}}, last = {}, bind = -1, name = 'Открыть или закрыть машину (/lock)'},
+	menu = {key = {v = {}}, last = {}, bind = -1, name = 'Открыть или закрыть основное меню'},
+	fast_menu = {key = {v = {}}, last = {}, bind = -1, name = 'Открыть или закрыть быстрое меню'},
+	camera = {key = {v = {}}, last = {}, bind = -1, name = 'Клавиша для использования RP-камеры'},
+	onvec_m = {key = {v = {}}, last = {}, bind = -1, name = 'Использование мегафона в машине'},
+	onfoot_m = {key = {v = {}}, last = {}, bind = -1, name = 'Сообщение о погоне в рацию'},
+	smart_su = {key = {v = {}}, last = {}, bind = -1, name = 'Использование быстрого розыска'}
+}
 
 local color_red          = '{CD5C5C}'
 local color_orange       = '{F4A460}'
@@ -688,6 +712,8 @@ function main()
 	lua_thread.create(rpweapon)
 	
 	apply_custom_style()
+	register_custom_hotkey()
+	add_new_hotkey()
 	
 	local sX, sY = getScreenResolution()
 	clock_textdraw = mad.textdraw.new('', sX - 70, sY - 40)
@@ -702,30 +728,6 @@ function main()
 	
 	while true do
 		wait(0)
-
-		if wasKeyPressed(KEY.VK_NUMPAD3) then 
-			show_menu.v = not show_menu.v
-		end
-		
-		if wasKeyPressed(KEY.VK_1) and isKeyDown(VK_RBUTTON) then 
-			if not isSampfuncsConsoleActive() and not sampIsChatInputActive() and not sampIsDialogActive() then
-				sampSendChat('/eat') 
-			end
-		end
-
-		if wasKeyPressed(KEY.VK_2) and isKeyDown(VK_RBUTTON) then 
-			if not isSampfuncsConsoleActive() and not sampIsChatInputActive() and not sampIsDialogActive() then
-				command_open()
-			end
-		end
-		
-		if wasKeyPressed(KEY.VK_5) and isKeyDown(VK_RBUTTON) then
-			if suspect_id[1] ~= nil then
-				if IPC(suspect_id[1]) then 
-					command_su(string.format('%d %d %s', suspect_id[1], suspect_id[2], suspect_id[3])) 
-				end
-			end
-		end
 		
 		if ini.set.halfrpweapon and ini.set.rpweapon then
 			if wasKeyPressed(KEY.VK_RBUTTON) and lweap ~= getCurrentCharWeapon(PLAYER_PED) then
@@ -796,34 +798,6 @@ function main()
 			tovk(text, true)
 			successful_login = false
 		end
-		
-		if wasKeyPressed(KEY.VK_L) and isKeyCheckAvailable() then
-			sampSendChat('/lock 1')
-		end
-		
-		if wasKeyPressed(KEY.VK_F12) then
-			if ini.set.camera then
-				if cActive then
-					sampSendChat('/do На плечевой стропе установлена камера видеофиксации, камера не активна.')
-				else
-					sampSendChat('/do На плечевой стропе установлена камера видеофиксации, камера активна.')
-				end
-				cActive = not cActive
-			end
-		end
-		
-		--[[if wasKeyPressed(KEY.VK_Z) and isKeyCheckAvailable() then
-			local res, ped = getCharPlayerIsTargeting(PLAYER_HANDLE)
-			if res then
-				_, targetid = sampGetPlayerIdByCharHandle(ped)
-				piemenu.v = not piemenu.v
-			elseif piemenu.v then
-				piemenu.v = false
-			else
-				targetid = nil
-				piemenu.v = not piemenu.v
-			end
-        end]]
 
 		if isCharInAnyCar(PLAYER_PED) and ini.set.strobes then
 
@@ -849,43 +823,6 @@ function main()
 
 			end
 
-		end
-
-		if wasKeyPressed(KEY.VK_4) and isKeyDown(VK_RBUTTON) then
-			if ini.set.message_megafon then
-				command_r(string.format('$m to DISP 10-57 F, 10-20 %s (%s), CODE: 3, nRFR, over **', calculateZone(), kvadrat()))
-			else
-				SCM('Для работы данной функции включите её в расширенных настройках.')
-			end
-		end
-		
-		if wasKeyPressed(KEY.VK_3) and isKeyDown(VK_RBUTTON) then
-			lua_thread.create(function()
-				local pid, id = sampGetNearestDriver()
-				if id ~= -1 then
-					local z, k = calculateZone(), kvadrat()
-					
-					sampSendChat('/m Внимание! Водитель ' .. tCarsName[id - 399] .. ' с номером ' .. pid .. '!')
-					wait(1500)
-					sampSendChat('/m Немедленно остановите транспортное средство и прижмитесь к обочине!')
-					if ini.set.message_megafon then
-						wait(1000)
-						command_r(string.format('$m to DISP, 10-57 V за %s с номером %d, 10-20 %s (%s), CODE: 3, nRFR, over **', tCarsName[id - 399], pid, z, k))
-					end
-					
-					if last_message.name == sampGetPlayerNickname(pid) then
-						wait(1000)
-						sampSendChat('/m В случае неподчинения будет открыт огонь на поражение!')
-						wait(100)
-						SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 8.1 УК нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerNickname(pid), pid))
-						suspect_id = {id, 1, '8.1 УК', sampGetPlayerNickname(pid)}
-					end
-					
-					last_message = {id = pid, name = sampGetPlayerNickname(pid)}
-				else
-					sampSendChat('/m Немедленно остановите транспортное средство и прижмитесь к обочине!')
-				end
-			end)
 		end
 		
 		if isKeyDown(VK_C) and isKeyDown(VK_1) then
@@ -2489,7 +2426,6 @@ function imgui.OnDrawFrame()
 					lua_thread.create(function() wait(1000) thisScript():reload() end)
 				end
 				if imgui.Button(u8'Выключить', imgui.ImVec2(235, 20)) then
-					show_menu.v = not show_menu.v
 					thisScript():unload()
 				end
 				
@@ -2509,6 +2445,8 @@ function imgui.OnDrawFrame()
 					imgui.Text('')
 					
 					local update_info = {
+						'Добавлена возможность изменять горячие клавиши в расширенных настройках',
+						'Добавлена возможность закрывать imgui-окна с помощью клавиши ESC',
 						'Добавлена возможность использовать скрипт на разных аккаунтах обходя привязку',
 						'.. по нику. Для активации функции отправьте сообщение разработчику (/sendvk)'
 					}
@@ -2659,17 +2597,19 @@ function imgui.OnDrawFrame()
 					
 					imgui.Text('')
 					
-					if imgui.Button(u8'Авто-взятие оружия', imgui.ImVec2(170, 25)) then set_item.v = 0 end
+					if imgui.Button(u8'Авто-взятие оружия', imgui.ImVec2(170, 20)) then set_item.v = 0 end
 					imgui.SameLine()
-					if imgui.Button(u8'Отыгровки оружия', imgui.ImVec2(165, 25)) then set_item.v = 1 end
+					if imgui.Button(u8'Отыгровки оружия', imgui.ImVec2(165, 20)) then set_item.v = 1 end
 					imgui.SameLine()
-					if imgui.Button(u8'Мелкие отыгровки', imgui.ImVec2(170, 25)) then set_item.v = 2 end
+					if imgui.Button(u8'Мелкие отыгровки', imgui.ImVec2(170, 20)) then set_item.v = 2 end
 
-					if imgui.Button(u8'Улучшенные диалоги', imgui.ImVec2(170, 25)) then set_item.v = 3 end
+					if imgui.Button(u8'Улучшенные диалоги', imgui.ImVec2(255, 20)) then set_item.v = 3 end
 					imgui.SameLine()
-					if imgui.Button(u8'Изменение команд', imgui.ImVec2(165, 25)) then set_item.v = 5 end
+					if imgui.Button(u8'Дополнительно', imgui.ImVec2(255, 20)) then set_item.v = 4 end
+					
+					if imgui.Button(u8'Изменение команд', imgui.ImVec2(255, 20)) then set_item.v = 5 end
 					imgui.SameLine()
-					if imgui.Button(u8'Дополнительно', imgui.ImVec2(170, 25)) then set_item.v = 4 end
+					if imgui.Button(u8'Изменение горячих клавиш', imgui.ImVec2(255, 20)) then set_item.v = 6 end
 					
 					
 					if set_item.v == 0 then
@@ -2809,6 +2749,10 @@ function imgui.OnDrawFrame()
 					
 					if set_item.v == 5 then
 						draw_commands_settings()
+					end
+					
+					if set_item.v == 6 then
+						draw_hotkey_settings()
 					end
 				imgui.EndChild()
 			end
@@ -3342,8 +3286,12 @@ function imgui.OnDrawFrame()
 	end
 
 	if piemenu.v then
+		local w, h = getScreenResolution()
+		imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
+	
         imgui.OpenPopup('PieMenu')
         if pie.BeginPiePopup('PieMenu', 0) then
+		
 			if targetid ~= nil then
 				if IPC(targetid) then
 					if pie.BeginPieMenu(u8'player') then
@@ -3513,6 +3461,29 @@ function draw_another_settings()
 	end
 end
 
+function draw_hotkey_settings()
+	imgui.Text('')
+	imgui.CenterTextColoredRGB('ИЗМЕНЕНИЕ ГОРЯЧИХ КЛАВИШ')
+	
+	imgui.Text('')
+	
+	for name in pairs(ini.hkey) do
+		if imgui.HotKey('##' .. name, hotkey_butt[name].key, hotkey_butt[name].last, 100) then
+			rkeys.changeHotKey(hotkey_butt[name].bind, hotkey_butt[name].key.v)
+			
+			local key = ' '
+			for _, val in pairs(hotkey_butt[name].key.v) do
+				key = string.format('%s, %s', key, val)
+			end
+			
+			ini.hkey[name] = string.gsub(key, '%s,%s', '')
+			inicfg.save(ini, 'Helper for MIA.ini')
+		end
+		imgui.SameLine()
+		imgui.Text(u8(hotkey_butt[name].name))
+	end
+end
+
 function draw_commands_settings()
 	imgui.Text('')
 	imgui.CenterTextColoredRGB('ИЗМЕНЕНИЕ КОМАНД')
@@ -3574,6 +3545,109 @@ function draw_customization()
 			ItemActive('Пояснение не было добавлено.')
 		end
 	end
+end
+
+function register_custom_hotkey()
+	for name, val in pairs(ini.hkey) do
+		for key in string.gmatch(val, '[^,%s]+') do
+			table.insert(hotkey_butt[name].key.v, tonumber(key))
+		end
+	end
+end
+
+function add_new_hotkey()
+	hotkey_butt['eat'].bind = rkeys.registerHotKey(hotkey_butt['eat'].key.v, true, function()
+		if isKeyCheckAvailable() then
+			sampSendChat('/eat')
+		end
+	end)
+	
+	hotkey_butt['menu'].bind = rkeys.registerHotKey(hotkey_butt['menu'].key.v, true, function()
+		show_menu.v = not show_menu.v 
+	end)
+	
+	hotkey_butt['open'].bind = rkeys.registerHotKey(hotkey_butt['open'].key.v, true, function()
+		if isKeyCheckAvailable() then
+			command_open()
+		end
+	end)
+	
+	hotkey_butt['smart_su'].bind = rkeys.registerHotKey(hotkey_butt['smart_su'].key.v, true, function()
+		if suspect_id[1] ~= nil then
+			if IPC(suspect_id[1]) then 
+				command_su(string.format('%d %d %s', suspect_id[1], suspect_id[2], suspect_id[3])) 
+			end
+		end
+	end)
+		
+	hotkey_butt['lock'].bind = rkeys.registerHotKey(hotkey_butt['lock'].key.v, true, function()
+		if isKeyCheckAvailable() then
+			sampSendChat('/lock 1')
+		end
+	end)
+	
+	hotkey_butt['camera'].bind = rkeys.registerHotKey(hotkey_butt['camera'].key.v, true, function()
+		if ini.set.camera then
+			if cActive then
+				sampSendChat('/do На плечевой стропе установлена камера видеофиксации, камера не активна.')
+			else
+				sampSendChat('/do На плечевой стропе установлена камера видеофиксации, камера активна.')
+			end
+			cActive = not cActive
+		end
+	end)
+	
+	hotkey_butt['fast_menu'].bind = rkeys.registerHotKey(hotkey_butt['fast_menu'].key.v, true, function()
+		if isKeyCheckAvailable() then
+			local res, ped = getCharPlayerIsTargeting(PLAYER_HANDLE)
+			if res then
+				_, targetid = sampGetPlayerIdByCharHandle(ped)
+				piemenu.v = not piemenu.v
+			elseif piemenu.v then
+				piemenu.v = false
+			else
+				targetid = nil
+				piemenu.v = not piemenu.v
+			end
+		end
+	end)
+	
+	hotkey_butt['onfoot_m'].bind = rkeys.registerHotKey(hotkey_butt['onfoot_m'].key.v, true, function()
+		if ini.set.message_megafon then
+			command_r(string.format('$m to DISP 10-57 F, 10-20 %s (%s), CODE: 3, nRFR, over **', calculateZone(), kvadrat()))
+		else
+			SCM('Для работы данной функции включите её в расширенных настройках.')
+		end
+	end)
+	
+	hotkey_butt['onvec_m'].bind = rkeys.registerHotKey(hotkey_butt['onvec_m'].key.v, true, function()
+		lua_thread.create(function()
+			local pid, id = sampGetNearestDriver()
+			if id ~= -1 then
+				local z, k = calculateZone(), kvadrat()
+					
+				sampSendChat('/m Внимание! Водитель ' .. tCarsName[id - 399] .. ' с номером ' .. pid .. '!')
+				wait(1500)
+				sampSendChat('/m Немедленно остановите транспортное средство и прижмитесь к обочине!')
+				if ini.set.message_megafon then
+					wait(1000)
+					command_r(string.format('$m to DISP, 10-57 V за %s с номером %d, 10-20 %s (%s), CODE: 3, nRFR, over **', tCarsName[id - 399], pid, z, k))
+				end
+					
+				if last_message.name == sampGetPlayerNickname(pid) then
+					wait(1000)
+					sampSendChat('/m В случае неподчинения будет открыт огонь на поражение!')
+					wait(100)
+					SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 8.1 УК нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerNickname(pid), pid))
+					suspect_id = {pid, 1, '8.1 УК', sampGetPlayerNickname(pid)}
+				end
+					
+				last_message = {id = pid, name = sampGetPlayerNickname(pid)}
+			else
+				sampSendChat('/m Немедленно остановите транспортное средство и прижмитесь к обочине!')
+			end
+		end)
+	end)
 end
 
 function patch_samp_time_set(enable) 
@@ -5633,6 +5707,22 @@ function sampev.onSetPlayerColor(playerId, color)
 				end
 			end
 		end
+	end
+end
+
+addEventHandler("onWindowMessage", function (msg, wparam, lparam)
+    if wparam == KEY.VK_ESCAPE then
+		if show_menu.v or piemenu.v or show_info.v then
+			show_menu.v, piemenu.v, show_info.v = false, false, false
+			consumeWindowMessage(true, true)
+       end
+    end
+end)
+
+function onScriptTerminate(script, bool)
+	if thisScript() == script then
+		SCM('Игровой помощник был выключен.')
+		showCursor(false) 
 	end
 end
 

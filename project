@@ -427,11 +427,11 @@ local ini = inicfg.load({
 		radio_tag = 'rtag | -1'
 	},
 	hkey = {
-		eat = '18, 49',
-		open = '18, 50',
-		onvec_m = '18, 51',
-		onfoot_m = '18, 52',
-		smart_su = '18, 53',
+		eat = '2, 49',
+		open = '2, 50',
+		onvec_m = '2, 51',
+		onfoot_m = '2, 52',
+		smart_su = '2, 53',
 		lock = '76',
 		menu = '99',
 		fast_menu = '90',

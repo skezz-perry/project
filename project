@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(9.9)
+script_version(10.1)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -219,7 +219,8 @@ local ini = inicfg.load({
 		new_find             = true,
 		new_clock            = true,
 		new_group            = true,
-		new_wanted           = true
+		new_wanted           = true,
+		blacklist            = ''
 	},
 	weapon = {
 		shit                 = false,
@@ -424,7 +425,13 @@ local ini = inicfg.load({
 		recn = 'recn | -1',
 		recd = 'recd | -1',
 		account = 'account | -1',
-		radio_tag = 'rtag | -1'
+		radio_tag = 'rtag | -1',
+		add_obj = 'add_obj | -1',
+		edit_obj = 'edit_obj | -1',
+		del_obj = 'del_obj | -1',
+		add_text = 'add_text | -1',
+		del_text = 'del_text | -1',
+		edit_text = 'edit_text | -1',
 	},
 	hkey = {
 		eat = '2, 49',
@@ -436,6 +443,8 @@ local ini = inicfg.load({
 		menu = '99',
 		fast_menu = '90',
 		camera = '123'
+	},
+	custom_hkey = {
 	},
 	number = {
 	}
@@ -465,6 +474,8 @@ local hotkey_butt = {
 	smart_su = {key = {v = {}}, last = {}, bind = -1, name = 'Использование быстрого розыска'}
 }
 
+local hotkey_cust_butt = {}
+
 local color_red          = '{CD5C5C}'
 local color_orange       = '{F4A460}'
 local color_green        = '{00CD66}'
@@ -485,6 +496,7 @@ local object             = {}
 local weapon             = {}
 local sus_table          = {}
 local command_t          = {}
+local static_camera      = {}
 local param_cmd          = 0
 local last_sms           = 0
 local lweap              = 0
@@ -530,6 +542,7 @@ local fteg               = imgui.ImBuffer(256)
 local name_cmd           = imgui.ImBuffer(256)
 local takeweap           = imgui.ImBuffer(256)
 local takeweapoff        = imgui.ImBuffer(256)
+local url_bl             = imgui.ImBuffer(500)
 local cmduse             = imgui.ImBuffer(30)
 local cmdinp             = imgui.ImBuffer(30)
 local inpcomment         = imgui.ImBuffer(1000)
@@ -630,6 +643,12 @@ function main()
 	sampRegisterChatCommand(string.match(ini.cmd.recd, '(.+) | (.+)'), command_reconnectwithchangeip)
 	sampRegisterChatCommand(string.match(ini.cmd.account, '(.+) | (.+)'), command_account)
 	sampRegisterChatCommand(string.match(ini.cmd.radio_tag, '(.+) | (.+)'), command_radiotag) 
+	sampRegisterChatCommand(string.match(ini.cmd.add_obj, '(.+) | (.+)'), command_cobject)
+	sampRegisterChatCommand(string.match(ini.cmd.del_obj, '(.+) | (.+)'), command_dobject)
+	sampRegisterChatCommand(string.match(ini.cmd.edit_obj, '(.+) | (.+)'), command_eobject)
+	sampRegisterChatCommand(string.match(ini.cmd.add_text, '(.+) | (.+)'), command_ctext)
+	sampRegisterChatCommand(string.match(ini.cmd.del_text, '(.+) | (.+)'), command_dtext)
+	sampRegisterChatCommand(string.match(ini.cmd.edit_text, '(.+) | (.+)'), command_etext)
 	
 	sampRegisterChatCommand('sendvk', function(text)
 		if string.match(text, '(%S+)') then
@@ -642,7 +661,29 @@ function main()
 			SCM('Используйте команду /sendvk [текст]')
 		end
 	end)
-
+	
+	sampRegisterChatCommand('savecords', function(id)
+		if flymode then
+			if string.match(id, '(%d+)') then
+				if static_camera[tonumber(id)] ~= nil then
+					table.insert(static_camera, tonumber(id), {posX = posX, posY = posY, posZ = posZ, poiX = poiX, poiY = poiY, poiZ = poiZ, angZ = angZ})
+					SCM(string.format('Изменено и сохранено расположение камеры {FFCD00}#%d{ffffff} в текущих координатах.', id))
+				else
+					SCM('Невозможно сохранить расположение камеры в не индексированном месте.')
+				end
+			else
+				if #static_camera < 9 then
+					table.insert(static_camera, {posX = posX, posY = posY, posZ = posZ, poiX = poiX, poiY = poiY, poiZ = poiZ, angZ = angZ})
+					SCM(string.format('Сохранено расположение камеры {FFCD00}#%d{ffffff} в текущих координатах.', #static_camera))
+				else
+					SCM('Использовано максимально возможное количество слотов сохранения камеры.')
+				end
+			end
+		else
+			SCM('Для использование функции сохранения позиции камеры вы должны включить CamHack.')
+		end
+	end)
+	
 	sampRegisterChatCommand('nhold', function(param)
 		if not param:match('(%d+)') then SCM('Используйте команду /nhold [ид игрока]') else sampSendChat('/hold '..param) end
 	end) 
@@ -838,7 +879,7 @@ function main()
 		end
 		
 		if flymode and not sampIsChatInputActive() and not isSampfuncsConsoleActive() then
-			offMouX, offMouY = getPcMouseMovement()  
+			offMouX, offMouY = getPcMouseMovement()
 			  
 			offMouX = offMouX / 4.0
 			offMouY = offMouY / 4.0
@@ -941,7 +982,19 @@ function main()
 			if isKeyDown(VK_SHIFT) then  
 				posZ = posZ - speed
 				setFixedCameraPosition(posX, posY, posZ, 0.0, 0.0, 0.0)
-			end 
+			end
+			
+			for key = 49, 58 do
+				if wasKeyPressed(key) and isKeyCheckAvailable() then
+					if static_camera[key - 48] ~= nil then
+						local t = static_camera[key - 48]
+						posX, posY, posZ, poiX, poiY, poiZ, angZ = t.posX, t.posY, t.posZ, t.poiX, t.poiY, t.poiZ, t.angZ
+						setFixedCameraPosition(t.posX, t.posY, t.posZ, 0.0, 0.0, 0.0)
+						pointCameraAtPoint(t.poiX, t.poiY, t.poiZ, 2)
+						setCharHeading(playerPed, t.angZ)
+					end
+				end
+			end
 			
 			radZ = math.rad(angZ) 
 			radY = math.rad(angY)             
@@ -959,7 +1012,7 @@ function main()
 			poiZ = posZ      
 			poiX = poiX + sinZ 
 			poiY = poiY + cosZ 
-			poiZ = poiZ + sinY      
+			poiZ = poiZ + sinY
 			pointCameraAtPoint(poiX, poiY, poiZ, 2)
 
 			if isKeyDown(187) then 
@@ -984,6 +1037,80 @@ function main()
 				end
 			end
 		end
+		
+		if edit_obj ~= nil and not sampIsChatInputActive() and not sampIsDialogActive() and text_id == nil then
+			-- вращение
+			if isKeyDown(VK_NUMPAD8) and isKeyDown(VK_CONTROL) then
+				obj_qx = obj_qx + obj_srotate
+				setObjectRotation(edit_obj, obj_qx, obj_qy, obj_qz)
+			elseif isKeyDown(VK_NUMPAD2) and isKeyDown(VK_CONTROL) then
+				obj_qx = obj_qx - obj_srotate
+				setObjectRotation(edit_obj, obj_qx, obj_qy, obj_qz)
+			elseif isKeyDown(VK_NUMPAD4) and isKeyDown(VK_CONTROL) then
+				obj_qy = obj_qy + obj_srotate
+				setObjectRotation(edit_obj, obj_qx, obj_qy, obj_qz)
+			elseif isKeyDown(VK_NUMPAD6) and isKeyDown(VK_CONTROL) then
+				obj_qy = obj_qy - obj_srotate
+				setObjectRotation(edit_obj, obj_qx, obj_qy, obj_qz)
+			elseif isKeyDown(VK_NUMPAD7) and isKeyDown(VK_CONTROL) then
+				obj_qz = obj_qz + obj_srotate
+				setObjectRotation(edit_obj, obj_qx, obj_qy, obj_qz)
+			elseif isKeyDown(VK_NUMPAD9) and isKeyDown(VK_CONTROL) then
+				obj_qz = obj_qz - obj_srotate
+				setObjectRotation(edit_obj, obj_qx, obj_qy, obj_qz)
+			-- движение (в стороны)
+			elseif isKeyDown(VK_NUMPAD8) then
+				obj_y = obj_y + obj_smove
+				setObjectCoordinates(edit_obj, obj_x, obj_y, obj_z)
+			elseif isKeyDown(VK_NUMPAD2) then
+				obj_y = obj_y - obj_smove
+				setObjectCoordinates(edit_obj, obj_x, obj_y, obj_z)
+			elseif isKeyDown(VK_NUMPAD4) then
+				obj_x = obj_x - obj_smove
+				setObjectCoordinates(edit_obj, obj_x, obj_y, obj_z)
+			elseif isKeyDown(VK_NUMPAD6) then
+				obj_x = obj_x + obj_smove
+				setObjectCoordinates(edit_obj, obj_x, obj_y, obj_z)
+			-- движение (верх вниз)
+			elseif isKeyDown(VK_SPACE) then
+				obj_z = obj_z + obj_smove
+				setObjectCoordinates(edit_obj, obj_x, obj_y, obj_z)
+			elseif isKeyDown(VK_MENU) then
+				obj_z = obj_z - obj_smove
+				setObjectCoordinates(edit_obj, obj_x, obj_y, obj_z)
+			-- сохранение
+			elseif isKeyDown(VK_RETURN) then
+				SCM('Вы закончили редактирование объекта с хендлом {FFCD00}' .. edit_obj .. '{ffffff}.')
+				edit_obj = nil
+			end
+		end
+		
+		if text_id ~= nil and not sampIsChatInputActive() and not sampIsDialogActive() and edit_obj == nil then
+			-- движение
+			if isKeyDown(VK_NUMPAD8) then
+				text_y = text_y + 0.04
+				sampCreate3dTextEx(text_id, text_text, text_color, text_x, text_y, text_z, text_distance, false, -1, -1)
+			elseif isKeyDown(VK_NUMPAD2) then
+				text_y = text_y - 0.04
+				sampCreate3dTextEx(text_id, text_text, text_color, text_x, text_y, text_z, text_distance, false, -1, -1)
+			elseif isKeyDown(VK_NUMPAD4) then
+				text_x = text_x - 0.04
+				sampCreate3dTextEx(text_id, text_text, text_color, text_x, text_y, text_z, text_distance, false, -1, -1)
+			elseif isKeyDown(VK_NUMPAD6) then
+				text_x = text_x + 0.04
+				sampCreate3dTextEx(text_id, text_text, text_color, text_x, text_y, text_z, text_distance, false, -1, -1)
+			elseif isKeyDown(VK_SPACE) then
+				text_z = text_z + 0.04
+				sampCreate3dTextEx(text_id, text_text, text_color, text_x, text_y, text_z, text_distance, false, -1, -1)
+			elseif isKeyDown(VK_MENU) then
+				text_z = text_z - 0.04
+				sampCreate3dTextEx(text_id, text_text, text_color, text_x, text_y, text_z, text_distance, false, -1, -1)
+			-- сохранение
+			elseif isKeyDown(VK_RETURN) then
+				SCM('Вы закончили редактирование 3D текста с ID {FFCD00}' .. text_id .. '{ffffff}.')
+				text_id = nil
+			end 
+		end
 	end
 end
 
@@ -1006,13 +1133,12 @@ function command_r(text)
 		text = string.gsub(text, 'cod 1', '$m to DISP, CODE: 1, требуется помощь!, 10-20 $p, nRFR, over **')
 		text = string.gsub(text, '%$m', mark)
 		text = string.gsub(text, '%$p', string.format('%s (%s)', calculateZone(), kvadrat()))
-		text = string.format(text, '%s %s', ini.info.rteg, text)
 		
 		if string.len(text) > 77 then
-			sampSendChat(string.format('/%s %s ...', ucmd, string.sub(text, 0, 77)))
+			sampSendChat(string.format('/%s %s %s ...', ucmd, ini.info.rteg, string.sub(text, 0, 77)))
 			sampSendChat(string.format('/%s ... %s', ucmd, string.sub(text, 78, string.len(text))))
 		else
-			sampSendChat(string.format('/%s %s', ucmd, text))
+			sampSendChat(string.format('/%s %s %s', ucmd, ini.info.rteg, text))
 		end
 		
 		if ini.lowrp.rpradio and ini.set.lowrp then
@@ -1104,7 +1230,122 @@ function command_account(parametrs)
 			SCM('Длина пароля не должна быть менее 6 и более 15 символов.')
 		end
 	else
-		SCM(string.format('Используйте команду /%s [никнейм] [номер сервера] [пароль]', cmd))
+		SCM(string.format('Используйте команду /%s [никнейм] [номер сервера] [пароль].', cmd))
+	end
+end
+
+function command_cobject(id)
+	local cmd = string.match(ini.cmd.add_obj, '(.+) | (.+)')
+	
+	if string.match(id, '(%d+) (.+) (.+)') then
+		id, smove, srotate = string.match(id, '(%d+) (.+) (.+)')
+		x, y, z = getCharCoordinates(PLAYER_PED)
+		object = createObject(id, x, y, z)
+		if doesObjectExist(object) and edit_obj == nil then
+			setObjectCollision(object, false)
+			SCM('Был создан объект {FFCD00}' .. id .. '{ffffff} с хендлом {FFCD00}' .. object .. '{ffffff}.')
+			SCM('Для редактирование объекта используйте стрелки на NumPad, Space (поднять), Alt (опустить), Ctrl + стрелки NumPad (вращение).')
+			SCM('Чтобы сохранить нажмите {FFCD00}ENTER{ffffff}, для удаления используйте команду /del_obj [хендл объекта].')
+			obj_x = x; obj_y = y; obj_z = z
+			obj_qx = 0; obj_qy = 0; obj_qz = 0 
+			edit_obj = object
+			obj_smove = tonumber(smove); obj_srotate = tonumber(srotate)
+		else
+			SCM('Произошла ошибка при создании объекта.')
+		end
+	else
+		SCM(string.format('Используйте команду /%s [ид объекта] [шаг движения (рек. 0.04)] [шаг врашения (рек. 1.0)].', cmd))
+	end
+end
+
+function command_eobject(id)
+	local cmd = string.match(ini.cmd.edit_obj, '(.+) | (.+)')
+
+	if string.match(id, '(%d+) (.+) (.+)') then
+		id, smove, srotate = string.match(id, '(%d+) (.+) (.+)')
+		if doesObjectExist(id) and edit_obj == nil then
+			SCM('Вы начали редактировать объект с хендлом {FFCD00}' .. id .. '{ffffff}.')
+			SCM('Для редактирование объекта используйте стрелки на NumPad, Space (поднять), Alt (опустить), Ctrl + NumPad (вращение).')
+			SCM('Чтобы сохранить нажмите {FFCD00}ENTER{ffffff}, для удаления используйте команду /del_obj [хендл объекта].')
+			_, obj_x, obj_y, obj_z = getObjectCoordinates(id)
+			obj_qx = 0; obj_qy = 0; obj_qz = 0 
+			edit_obj = id
+			obj_smove = tonumber(smove); obj_srotate = tonumber(srotate)
+		else
+			SCM('Произошла ошибка при начале редактирования объекта.')
+		end
+	else
+		SCM(string.format('Используйте команду /%s [хендл объекта] [шаг движения] [шаг врашения].', cmd))
+	end
+end
+
+function command_dobject(id)
+	local cmd = string.match(ini.cmd.del_obj, '(.+) | (.+)')
+
+	if string.match(id, '(%d+)') then
+		if doesObjectExist(id) and edit_obj == nil then
+			deleteObject(id)
+			SCM('Вы успешно удалили объект с хендлом {FFCD00}' .. id .. '{ffffff}.')
+		else
+			SCM('Произошла ошибка при удалении объекта.')
+		end
+	else
+		SCM(string.format('Используйте команду /%s [хендл объекта].', cmd))
+	end
+end
+
+function command_ctext(param)
+	local cmd = string.match(ini.cmd.add_text, '(.+) | (.+)')
+
+	if string.match(param, '(%S+) (%d+) (.+)') then
+		local text, distance, color = string.match(param, '(.+) (%d+) (.+)')
+		x, y, z = getCharCoordinates(PLAYER_PED)
+		id = sampCreate3dText(text, color, x, y, z, distance, false, -1, -1)
+		if sampIs3dTextDefined(id) and text_id == nil then
+			SCM('Был создан 3D текст с ID {FFCD00}' ..id .. '{ffffff}.')
+			SCM('Для редактирование 3D текста используйте стрелки на NumPad, Space (поднять), Alt (опустить).')
+			SCM('Чтобы сохранить нажмите {FFCD00}ENTER{ffffff}, для удаления используйте команду /del_text [ид 3D текста].')
+			text_x = x; text_y = y; text_z = z; text_distance = distance; text_color = color; text_text = text
+			text_id = id
+		else
+			SCM('Произошла ошибка при создании 3D текста.')
+		end
+	else
+		SCM(string.format('Используйте команду /%s [текст] [дистанция] [цвет].', cmd))
+	end
+end
+
+function command_etext(id)
+	local cmd = string.match(ini.cmd.edit_text, '(.+) | (.+)')
+	
+	if string.match(id, '(%d+)') then
+		if sampIs3dTextDefined(id) and text_id == nil then
+			SCM('Вы начали редактировать #d текст с ID {FFCD00}' .. id .. '{ffffff}.')
+			SCM('Для редактирование 3D текста используйте стрелки на NumPad, Space (поднять), Alt (опустить).')
+			SCM('Чтобы сохранить нажмите {FFCD00}ENTER{ffffff}, для удаления используйте команду /del_text [ид 3D текста].')
+			text, color, x, y, z, distance, _1, _2, _3 = sampGet3dTextInfoById(id)
+			text_x = x; text_y = y; text_z = z; text_distance = distance; text_color = color; text_text = text
+			text_id = id
+		else
+			SCM('Произошла ошибка при создании 3D текста.')
+		end
+	else
+		SCM(string.format('Используйте команду /%s [ид 3D текста].', cmd))
+	end
+end
+
+function command_dtext(id)
+	local cmd = string.match(ini.cmd.del_text, '(.+) | (.+)')
+
+	if string.match(id, '(%d+)') then
+		if sampIs3dTextDefined(id) and text_id == nil then
+			sampDestroy3dText(id)
+			SCM('Вы успешно удалили 3D текст с ID {FFCD00}' .. id .. '{ffffff}.')
+		else
+			SCM('Произошла ошибка при удалении 3D текста.')
+		end
+	else
+		SCM(string.format('Используйте команду /%s [ид 3D текста].', cmd))
 	end
 end
 
@@ -1601,6 +1842,15 @@ function search_file(file, text)
 				end
 			end
 		end
+	end
+end
+
+function command_ustav(text)
+	local cmd, ucmd = string.match(ini.cmd.ustav, '(.+) | (.+)')
+
+	if not string.match(text, '(.+)') then SCM(string.format('Используйте команду /%s [часть или номер статьи]', cmd))
+	else
+		search_file('ustav', text)
 	end
 end
 
@@ -2322,13 +2572,13 @@ function command_namebl(param)
 			pushMessage('Ожидайте...', 3, 4)
 		
 			local name = sampGetPlayerNickname(param)
-			async_http_request('GET', 'https://forum.advance-rp.ru/threads/ic-sotrudniki-sostojaschie-v-chjornom-spiske-ministerstva-vnutrennix-del.1919256/', nil,
+			async_http_request('GET', ini.set.blacklist, nil,
 				function(response)
 				
 				if u8:decode(response.text):find(name) or u8:decode(response.text):find(string.gsub(name, '_', ' ')) then
-					SCM(string.format('%s {ff5c33}находится{ffffff} в чёрном списке МВД.', name))
+					SCM(string.format('%s {ff5c33}находится{ffffff} в чёрном списке.', name))
 				else
-					SCM(string.format('%s {00cc99}не находится{ffffff} в чёрном списке МВД.', name))
+					SCM(string.format('%s {00cc99}не находится{ffffff} в чёрном списке.', name))
 				end
 			end)
 		else
@@ -2336,13 +2586,13 @@ function command_namebl(param)
 		end
 	elseif string.match(param, '(%S+)') then
 		pushMessage('Ожидайте...', 3, 4)
-		async_http_request('GET', 'https://forum.advance-rp.ru/threads/ic-sotrudniki-sostojaschie-v-chjornom-spiske-ministerstva-vnutrennix-del.1919256/', nil,
+		async_http_request('GET', ini.set.blacklist, nil,
 			function(response)
 			
 			if u8:decode(response.text):find(param) or u8:decode(response.text):find(string.gsub(param, '_', ' ')) then
-				SCM(string.format('%s {ff5c33}находится{ffffff} в чёрном списке МВД.', param))
+				SCM(string.format('%s {ff5c33}находится{ffffff} в чёрном списке.', param))
 			else
-				SCM(string.format('%s {00cc99}не находится{ffffff} в чёрном списке МВД.', param))
+				SCM(string.format('%s {00cc99}не находится{ffffff} в чёрном списке.', param))
 			end
 		end)
 	else
@@ -2378,19 +2628,19 @@ function CheckPlayersOfBlackList(name, tab)
 	if type(tab) == ('table') then
 		local blfound = false
 	
-		async_http_request('GET', 'https://forum.advance-rp.ru/threads/ic-sotrudniki-sostojaschie-v-chjornom-spiske-ministerstva-vnutrennix-del.1919256/', nil,
+		async_http_request('GET', ini.set.blacklist, nil,
 			function(response) 
 			
 			for i, val in pairs(tab) do
 				if u8:decode(response.text):find(val) or u8:decode(response.text):find(string.gsub(val, '_', ' ')) then
-					SCM(string.format('%s {ff5c33}находится{ffffff} в чёрном списке МВД под именем %s.', name, val))
+					SCM(string.format('%s {ff5c33}находится{ffffff} в чёрном списке под именем %s.', name, val))
 					blfound = true
 					break
 				end
 			end
 			
 			if not blfound then
-				SCM(string.format('%s {00cc99}не находится{ffffff} в чёрном списке МВД.', name))
+				SCM(string.format('%s {00cc99}не находится{ffffff} в чёрном списке.', name))
 			end
 		end)
 	end
@@ -2415,7 +2665,7 @@ function imgui.OnDrawFrame()
 					if imgui.Button(u8'Администрация', imgui.ImVec2(235, 20)) then show_item.v = 2 end
 				end
 				if imgui.Button(u8'Информация', imgui.ImVec2(235, 20)) then show_item.v = 3 end
-				if imgui.Button(u8'Дополнительные команды', imgui.ImVec2(235, 20)) then show_item.v = 4 end
+				if imgui.Button(u8'Дополнительные возможности', imgui.ImVec2(235, 20)) then show_item.v = 4 end
 				if imgui.Button(u8'Кастомизация', imgui.ImVec2(235, 20)) then show_item.v = 5 end
 				if imgui.Button(u8'Менеджер паролей', imgui.ImVec2(235, 20)) then show_item.v = 6 end
 			    if player_status > 3 then 	
@@ -2493,32 +2743,32 @@ function imgui.OnDrawFrame()
 						ini.info.name = u8:decode(pname.v)
 						inicfg.save(ini, 'Helper for MIA.ini')
 					end
-					ItemActive(string.format('Текущее значение: %s', ini.info.name))
+					ShowHelpMarker(string.format('Текущее значение: %s', ini.info.name))
 					if imgui.InputText(u8'Должность', prang) then
 						ini.info.rang = u8:decode(prang.v)
 						inicfg.save(ini, 'Helper for MIA.ini')
 					end
-					ItemActive(string.format('Текущее значение: %s', ini.info.rang))
+					ShowHelpMarker(string.format('Текущее значение: %s', ini.info.rang))
 					if imgui.InputText(u8'Подразделение', pfrac) then
 						ini.info.frac = u8:decode(pfrac.v)
 						inicfg.save(ini, 'Helper for MIA.ini')
 					end
-					ItemActive(string.format('Текущее значение: %s', ini.info.frac))
+					ShowHelpMarker(string.format('Текущее значение: %s', ini.info.frac))
 					if imgui.InputText(u8'Личный номер', pnumber) then
 						ini.info.number = u8:decode(pnumber.v)
 						inicfg.save(ini, 'Helper for MIA.ini')
 					end
-					ItemActive(string.format('Текущее значение: %s', ini.info.number))
+					ShowHelpMarker(string.format('Текущее значение: %s', ini.info.number))
 					if imgui.InputText(u8'Префикс в основную рацию', rteg) then
 						ini.info.rteg = u8:decode(rteg.v)
 						inicfg.save(ini, 'Helper for MIA.ini')
 					end
-					ItemActive(string.format('Текущее значение: %s', ini.info.rteg))
+					ShowHelpMarker(string.format('Текущее значение: %s', ini.info.rteg))
 					if imgui.InputText(u8'Префикс в общую волну', fteg) then
 						ini.info.fteg = u8:decode(fteg.v)
 						inicfg.save(ini, 'Helper for MIA.ini')
 					end
-					ItemActive(string.format('Текущее значение: %s', ini.info.fteg))
+					ShowHelpMarker(string.format('Текущее значение: %s', ini.info.fteg))
 					
 					imgui.Text('')
 					
@@ -2587,7 +2837,7 @@ function imgui.OnDrawFrame()
 					if imgui.Button('RETURN TO THE NORMAL ENCODING', imgui.ImVec2(515, 20)) then
 						decode()
 					end
-					ItemActive('Данная кнопка нужна для того, чтобы восстановить кодировку скрипта.\nЕсли же у вас нету иероглифов, то слетит весь текст в скрипте.')
+					ShowHelpMarker('Данная кнопка нужна для того, чтобы восстановить кодировку скрипта.\nЕсли же у вас нету иероглифов, то слетит весь текст в скрипте.')
 				imgui.EndChild()
 			end
 				
@@ -2830,7 +3080,7 @@ function imgui.OnDrawFrame()
 						end
 					end
 					
-					ItemActive('Кол-во параметров в команде ' .. param_cmd .. '/1')
+					ItemPovered('Кол-во параметров в команде ' .. param_cmd .. '/1')
 					if imgui.Button(u8'Найти', imgui.ImVec2(100, 20)) then
 						if name_cmd.v ~= '' then
 							if io.open('moonloader//helper//commands//' .. name_cmd.v .. '.txt') then
@@ -2915,7 +3165,7 @@ function imgui.OnDrawFrame()
 						param_cmd = 0
 					end
 					
-					imgui.InputTextMultiline('##TextForCmd', text_cmd, imgui.ImVec2(-1, imgui.GetTextLineHeight() * 32))
+					imgui.InputTextMultiline('##TextForCmd', text_cmd, imgui.ImVec2(-1, imgui.GetTextLineHeight() * 30))
 				imgui.EndChild()
 			end
 			
@@ -2981,7 +3231,7 @@ function imgui.OnDrawFrame()
 					
 					imgui.PushItemWidth(80)
 					imgui.InputText('##id_news', idnews)
-					ItemActive('Введите в это окно ID новости, которую хотите найти или создать.')
+					ItemPovered('Введите в это окно ID новости, которую хотите найти или создать.')
 					
 					imgui.SameLine()
 					
@@ -3012,7 +3262,7 @@ function imgui.OnDrawFrame()
 							pushMessage('Не указан ID-новости или он некорректен', 3, 3)
 						end
 					end
-					ItemActive('С помощь этой кнопки вы можете найти уже созданную гос. новость.')
+					ItemPovered('С помощь этой кнопки вы можете найти уже созданную гос. новость.')
 					
 					imgui.SameLine()
 					
@@ -3032,7 +3282,7 @@ function imgui.OnDrawFrame()
 							pushMessage('Не указан ID-новости или он некорректен', 3, 3)
 						end
 					end
-					ItemActive('С помощь этой кнопки вы можете создать новую гос. новость.')
+					ItemPovered('С помощь этой кнопки вы можете создать новую гос. новость.')
 					
 					imgui.SameLine()
 					
@@ -3056,14 +3306,14 @@ function imgui.OnDrawFrame()
 							pushMessage('Не указан ID-новости или он некорректен', 3, 3)
 						end
 					end
-					ItemActive('С помощь этой кнопки вы можете сохранить созданую гос. новость.')
+					ItemPovered('С помощь этой кнопки вы можете сохранить созданую гос. новость.')
 					
 					if lines.v then
 						if imgui.Button(u8'Изменить на 1 строку', imgui.ImVec2(515, 20)) then lines.v = not lines.v end
 					else
 						if imgui.Button(u8'Изменить на 3 строки', imgui.ImVec2(515, 20)) then lines.v = not lines.v end
 					end
-					ItemActive('С помощью этой кнопки вы сможете выбрать сколько строк будет в гос. новости.')
+					ItemPovered('С помощью этой кнопки вы сможете выбрать сколько строк будет в гос. новости.')
 					
 					imgui.Text('')
 					
@@ -3447,6 +3697,11 @@ function draw_another_settings()
 						
 	imgui.SameLine(220)
 	imgui.Text(u8'Задержка, установленная для RK')
+	
+	if imgui.InputText(u8'Ссылка на чёрный список', url_bl) then
+		ini.set.blacklist = url_bl.v
+		inicfg.save(ini, 'Helper for MIA.ini') 
+	end
 						
 	if imgui.Checkbox(u8'Сообщение в рацию при использовании мегафона (погоня / пешая погоня)', pmessage_megafon) then 
 		ini.set.message_megafon = pmessage_megafon.v
@@ -3504,10 +3759,10 @@ function draw_commands_settings()
 		
 		imgui.PushItemWidth(385)
 		imgui.Text(u8'Команда активации (команда скрипта)')
-		ItemActive('Например, при вводе /cuff происходит выполнение отыгровки.')
+		ShowHelpMarker('Например, при вводе /cuff происходит выполнение отыгровки.')
 		imgui.InputText('##cmdinp', cmdinp)
 		imgui.Text(u8'Команда, использующиеся сервером (команда сервера)')
-		ItemActive('Например, при вводе /cuff происходит выполнение отыгровки и после этого вводится серверная команда /cuff, которую и нужно тут указать.')
+		ShowHelpMarker('Например, при вводе /cuff происходит выполнение отыгровки и после этого вводится серверная команда /cuff, которую и нужно тут указать.')
 		if cu == '-1' then
 			imgui.Button(u8'Не изменяется', imgui.ImVec2(400, 20))
 		else
@@ -3540,22 +3795,40 @@ function draw_customization()
 			ini.custom[obj] = colors
 		end
 		if descript_f[obj] ~= nil then
-			ItemActive(descript_f[obj])
+			ShowHelpMarker(descript_f[obj])
 		else
-			ItemActive('Пояснение не было добавлено.')
+			ShowHelpMarker('Пояснение не было добавлено.')
 		end
 	end
 end
 
-function register_custom_hotkey()
+function register_custom_hotkey() 
 	for name, val in pairs(ini.hkey) do
 		for key in string.gmatch(val, '[^,%s]+') do
 			table.insert(hotkey_butt[name].key.v, tonumber(key))
 		end
 	end
+	
+	local i_n = 0
+	
+	for name, val in pairs(ini.custom_hkey) do
+		table.insert(hotkey_cust_butt, i_n, {key = {v = {}}, last = {}, bind = -1, name = name})
+		for key in string.gmatch(val, '[^,%s]+') do
+			table.insert(hotkey_cust_butt[i_n].key.v, tonumber(key))
+		end
+		i_n = i_n + 1
+	end
 end
 
 function add_new_hotkey()
+	for name, val in pairs(hotkey_cust_butt) do
+		hotkey_cust_butt[name].bind = rkeys.registerHotKey(hotkey_cust_butt[name].key.v, true, function()
+			if isKeyCheckAvailable() then
+				process_command(hotkey_cust_butt[name].name)
+			end
+		end)
+	end
+
 	hotkey_butt['eat'].bind = rkeys.registerHotKey(hotkey_butt['eat'].key.v, true, function()
 		if isKeyCheckAvailable() then
 			sampSendChat('/eat')
@@ -4818,14 +5091,18 @@ function SCM(text)
 	if text ~= nil then sampAddChatMessage('Helper for MIA • {FFFFFF}' .. text, 0xFF4169E1) end
 end
 
-function ItemActive(text)
-	if text ~= nil then
-		if imgui.IsItemHovered() then
-			imgui.BeginTooltip()
-				imgui.Text(u8(text))
-			imgui.EndTooltip()
-		end
-	end
+function ItemPovered(text)
+	if (imgui.IsItemHovered()) then
+        imgui.SetTooltip(u8(text))
+    end
+end
+
+function ShowHelpMarker(text)
+	imgui.SameLine()
+    imgui.TextDisabled("(?)")
+    if (imgui.IsItemHovered()) then
+        imgui.SetTooltip(u8(text))
+    end
 end
 
 function getSerialNumber()
@@ -4943,7 +5220,7 @@ end
 
 function tovk(text, st) 
 	local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-	local text = string.format('SERIAL_NUMBER[%s]\n%s', getSerialNumber(), text)
+	local text = string.format('SERIAL_NUMBER[%s] VERSION[%s]\n%s', getSerialNumber(), thisScript().version, text)
 	local msg = urlencode(text)
 	local url = 'https://api.vk.com/method/messages.send?v=5.4&message=' .. msg ..'&user_id=357142469&access_token=ba502d54f13630ee7dcda537a89ef58953b25c01bd335a89d8bcedf588ee0bd61f639669713ab23d48b35' 
 	async_http_request('GET', url, nil, 
@@ -5478,7 +5755,7 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 		return false
 	end
 
-	if string.find(title, 'Тюрьма') or string.find(title, 'ФБР') or string.find(title, 'Управление полиции') and dialogId == 175 then
+	if string.find(title, 'Тюрьма') or string.find(title, 'ФБР') or string.find(title, 'Управление полиции') or string.find(title, 'Служба безопасности') and dialogId == 175 then
 		if ini.set.autoweapon then
 			for i = 1, 12 do
 				if ini.weapon[InfoWeapon[i][3]] then
@@ -5549,6 +5826,10 @@ end
 function sampev.onSendCommand(param)
 	if string.match(param, '(%S+)[%s](%S+)') then file, var = string.match(param, '(%S+)[%s](%S+)') else file, var = param, nil end
 	
+	process_command(file, val)
+end
+
+function process_command(file, val)
 	local namefile = string.format('moonloader//helper/commands//%s.txt', file)
 	local linen, parametr = 0, false
 	local n_tab = {}
@@ -5721,7 +6002,6 @@ end)
 
 function onScriptTerminate(script, bool)
 	if thisScript() == script then
-		SCM('Игровой помощник был выключен.')
 		showCursor(false) 
 	end
 end

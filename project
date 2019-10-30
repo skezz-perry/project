@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(10.1)
+script_version(10.2)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -408,7 +408,7 @@ local ini = inicfg.load({
 		sw = 'sw | -1',
 		st = 'st | -1',
 		skin = 'skin | -1',
-		hist = 'hist | -1',
+		history = 'hist | history',
 		asms = 'asms | sms',
 		gov = 'gov | -1',
 		addbl = 'addbl | -1',
@@ -580,11 +580,7 @@ function main()
 	autoupdate('https://raw.githubusercontent.com/skezz-perry/project/master/version', 'https://raw.githubusercontent.com/skezz-perry/project/master/project')
 
 	for i = 1, 46 do
-		if weapons.get_name(i) == nil then
-			weapon[i] = 'NOT FOUND'
-		else
-			weapon[i] = weapons.get_name(i)
-		end
+		if weapons.get_name(i) == nil then weapon[i] = 'NOT FOUND' else weapon[i] = weapons.get_name(i) end
 	end
 	
 	for val in pairs(ini.cmd) do
@@ -625,7 +621,7 @@ function main()
 	sampRegisterChatCommand(string.match(ini.cmd.sw, '(.+) | (.+)'), command_setweather)
 	sampRegisterChatCommand(string.match(ini.cmd.st, '(.+) | (.+)'), command_settime)
 	sampRegisterChatCommand(string.match(ini.cmd.skin, '(.+) | (.+)'), command_setskin)
-	sampRegisterChatCommand(string.match(ini.cmd.hist, '(.+) | (.+)'), command_history) 
+	sampRegisterChatCommand(string.match(ini.cmd.history, '(.+) | (.+)'), command_history) 
 	sampRegisterChatCommand(string.match(ini.cmd.asms, '(.+) | (.+)'), command_asms)
 	sampRegisterChatCommand(string.match(ini.cmd.gov, '(.+) | (.+)'), command_gov)
 	sampRegisterChatCommand(string.match(ini.cmd.addbl, '(.+) | (.+)'), command_addbl)
@@ -879,6 +875,18 @@ function main()
 		end
 		
 		if flymode and not sampIsChatInputActive() and not isSampfuncsConsoleActive() then
+			for key = 49, 58 do
+				if wasKeyPressed(key) and isKeyCheckAvailable() then
+					if static_camera[key - 48] ~= nil then
+						local t = static_camera[key - 48]
+						posX, posY, posZ, poiX, poiY, poiZ, angZ = t.posX, t.posY, t.posZ, t.poiX, t.poiY, t.poiZ, t.angZ
+						setFixedCameraPosition(t.posX, t.posY, t.posZ, 0.0, 0.0, 0.0)
+						pointCameraAtPoint(t.poiX, t.poiY, t.poiZ, 2)
+						setCharHeading(playerPed, t.angZ)
+					end
+				end
+			end
+			
 			offMouX, offMouY = getPcMouseMovement()
 			  
 			offMouX = offMouX / 4.0
@@ -984,18 +992,6 @@ function main()
 				setFixedCameraPosition(posX, posY, posZ, 0.0, 0.0, 0.0)
 			end
 			
-			for key = 49, 58 do
-				if wasKeyPressed(key) and isKeyCheckAvailable() then
-					if static_camera[key - 48] ~= nil then
-						local t = static_camera[key - 48]
-						posX, posY, posZ, poiX, poiY, poiZ, angZ = t.posX, t.posY, t.posZ, t.poiX, t.poiY, t.poiZ, t.angZ
-						setFixedCameraPosition(t.posX, t.posY, t.posZ, 0.0, 0.0, 0.0)
-						pointCameraAtPoint(t.poiX, t.poiY, t.poiZ, 2)
-						setCharHeading(playerPed, t.angZ)
-					end
-				end
-			end
-			
 			radZ = math.rad(angZ) 
 			radY = math.rad(angY)             
 			sinZ = math.sin(radZ)
@@ -1016,14 +1012,12 @@ function main()
 			pointCameraAtPoint(poiX, poiY, poiZ, 2)
 
 			if isKeyDown(187) then 
-				speed = speed + 0.01
-				printStringNow(speed, 1000)
+				speed = speed + 0.0005
 			end 
 			               
 			if isKeyDown(189) then 
-				speed = speed - 0.01 
-				if speed < 0.01 then speed = 0.01 end
-				printStringNow(speed, 1000)
+				speed = speed - 0.0005
+				if speed < 0.001 then speed = 0.001 end
 			end   
 
 			if isKeyDown(VK_C) and isKeyDown(VK_2) and isKeyCheckAvailable() then
@@ -1720,7 +1714,7 @@ function command_setskin(param)
 end
 
 function command_history(id)
-	local cmd, ucmd = string.match(ini.cmd.hist, '(.+) | (.+)')
+	local cmd, ucmd = string.match(ini.cmd.history, '(.+) | (.+)')
 
 	if string.match(id, '(%d+)') then
 		if IPC(id) then
@@ -2695,6 +2689,7 @@ function imgui.OnDrawFrame()
 					imgui.Text('')
 					
 					local update_info = {
+						'Лол, чо биндер добавили или чо??',
 						'Добавлена возможность изменять горячие клавиши в расширенных настройках',
 						'Добавлена возможность закрывать imgui-окна с помощью клавиши ESC',
 						'Добавлена возможность использовать скрипт на разных аккаунтах обходя привязку',
@@ -3063,7 +3058,9 @@ function imgui.OnDrawFrame()
 				
 			if show_item.v == 4 then
 				imgui.BeginChild('##another_block', imgui.ImVec2(530, 520), true, imgui.WindowFlags.HorizontalScrollbar)
-					imgui.Text(u8'Команда: /')
+					draw_another_custom_command()
+					
+					--[[imgui.Text(u8'Команда: /')
 					imgui.SameLine()
 					imgui.PushItemWidth(190)
 					imgui.InputText('', name_cmd)
@@ -3165,7 +3162,10 @@ function imgui.OnDrawFrame()
 						param_cmd = 0
 					end
 					
+					draw_new_custom_hotkey()
+					
 					imgui.InputTextMultiline('##TextForCmd', text_cmd, imgui.ImVec2(-1, imgui.GetTextLineHeight() * 30))
+					--]]
 				imgui.EndChild()
 			end
 			
@@ -3724,15 +3724,21 @@ function draw_hotkey_settings()
 	
 	for name in pairs(ini.hkey) do
 		if imgui.HotKey('##' .. name, hotkey_butt[name].key, hotkey_butt[name].last, 100) then
-			rkeys.changeHotKey(hotkey_butt[name].bind, hotkey_butt[name].key.v)
-			
-			local key = ' '
-			for _, val in pairs(hotkey_butt[name].key.v) do
-				key = string.format('%s, %s', key, val)
+			if not rkeys.isHotKeyDefined(hotkey_cust_butt[id].key.v) then
+				rkeys.changeHotKey(hotkey_butt[name].bind, hotkey_butt[name].key.v)
+				
+				local key = ' '
+				for _, val in pairs(hotkey_butt[name].key.v) do
+					key = string.format('%s, %s', key, val)
+				end
+				
+				ini.hkey[name] = string.gsub(key, '%s,%s', '')
+				inicfg.save(ini, 'Helper for MIA.ini')
+				pushMessage('Для этой команды установленно новое сочетание клавиш.', 3, 3)
+			else
+				hotkey_butt[name].key = hotkey_butt[name].last
+				pushMessage('Данное сочетание клавиш уже используется.', 3, 4)
 			end
-			
-			ini.hkey[name] = string.gsub(key, '%s,%s', '')
-			inicfg.save(ini, 'Helper for MIA.ini')
 		end
 		imgui.SameLine()
 		imgui.Text(u8(hotkey_butt[name].name))
@@ -3786,6 +3792,170 @@ function draw_commands_settings()
 	imgui.EndChild()
 end 
 
+-- ввод команды, параметр, найти, создать, сохранить, функции, очистить
+
+function getStateCommand(name)
+	if name_cmd.v ~= nil and name_cmd.v ~= '' then
+		local path = string.format('moonloader//helper//commands//%s.txt', name)
+		
+		if doesFileExist(path) then
+			return '{32CD32}доступна для настройки'
+		else
+			return '{CD5C5C}недоступна для настройки'
+		end
+	else
+		return '{FFD700}ожидание ввода'
+	end
+end
+
+function draw_another_custom_command()
+	imgui.CenterTextColoredRGB('ДОПОЛНИТЕЛЬНЫЕ ВОЗМОЖНОСТИ')
+	
+	imgui.Text('')
+	
+	imgui.Text(u8'Название команды: ') imgui.SameLine() imgui.PushItemWidth(170)
+	imgui.InputText('', name_cmd) imgui.SameLine()
+	imgui.TextColoredRGB(getStateCommand(name_cmd.v))
+	if command_hotkey then
+		draw_new_custom_hotkey()
+	end
+	
+	if imgui.Button(u8'Найти или создать', imgui.ImVec2(170, 20)) then
+		if name_cmd.v ~= nil and name_cmd.v ~= '' then
+			local path = string.format('moonloader//helper//commands//%s.txt', u8:decode(name_cmd.v))
+			
+			if doesFileExist(path) then
+				local cmd_text = ''
+				for line in io.lines(path) do
+					if string.match(line, '{param = (%d+)}') then
+						param_cmd = tonumber(string.match(line, '{param = (%d+)}'))
+					else 
+						cmd_text = string.format('%s %s\n', cmd_text, u8(line))
+					end
+				end
+				text_cmd.v = cmd_text
+				
+				pushMessage('Команда найдена и открыта для настройки', 3, 4)
+			elseif not doesFileExist(path) then
+				local filew = io.open(path, 'w')
+				filew:write('')
+				filew:close()
+				
+				param_cmd = 0
+				text_cmd.v = u8'Новая команда'
+				
+				pushMessage('Была создана новая команда.', 3, 4)
+			end
+		else
+			pushMessage('Не введено название команды.', 3, 3)
+		end
+	end
+	imgui.SameLine()
+	if imgui.Button(u8'Сохранить', imgui.ImVec2(160, 20)) then
+		if name_cmd.v ~= nil and name_cmd.v ~= '' then
+			local path = string.format('moonloader//helper//commands//%s.txt', u8:decode(name_cmd.v))
+			
+			if doesFileExist(path) then
+				local filew = io.open(path, 'w')
+				local save_text = string.format('{param = %d}\n%s', param_cmd, text_cmd.v)
+				filew:write(u8:decode(save_text))
+				filew:close()
+				
+				pushMessage('Команда успешно сохранена.', 3, 4)
+			else
+				pushMessage('Для начала нужно найти или создать команду.', 3, 3)
+			end
+		else
+			pushMessage('Не введено название команды.', 3, 3)
+		end
+	end
+	imgui.SameLine()
+	if imgui.Button(u8'Очистить', imgui.ImVec2(170, 20)) then
+		param_cmd, text_cmd.v, name_cmd.v = 0, '', ''
+	end
+	
+	if param_cmd == 0 then
+		if imgui.Button(u8'Добавить параметр', imgui.ImVec2(170, 20)) then param_cmd = 1 end
+	else
+		if imgui.Button(u8'Убрать параметр', imgui.ImVec2(170, 20)) then param_cmd = 0 end
+	end
+	imgui.SameLine()
+	if imgui.Button(u8'Функции', imgui.ImVec2(160, 20)) then
+		show_help.v = not show_help.v
+	end
+	imgui.SameLine()
+	if imgui.Button(u8'Активация клавишами', imgui.ImVec2(170, 20)) then
+		command_hotkey = not command_hotkey
+	end
+
+	imgui.Text('')
+	if not edit_command_text then command_name_text = 'РЕДАКТИРОВАНИЕ' else command_name_text = 'РЕЗУЛЬТАТ' end
+	if imgui.Button(u8(command_name_text), imgui.ImVec2(510, 20)) then
+		edit_command_text = not edit_command_text
+	end
+	
+	if not edit_command_text then
+		imgui.PushItemWidth(515)
+		if command_hotkey then command_number = 24 else command_number = 25 end
+		imgui.InputTextMultiline('##TextForCmd', text_cmd, imgui.ImVec2(-1, imgui.GetTextLineHeight() * command_number))
+	else
+		imgui.Text(text_cmd.v)
+	end
+end
+
+function draw_new_custom_hotkey()
+	imgui.Text(u8'Клавиша(-и) активации: ') imgui.SameLine()
+
+	if name_cmd.v ~= nil and name_cmd.v ~= '' then
+		if ini.custom_hkey[u8:decode(name_cmd.v)] ~= nil then
+			for id, val in pairs(hotkey_cust_butt) do
+				if u8:decode(name_cmd.v) == val.name then
+					if val.key.v ~= nil then
+						if imgui.HotKey('##' .. name, hotkey_cust_butt[id].key, hotkey_cust_butt[id].last, 100) then
+							if not rkeys.isHotKeyDefined(hotkey_cust_butt[id].key.v) then
+								rkeys.changeHotKey(hotkey_cust_butt[id].bind, hotkey_cust_butt[id].key.v)
+			
+								local key = ' '
+								for _, val in pairs(hotkey_cust_butt[id].key.v) do
+									key = string.format('%s, %s', key, val)
+								end
+								
+								ini.custom_hkey[name] = string.gsub(key, '%s,%s', '')
+								inicfg.save(ini, 'Helper for MIA.ini')
+								pushMessage('Для этой команды установленно новое сочетание клавиш.', 3, 4)
+							else
+								hotkey_cust_butt[id].key = hotkey_cust_butt[id].last
+								pushMessage('Данное сочетание клавиш уже используется.', 3, 3)
+							end
+						end
+					else
+						imgui.TextColoredRGB('{CD5C5C}команда не имеет клавиш активации')
+					end
+				end
+			end
+		else
+			if imgui.Button(u8'добавить активацию клавишами') then
+				if not name_cmd.v:find('йцукенгшщзхъфывапролджэячсмитьбюЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮ') then
+					ini.custom_hkey[name_cmd.v] = -1
+					table.insert(hotkey_cust_butt, {key = {v = {-1}}, last = {}, bind = -1, name = name_cmd.v})
+					
+					hotkey_cust_butt[#hotkey_cust_butt].bind = rkeys.registerHotKey(hotkey_cust_butt[#hotkey_cust_butt].key.v, true, function()
+						if isKeyCheckAvailable() then
+							process_command(hotkey_cust_butt[#hotkey_cust_butt].name)
+						end
+					end)
+					
+					inicfg.save(ini, 'Helper for MIA.ini')
+				else
+					pushMessage('Команда не должна быть на русском языке.', 3, 3)
+				end
+			end
+		end
+	else
+		imgui.TextColoredRGB('{CD5C5C}недоступно для настройки')
+	end
+end
+
 function draw_customization()
 	for obj in pairs(ini.custom) do
 		local color = imgui.ImFloat4(imgui.ImColor(ini.custom[obj]):GetFloat4())
@@ -3810,12 +3980,12 @@ function register_custom_hotkey()
 	end
 	
 	local i_n = 0
-	
 	for name, val in pairs(ini.custom_hkey) do
 		table.insert(hotkey_cust_butt, i_n, {key = {v = {}}, last = {}, bind = -1, name = name})
 		for key in string.gmatch(val, '[^,%s]+') do
 			table.insert(hotkey_cust_butt[i_n].key.v, tonumber(key))
 		end
+		
 		i_n = i_n + 1
 	end
 end

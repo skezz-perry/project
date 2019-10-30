@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(10.2)
+script_version(10.3)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -521,7 +521,7 @@ local vfilt              = imgui.ImBool(false)
 local lines              = imgui.ImBool(false)
 local command_edit       = imgui.ImBool(false)
 local spypass            = imgui.ImBool(true)
-local show_item          = imgui.ImInt(0)
+local show_item          = imgui.ImInt(8)
 local set_item           = imgui.ImInt(0)
 local page_num           = imgui.ImInt(0)
 local weaponid           = imgui.ImInt(46)
@@ -2684,7 +2684,9 @@ function imgui.OnDrawFrame()
 			if show_item.v == 8 then
 				imgui.BeginChild('##another_block', imgui.ImVec2(530, 520), true)
 					
-					imgui.CenterTextColoredRGB('ГЛАВНАЯ СТРАНИЦА')
+					draw_head_page()
+					
+					--[[imgui.CenterTextColoredRGB('ГЛАВНАЯ СТРАНИЦА')
 					
 					imgui.Text('')
 					
@@ -2722,7 +2724,7 @@ function imgui.OnDrawFrame()
 					imgui.PushItemWidth(460)
 					imgui.SliderInt('##inpball', inpball, 1, 5)
 					imgui.PushItemWidth(420)
-					imgui.InputTextMultiline('##update_com', inpcomment, imgui.ImVec2(-1, imgui.GetTextLineHeight() * 8))
+					imgui.InputTextMultiline('##update_com', inpcomment, imgui.ImVec2(-1, imgui.GetTextLineHeight() * 8))]]
 				imgui.EndChild()
 			end
 			
@@ -3014,7 +3016,7 @@ function imgui.OnDrawFrame()
 						admins.v = u8(line)
 					end
 					imgui.SameLine()
-					if imgui.Button(u8'Редактировать', imgui.ImVec2(165, 25)) then
+					if imgui.Button(u8'Редактировать', imgui.ImVec2(160, 25)) then
 						editor.v = not editor.v
 					end
 					imgui.SameLine()
@@ -3059,113 +3061,6 @@ function imgui.OnDrawFrame()
 			if show_item.v == 4 then
 				imgui.BeginChild('##another_block', imgui.ImVec2(530, 520), true, imgui.WindowFlags.HorizontalScrollbar)
 					draw_another_custom_command()
-					
-					--[[imgui.Text(u8'Команда: /')
-					imgui.SameLine()
-					imgui.PushItemWidth(190)
-					imgui.InputText('', name_cmd)
-					
-					imgui.SameLine()
-					
-					if param_cmd == 1 then
-						if imgui.Button(u8'Убрать параметр', imgui.ImVec2(250, 20)) then
-							param_cmd = 0
-						end
-					else
-						if imgui.Button(u8'Добавить параметр', imgui.ImVec2(250, 20)) then
-							param_cmd = 1
-						end
-					end
-					
-					ItemPovered('Кол-во параметров в команде ' .. param_cmd .. '/1')
-					if imgui.Button(u8'Найти', imgui.ImVec2(100, 20)) then
-						if name_cmd.v ~= '' then
-							if io.open('moonloader//helper//commands//' .. name_cmd.v .. '.txt') then
-								cmd_text = ''
-								for line in io.lines('moonloader//helper//commands//' .. name_cmd.v .. '.txt') do
-									if string.match(line, '{param = (%d+)}') then
-										param_cmd = tonumber(string.match(line, '{param = (%d+)}'))
-									else
-										cmd_text = cmd_text .. u8(line) .. '\n'
-									end
-								end
-								text_cmd.v = cmd_text
-								
-								pushMessage('Команда найдена и открыта для настройки', 3, 4)
-							else
-								pushMessage('Команда с таким названием не существует', 3, 3)
-							end
-						else
-							pushMessage('Не указано название команды', 3, 3)
-						end
-					end
-					
-					imgui.SameLine()
-					
-					if imgui.Button(u8'Создать', imgui.ImVec2(100, 20)) then
-						if name_cmd.v ~= '' and not string.match(name_cmd.v, '[(%s+)]') then
-							if not io.open('moonloader//helper//commands//' .. name_cmd.v .. '.txt') then
-								local file = 'moonloader//helper//commands//' .. name_cmd.v .. '.txt'
-								local filew = io.open(file, 'w')
-								filew:write('Файл создан')
-								filew:close()
-								cmd_text = ''
-								for line in io.lines('moonloader//helper//commands//' .. name_cmd.v .. '.txt') do
-									if string.match(line, '{param = (%d+)}') then
-										param_cmd = tonumber(string.match(line, '{param = (%d+)}'))
-									else
-										cmd_text = cmd_text .. u8(line) .. '\n'
-									end
-								end
-								text_cmd.v = cmd_text
-								
-								pushMessage('Команда создана и открыта для настройки', 3, 4)
-							else
-								pushMessage('Команда с таким названием уже существует', 3, 3)
-							end
-						else
-							pushMessage('Не указано название команды', 3, 3)
-						end
-					end
-					
-					imgui.SameLine()
-					
-					if imgui.Button(u8'Сохранить', imgui.ImVec2(93, 20)) then
-						if name_cmd.v ~= '' and not string.match(name_cmd.v, '[(%s+)]') then
-							if io.open('moonloader//helper//commands//' .. name_cmd.v .. '.txt') then
-								local file = 'moonloader//helper//commands//' .. name_cmd.v .. '.txt'
-								local filew = io.open(file, 'w')
-								local save_text = '{param = ' .. param_cmd .. '}\n' .. text_cmd.v
-								filew:write(u8:decode(save_text))
-								filew:close()
-								
-								pushMessage('Команда успешно сохранена', 3, 4)
-							else
-								pushMessage('Не удаётся сохранить файл', 3, 3)
-							end
-						else
-							pushMessage('Не указано название команды', 3, 3)
-						end
-					end
-					
-					imgui.SameLine()
-					
-					if imgui.Button(u8'Функции', imgui.ImVec2(100, 20)) then
-						show_help.v = not show_help.v
-					end
-					
-					imgui.SameLine()
-					
-					if imgui.Button(u8'Очистить', imgui.ImVec2(100, 20)) then
-						text_cmd.v = ''
-						name_cmd.v = ''
-						param_cmd = 0
-					end
-					
-					draw_new_custom_hotkey()
-					
-					imgui.InputTextMultiline('##TextForCmd', text_cmd, imgui.ImVec2(-1, imgui.GetTextLineHeight() * 30))
-					--]]
 				imgui.EndChild()
 			end
 			
@@ -3378,7 +3273,8 @@ function imgui.OnDrawFrame()
 				'{date} | Текущая дата | ' .. os.date('%x'),
 				'sendChat(text) | Сообщение в обычный чат | <Сообщение>',
 				'addChat(text) | Серв. сообщение | <Сообщение>',
-				'wait(delay) | Задержка | <Задержка>'
+				'wait(delay) | Задержка | <Задержка>',
+				'setKeyDown(key[, bool]) | Нажатие клавиши KEY | <Нажатие клавиши>'
 			}
 			
 			imgui.SetNextWindowSize(imgui.ImVec2(550, 430))
@@ -3390,16 +3286,15 @@ function imgui.OnDrawFrame()
 				imgui.NextColumn()
 				for i, val in pairs(info_function) do
 					local f, i, r = string.match(val, '(.+) | (.+) | (.+)')
-					if f == nil then f = 'nil' end
-					if i == nil then i = 'nil' end
-					if r == nil then r = 'nil' end
-					imgui.Separator()
-					imgui.NextColumn()
-					imgui.Text(string.format('%s', u8(f)))
-					imgui.NextColumn()
-					imgui.Text(string.format('%s', u8(i)))
-					imgui.NextColumn() 
-					imgui.Text(string.format('%s', u8(r)))
+					if f ~= nil and i ~= nil and r ~= nil then
+						imgui.Separator()
+						imgui.NextColumn()
+						imgui.Text(string.format('%s', u8(f)))
+						imgui.NextColumn()
+						imgui.Text(string.format('%s', u8(i)))
+						imgui.NextColumn() 
+						imgui.Text(string.format('%s', u8(r)))
+					end
 				end
 			imgui.End()
 		end
@@ -3792,19 +3687,82 @@ function draw_commands_settings()
 	imgui.EndChild()
 end 
 
--- ввод команды, параметр, найти, создать, сохранить, функции, очистить
+function draw_head_page()
+	imgui.CenterTextColoredRGB('ГЛАВНАЯ СТРАНИЦА')
+	
+	imgui.Text('')
+	
+	if not communication_page then head_page_text = 'СВЯЗЬ С РАЗРАБОТЧИКОМ' else head_page_text = 'ВЕРНУТЬСЯ НА ГЛАВНУЮ СТРАНИЦУ' end
+	if imgui.Button(u8(head_page_text), imgui.ImVec2(510, 20)) then
+		communication_page = not communication_page
+	end
+	
+	
+	if not communication_page then
+		imgui.Text('')
+		
+		imgui.BeginChild('##Update_Info', imgui.ImVec2(510, 150), true)
+			
+			imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ОБНОВЛЕНИИ')
+			
+			imgui.Text(u8'Была добавлена возможность активировать доп. команды с помощью клавиш.')
+			imgui.Text(u8'Добавлено несколько новых функций для создания доп. команд.')
+			imgui.Text(u8'Изменена минимально возможная скорость использования CamHack`a до 0.001.')
+			imgui.Text(u8'Добавлена возможность сохранить положение CamHack`a с помощью /savecords.')
+			imgui.Text(u8'Возвращены команды для редактирование объектов и 3D-текста.')
+			
+		imgui.EndChild()
+		
+		
+		
+		imgui.BeginChild('##Another_Info', imgui.ImVec2(510, 270), true)
+			
+			imgui.CenterTextColoredRGB('{FFA54F}ПОЛЕЗНАЯ ИНФОРМАЦИЯ')
+			
+			imgui.Text(u8'Полезная информация будет доступна чуть позже.')
+			
+		imgui.EndChild()
+	else
+		imgui.Text('')
+		imgui.TextColoredRGB('Вы можете сообщить о недаработке (баге) или предложить какое-либо улучешние.')
+		imgui.TextColoredRGB('Если в скрипте происходит какая-то ошибка и он вылетает, то укажите ошибку..')
+		imgui.TextColoredRGB('.. которая появляется в консоли (~ или Ё) и напишите, что использовали перед этим.')
+		imgui.TextColoredRGB('Ошибка имеет префикс (error), который подсвечен красным цветом.')
+		imgui.TextColoredRGB('Не стоит оффтопить и писать просто так.')
+		imgui.Text('')
+		imgui.TextColoredRGB('• Discord') imgui.SameLine(80) if imgui.Button('Skezz Perry#2705') then setClipboardText('Skezz Perry#2705') end
+		ShowHelpMarker('Copy discord')
+		imgui.TextColoredRGB('• VK') imgui.SameLine(80) if imgui.Button('vk.com/skezzhkg') then setClipboardText('vk.com/skezzhkg') end
+		ShowHelpMarker('Copy VK')
+		imgui.Text('')
+
+		if imgui.Button(u8'Отправить', imgui.ImVec2(510, 20)) then
+			local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
+			local name = sampGetPlayerNickname(id)
+
+			tovk(string.format(u8'-\n%s\n(id %d ~ rang %d) %s ~ %s\n-', u8(sampGetCurrentServerName()), id, player_status, name, inpcomment.v), true)
+			inpcomment.v = ''
+		end
+
+		imgui.InputTextMultiline('##com_com', inpcomment, imgui.ImVec2(-1, imgui.GetTextLineHeight() * 6))
+	end
+end
 
 function getStateCommand(name)
 	if name_cmd.v ~= nil and name_cmd.v ~= '' then
 		local path = string.format('moonloader//helper//commands//%s.txt', name)
 		
 		if doesFileExist(path) then
-			return '{32CD32}доступна для настройки'
+			if command_open ~= nil and command_open == path then
+				return '{32CD32} (доступна для редактирования)'
+			else 
+				return '{FFD700} (доступна для редактирования)'
+			end
 		else
-			return '{CD5C5C}недоступна для настройки'
+			return '{CD5C5C} (недоступна для редактирования)'
 		end
 	else
-		return '{FFD700}ожидание ввода'
+		return '{FFD700} (ожидание ввода)'
 	end
 end
 
@@ -3814,7 +3772,10 @@ function draw_another_custom_command()
 	imgui.Text('')
 	
 	imgui.Text(u8'Название команды: ') imgui.SameLine() imgui.PushItemWidth(170)
-	imgui.InputText('', name_cmd) imgui.SameLine()
+	if imgui.InputText('', name_cmd) then
+		local path = string.format('moonloader//helper//commands//%s.txt', u8:decode(name_cmd.v))
+		if command_open ~= path then command_open = '' end
+	end imgui.SameLine()
 	imgui.TextColoredRGB(getStateCommand(name_cmd.v))
 	if command_hotkey then
 		draw_new_custom_hotkey()
@@ -3834,6 +3795,7 @@ function draw_another_custom_command()
 					end
 				end
 				text_cmd.v = cmd_text
+				command_open = path
 				
 				pushMessage('Команда найдена и открыта для настройки', 3, 4)
 			elseif not doesFileExist(path) then
@@ -3855,7 +3817,7 @@ function draw_another_custom_command()
 		if name_cmd.v ~= nil and name_cmd.v ~= '' then
 			local path = string.format('moonloader//helper//commands//%s.txt', u8:decode(name_cmd.v))
 			
-			if doesFileExist(path) then
+			if doesFileExist(path) and command_open == path then
 				local filew = io.open(path, 'w')
 				local save_text = string.format('{param = %d}\n%s', param_cmd, text_cmd.v)
 				filew:write(u8:decode(save_text))
@@ -3871,7 +3833,7 @@ function draw_another_custom_command()
 	end
 	imgui.SameLine()
 	if imgui.Button(u8'Очистить', imgui.ImVec2(170, 20)) then
-		param_cmd, text_cmd.v, name_cmd.v = 0, '', ''
+		param_cmd, text_cmd.v, name_cmd.v, command_open = 0, '', '', ''
 	end
 	
 	if param_cmd == 0 then
@@ -6000,57 +5962,72 @@ function sampev.onSendCommand(param)
 end
 
 function process_command(file, val)
-	local namefile = string.format('moonloader//helper/commands//%s.txt', file)
-	local linen, parametr = 0, false
-	local n_tab = {}
+	if not sampIsChatCommandDefined(file) then
+		local namefile = string.format('moonloader//helper/commands//%s.txt', file)
+		local linen, parametr = 0, false
+		local n_tab = {}
 
-	if doesFileExist(namefile) then
-		lua_thread.create(function()
-			id = var
-			
-			for val in io.lines(namefile) do
-				wait(0)
+		if doesFileExist(namefile) then
+			lua_thread.create(function()
+				id = var
 				
-				if string.match(val, '{param[%s]=[%s](%d+)}') and linen == 0 then
-					local n_param = tonumber(string.match(val, '{param[%s]=[%s](%d+)}'))
-					if n_param > 0 then
-						parametr = true
-						
-						if id == nil then
-							SCM(string.format('Используйте команду %s [ид игрока].', file))
-							break
-						elseif not IPC(id) then
-							SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
-							break
-						end
-						
-						--[[if id == nil then
-							SCM(string.format('Используйте команду %s [{FFD700}параметры (%d){ffffff}].', file, n_param))
-							break
-						else
-							for l in id:gmatch('%S+') do
-								n_tab[#n_tab + 1] = l
+				for val in io.lines(namefile) do
+					wait(0)
+					
+					if string.match(val, '{param[%s]=[%s](%d+)}') and linen == 0 then
+						local n_param = tonumber(string.match(val, '{param[%s]=[%s](%d+)}'))
+						if n_param > 0 then
+							parametr = true
+							
+							if id == nil then
+								SCM(string.format('Используйте команду %s [ид игрока].', file))
+								break
+							elseif not IPC(id) then
+								SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+								break
 							end
+							
+							--[[if id == nil then
+								SCM(string.format('Используйте команду %s [{FFD700}параметры (%d){ffffff}].', file, n_param))
+								break
+							else
+								for l in id:gmatch('%S+') do
+									n_tab[#n_tab + 1] = l
+								end
+							end
+							
+							if (#n_tab) ~= n_param then
+								SCM(string.format('Используйте команду %s [{FFD700}параметры (%d){ffffff}].', file, n_param))
+								break
+							end]]
 						end
+					elseif string.match(val, 'sendChat.(%S+).') then
+						sampSendChat(func_to_text(string.match(val, 'sendChat.(.+).'), parametr, id))
+					elseif string.match(val, 'addChat.(%S+).') then
+						SCM(func_to_text(string.match(val, 'addChat.(.+).'), parametr, id))
+					elseif string.match(val, 'wait%((%d+)%)') then 
+						wait(tonumber(string.match(val, 'wait%((%d+)%)')))
+					elseif string.match(val, 'setKeyDown%((%S+), (%d+)%)') then
+						local key, down = string.match(val, 'setKeyDown%((%S+), (%d+)%)')
+						local down = tonumber(down)
 						
-						if (#n_tab) ~= n_param then
-							SCM(string.format('Используйте команду %s [{FFD700}параметры (%d){ffffff}].', file, n_param))
-							break
-						end]]
+						if down == 0 then
+							setVirtualKeyDown(KEY[key], false)
+						elseif down == 1 then
+							setVirtualKeyDown(KEY[key], true)
+						end
+					elseif string.match(val, 'setKeyDown%((%S+)%)') then
+						setVirtualKeyDown(KEY[string.match(val, 'setKeyDown%((%S+)%)')], true)
+						wait(35)
+						setVirtualKeyDown(KEY[string.match(val, 'setKeyDown%((%S+)%)')], false)
+					else
+						print(string.format('Неизвестная линия: %s', val))
 					end
-				elseif string.match(val, 'sendChat.(%S+).') then
-					sampSendChat(func_to_text(string.match(val, 'sendChat.(.+).'), parametr, id))
-				elseif string.match(val, 'addChat.(%S+).') then
-					SCM(func_to_text(string.match(val, 'addChat.(.+).'), parametr, id))
-				elseif string.match(val, 'wait%((%d+)%)') then 
-					wait(tonumber(string.match(val, 'wait%((%d+)%)')))
-				else
-					print(string.format('Неизвестная линия: %s', val))
+					
+					linen = linen + 1
 				end
-				
-				linen = linen + 1
-			end
-		end)
+			end)
+		end
 	end
 end
 

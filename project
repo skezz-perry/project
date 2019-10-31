@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(10.4)
+script_version(10.5)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -6013,7 +6013,7 @@ function process_command(file, val)
 				for val in io.lines(namefile) do
 					wait(0)
 					
-					if string.match(val, '{param[%s]=[%s](%d+), type}') and linen == 0 then
+					if string.match(val, '{param[%s]=[%s](%d+)}') and linen == 0 then
 						local n_param = tonumber(string.match(val, '{param[%s]=[%s](%d+)}'))
 						if n_param > 0 then
 							parametr = true

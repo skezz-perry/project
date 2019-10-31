@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(10.3)
+script_version(10.4)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -579,13 +579,7 @@ function main()
 	
 	autoupdate('https://raw.githubusercontent.com/skezz-perry/project/master/version', 'https://raw.githubusercontent.com/skezz-perry/project/master/project')
 
-	for i = 1, 46 do
-		if weapons.get_name(i) == nil then weapon[i] = 'NOT FOUND' else weapon[i] = weapons.get_name(i) end
-	end
-	
-	for val in pairs(ini.cmd) do
-		command_t[#command_t + 1] = val
-	end
+	attempToGetFileAndDir()
 	
 	sampRegisterChatCommand(string.match(ini.cmd.admins, '(.+) | (.+)'), command_admins)
 	sampRegisterChatCommand(string.match(ini.cmd.r, '(.+) | (.+)'), command_r)
@@ -1824,7 +1818,7 @@ function command_search(id)
 	end
 end
 
-function search_file(file, text)
+function search_file(file, text, bool)
 	if type(file) == ('string') and type(text) == ('string') then
 		if doesFileExist(string.format('moonloader\\helper\\%s.txt', file)) then
 			for line in io.lines(string.format('moonloader\\helper\\%s.txt', file)) do
@@ -1832,7 +1826,8 @@ function search_file(file, text)
 					for i = 0, string.len(line) / 115 do
 						SCM(string.sub(line, i * 115, i * 115 + 114))
 					end
-					break
+					
+					if not bool then break end
 				end
 			end
 		end
@@ -3783,30 +3778,35 @@ function draw_another_custom_command()
 	
 	if imgui.Button(u8'Найти или создать', imgui.ImVec2(170, 20)) then
 		if name_cmd.v ~= nil and name_cmd.v ~= '' then
-			local path = string.format('moonloader//helper//commands//%s.txt', u8:decode(name_cmd.v))
-			
-			if doesFileExist(path) then
-				local cmd_text = ''
-				for line in io.lines(path) do
-					if string.match(line, '{param = (%d+)}') then
-						param_cmd = tonumber(string.match(line, '{param = (%d+)}'))
-					else 
-						cmd_text = string.format('%s %s\n', cmd_text, u8(line))
+			if not sampIsChatCommandDefined(u8:decode(name_cmd.v)) then
+				local path = string.format('moonloader//helper//commands//%s.txt', u8:decode(name_cmd.v))
+				
+				if doesFileExist(path) then
+					local cmd_text = ''
+					for line in io.lines(path) do
+						if string.match(line, '{param = (%d+)}') then
+							param_cmd = tonumber(string.match(line, '{param = (%d+)}'))
+						else 
+							cmd_text = string.format('%s %s\n', cmd_text, u8(line))
+						end
 					end
+					text_cmd.v = cmd_text
+					command_open = path
+					
+					pushMessage('Команда найдена и открыта для настройки', 3, 4)
+				elseif not doesFileExist(path) then
+					local filew = io.open(path, 'w')
+					filew:write('')
+					filew:close()
+					
+					param_cmd = 0
+					text_cmd.v = u8'Новая команда'
+					command_open = path
+					
+					pushMessage('Была создана новая команда.', 3, 4)
 				end
-				text_cmd.v = cmd_text
-				command_open = path
-				
-				pushMessage('Команда найдена и открыта для настройки', 3, 4)
-			elseif not doesFileExist(path) then
-				local filew = io.open(path, 'w')
-				filew:write('')
-				filew:close()
-				
-				param_cmd = 0
-				text_cmd.v = u8'Новая команда'
-				
-				pushMessage('Была создана новая команда.', 3, 4)
+			else
+				pushMessage('Данная команда уже используется скриптом.', 3, 3)
 			end
 		else
 			pushMessage('Не введено название команды.', 3, 3)
@@ -3815,18 +3815,22 @@ function draw_another_custom_command()
 	imgui.SameLine()
 	if imgui.Button(u8'Сохранить', imgui.ImVec2(160, 20)) then
 		if name_cmd.v ~= nil and name_cmd.v ~= '' then
-			local path = string.format('moonloader//helper//commands//%s.txt', u8:decode(name_cmd.v))
-			
-			if doesFileExist(path) and command_open == path then
-				local filew = io.open(path, 'w')
-				local save_text = string.format('{param = %d}\n%s', param_cmd, text_cmd.v)
-				filew:write(u8:decode(save_text))
-				filew:close()
+			if not sampIsChatCommandDefined(u8:decode(name_cmd.v)) then
+				local path = string.format('moonloader//helper//commands//%s.txt', u8:decode(name_cmd.v))
 				
-				pushMessage('Команда успешно сохранена.', 3, 4)
+				if doesFileExist(path) and command_open == path then
+					local filew = io.open(path, 'w')
+					local save_text = string.format('{param = %d}\n%s', param_cmd, text_cmd.v)
+					filew:write(u8:decode(save_text))
+					filew:close()
+					
+					pushMessage('Команда успешно сохранена.', 3, 4)
+				else
+					pushMessage('Для начала нужно найти или создать команду.', 3, 3)
+				end
 			else
-				pushMessage('Для начала нужно найти или создать команду.', 3, 3)
-			end
+				pushMessage('Данная команда уже используется скриптом.', 3, 3)
+			end	
 		else
 			pushMessage('Не введено название команды.', 3, 3)
 		end
@@ -3873,7 +3877,7 @@ function draw_new_custom_hotkey()
 			for id, val in pairs(hotkey_cust_butt) do
 				if u8:decode(name_cmd.v) == val.name then
 					if val.key.v ~= nil then
-						if imgui.HotKey('##' .. name, hotkey_cust_butt[id].key, hotkey_cust_butt[id].last, 100) then
+						if imgui.HotKey('##' .. val.name, hotkey_cust_butt[id].key, hotkey_cust_butt[id].last, 100) then
 							if not rkeys.isHotKeyDefined(hotkey_cust_butt[id].key.v) then
 								rkeys.changeHotKey(hotkey_cust_butt[id].bind, hotkey_cust_butt[id].key.v)
 			
@@ -3882,7 +3886,7 @@ function draw_new_custom_hotkey()
 									key = string.format('%s, %s', key, val)
 								end
 								
-								ini.custom_hkey[name] = string.gsub(key, '%s,%s', '')
+								ini.custom_hkey[val.name] = string.gsub(key, '%s,%s', '')
 								inicfg.save(ini, 'Helper for MIA.ini')
 								pushMessage('Для этой команды установленно новое сочетание клавиш.', 3, 4)
 							else
@@ -4980,6 +4984,25 @@ function urlencode(str)
    return str
 end
 
+function attempToGetFileAndDir()
+	for i = 1, 46 do
+		if weapons.get_name(i) == nil then weapon[i] = 'NOT FOUND' else weapon[i] = weapons.get_name(i) end
+	end
+	
+	for val in pairs(ini.cmd) do
+		command_t[#command_t + 1] = val
+	end
+
+	local d = {'helpers', 'helpers//commands', 'helpers//gnews'}
+	
+	for _, val in ipairs(d) do
+		local path = string.format('moonloader//%s', val)
+		if not doesDirectoryExist(path) then
+			createDirectory(path)
+		end
+	end
+end
+
 function explode_argb(argb)
   local a = bit.band(bit.rshift(argb, 24), 0xFF)
   local r = bit.band(bit.rshift(argb, 16), 0xFF)
@@ -5956,9 +5979,25 @@ function sampev.onSendDeathNotification(reas, id)
 end
 
 function sampev.onSendCommand(param)
-	if string.match(param, '(%S+)[%s](%S+)') then file, var = string.match(param, '(%S+)[%s](%S+)') else file, var = param, nil end
+	if string.match(param, '(%S+)[%s](%S+)') then file, val = string.match(param, '(%S+)[%s](%S+)') else file, val = param, nil end
 	
 	process_command(file, val)
+end
+
+function onGetTableCommand(p)
+	local tab = {}
+	
+	for val in string.gmatch(p, "[^%s]+") do
+		if string.find(val, '(%d+)') then
+			tab[#tab + 1] = tonumber(val)
+		else
+			if type(tab[#tab]) == ('string') then
+				tab[#tab] = string.format('%s %s', tab[#tab], val)
+			else
+				tab[#tab + 1] = val
+			end
+		end
+	end
 end
 
 function process_command(file, val)
@@ -5974,7 +6013,7 @@ function process_command(file, val)
 				for val in io.lines(namefile) do
 					wait(0)
 					
-					if string.match(val, '{param[%s]=[%s](%d+)}') and linen == 0 then
+					if string.match(val, '{param[%s]=[%s](%d+), type}') and linen == 0 then
 						local n_param = tonumber(string.match(val, '{param[%s]=[%s](%d+)}'))
 						if n_param > 0 then
 							parametr = true
@@ -5986,20 +6025,6 @@ function process_command(file, val)
 								SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 								break
 							end
-							
-							--[[if id == nil then
-								SCM(string.format('Используйте команду %s [{FFD700}параметры (%d){ffffff}].', file, n_param))
-								break
-							else
-								for l in id:gmatch('%S+') do
-									n_tab[#n_tab + 1] = l
-								end
-							end
-							
-							if (#n_tab) ~= n_param then
-								SCM(string.format('Используйте команду %s [{FFD700}параметры (%d){ffffff}].', file, n_param))
-								break
-							end]]
 						end
 					elseif string.match(val, 'sendChat.(%S+).') then
 						sampSendChat(func_to_text(string.match(val, 'sendChat.(.+).'), parametr, id))
@@ -6020,6 +6045,13 @@ function process_command(file, val)
 						setVirtualKeyDown(KEY[string.match(val, 'setKeyDown%((%S+)%)')], true)
 						wait(35)
 						setVirtualKeyDown(KEY[string.match(val, 'setKeyDown%((%S+)%)')], false)
+					elseif string.match(val, 'searchFile%((%S+), (%S+), (%d+)%)') then
+						local file, text, sbool = string.match(val, 'searchFile%((%S+), (%S+), (%d+)%)')
+						if sbool == 1 then bool = true else bool = false end
+						search_file(file, text, bool)
+					elseif string.match(val, 'searchFile%((%S+), (%S+)%)') then
+						local file, text = string.match(val, 'searchFile%((%S+), (%S+)%)')
+						search_file(file, text)
 					else
 						print(string.format('Неизвестная линия: %s', val))
 					end

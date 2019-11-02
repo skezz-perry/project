@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(10.7)
+script_version(10.8)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -3323,7 +3323,7 @@ function imgui.OnDrawFrame()
 	if show_suspect.v then
 		local w, h = getScreenResolution()
 		imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
-		imgui.SetNextWindowSize(imgui.ImVec2(500, 550))
+		imgui.SetNextWindowSize(imgui.ImVec2(600, 550))
 		
 		draw_show_suspect()
 	end
@@ -3644,12 +3644,12 @@ function draw_show_suspect()
 	if IPC(id) then
 		imgui.Begin(string.format(u8'Объявление в розыск %s [%d]', sampGetPlayerNickname(id), id), show_suspect, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 			for name, val in pairs(smart_suspect.text) do
-				if imgui.TreeNode(string.format(u8'СТАТЬЯ %d', name)) then
-					for i, item in ipairs(val) do
+				if imgui.TreeNode(string.format(u8'СТАТЬЯ %d | %s', name, u8(val.name))) then
+					for i, item in ipairs(val.st) do
 						if string.match(item, '(.+) | (.+) | (.+)') then
 							local stars, reason, text = string.match(item, '(.+) | (.+) | (.+)')
 							
-							if imgui.Button(string.format('%s | %s..', u8(reason), string.sub(u8(text), 0, 100)), imgui.ImVec2(440, 20)) then
+							if imgui.Button(string.format('%s | %s..', u8(reason), string.sub(u8(text), 0, 120)), imgui.ImVec2(540, 20)) then
 								command_su(string.format('%d %d %s', id, stars, reason))
 							end
 							ItemPovered(text)
@@ -3659,7 +3659,6 @@ function draw_show_suspect()
 					end
 					imgui.TreePop()
 				end
-				print(name)
 			end
 		imgui.End()
 	else
@@ -3762,6 +3761,7 @@ function draw_head_page()
 			
 			imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ОБНОВЛЕНИИ')
 			
+			imgui.Text(u8'Добавлена возможность использовать умный розыск с помощь /su id.')
 			imgui.Text(u8'Изменена система параметров для допополнительных команд.')
 			imgui.Text(u8'Была добавлена возможность активировать доп. команды с помощью клавиш.')
 			imgui.Text(u8'Добавлено несколько новых функций для создания доп. команд.')
@@ -5078,10 +5078,16 @@ function attempToGetFileAndDir()
 					local stars, reason, text = string.match(line, '(.+) | (.+) | (.+)')
 					local tab, n_tab = string.match(reason, '(%d+).(%d+)')
 					if smart_suspect.text[tonumber(tab)] == nil then
-						table.insert(smart_suspect.text, tonumber(tab), {})
+						table.insert(smart_suspect.text, tonumber(tab), {name = '', st = {}})
 					end
 					
-					table.insert(smart_suspect.text[tonumber(tab)], tonumber(n_tab), line)
+					table.insert(smart_suspect.text[tonumber(tab)].st, tonumber(n_tab), line)
+				elseif string.match(line, 'СТАТЬЯ[%s](.+)[%s]|[%s](.+)') then
+					local tab, name = string.match(line, 'СТАТЬЯ[%s](.+)[%s]|[%s](.+)')
+					
+					if smart_suspect.text[tonumber(tab)] == nil then
+						table.insert(smart_suspect.text, tonumber(tab), {name = name, st = {}})
+					end
 				end
 			end
 			print(string.format('Уголовный кодекс был заполнен на %d элемент(-ов).', #smart_suspect.text))

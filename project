@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(10.6)
+script_version(10.7)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -497,6 +497,7 @@ local weapon             = {}
 local sus_table          = {}
 local command_t          = {}
 local static_camera      = {}
+local smart_suspect      = {id = nil, text = {}}
 local param_cmd          = 0
 local last_sms           = 0
 local lweap              = 0
@@ -517,6 +518,7 @@ local show_menu          = imgui.ImBool(false)
 local piemenu            = imgui.ImBool(false)
 local show_help          = imgui.ImBool(false)
 local show_info          = imgui.ImBool(false)
+local show_suspect       = imgui.ImBool(false)
 local vfilt              = imgui.ImBool(false)
 local lines              = imgui.ImBool(false)
 local command_edit       = imgui.ImBool(false)
@@ -816,7 +818,7 @@ function main()
 			end
 		end
 		
-		if show_menu.v or piemenu.v or show_info.v then
+		if show_menu.v or piemenu.v or show_info.v or show_suspect.v then
 			imgui.Process = true
 		else
 			imgui.Process = false
@@ -1136,7 +1138,7 @@ function command_r(text)
 				if ini.info.male then
 					sampSendChat('/me снял тангету с плеча, зажал кнопку PTT и что-то произнёс по рации')
 				else
-					sampSendChat('/me снял тангету с плеча, зажала кнопку PTT и что-то произнесла по рации')
+					sampSendChat('/me сняла тангету с плеча, зажала кнопку PTT и что-то произнесла по рации')
 				end
 			end)
 		end
@@ -2440,13 +2442,33 @@ function command_su(param)
 					end
 				end)
 			else
-				SCM('Подозреваемый находится в маске.')
+				SCM('Данный игрок находится в маске.')
+			end
+		else
+			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+		end
+	elseif string.match(param, '(%d+)') then
+		local id = string.match(param, '(%d+)')
+		if IPC(id) then
+			if sampGetPlayerColor(id) ~= 2236962 then
+				if sampGetDistance(PLAYER_PED, id) <= 65 then
+					if smart_suspect.text ~= nil then
+						smart_suspect.id = id
+						show_suspect.v = not show_suspect.v
+					else
+						SCM('Данная возможность Вам недоступна.')
+					end
+				else
+					SCM('Данный игрок находится слишком далеко от Вас.')
+				end
+			else
+				SCM('Данный игрок находится в маске.')
 			end
 		else
 			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 		end
 	else
-		SCM(string.format('Используйте команду /%s [ид игрока] [кол-во звёзд] [причина]', cmd))
+		SCM(string.format('Используйте команду /%s [ид игрока] [кол-во звёзд] [причина].', cmd))
 	end
 end
 
@@ -3298,6 +3320,14 @@ function imgui.OnDrawFrame()
 		end
 	end
 	
+	if show_suspect.v then
+		local w, h = getScreenResolution()
+		imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
+		imgui.SetNextWindowSize(imgui.ImVec2(500, 550))
+		
+		draw_show_suspect()
+	end
+	
 	if show_info.v then
 		imgui.SetNextWindowSize(imgui.ImVec2(900, 460))
 		imgui.Begin(u8'All info', show_info, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
@@ -3609,6 +3639,35 @@ function draw_another_settings()
 	end
 end
 
+function draw_show_suspect()
+	local id = smart_suspect.id
+	if IPC(id) then
+		imgui.Begin(string.format(u8'Объявление в розыск %s [%d]', sampGetPlayerNickname(id), id), show_suspect, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
+			for name, val in pairs(smart_suspect.text) do
+				if imgui.TreeNode(string.format(u8'СТАТЬЯ %d', name)) then
+					for i, item in ipairs(val) do
+						if string.match(item, '(.+) | (.+) | (.+)') then
+							local stars, reason, text = string.match(item, '(.+) | (.+) | (.+)')
+							
+							if imgui.Button(string.format('%s | %s..', u8(reason), string.sub(u8(text), 0, 100)), imgui.ImVec2(440, 20)) then
+								command_su(string.format('%d %d %s', id, stars, reason))
+							end
+							ItemPovered(text)
+						else 
+							imgui.Text('Unexpected line.')
+						end
+					end
+					imgui.TreePop()
+				end
+				print(name)
+			end
+		imgui.End()
+	else
+		SCM('Подозревамый пропал из зоны видимости.')
+		show_suspect.v = not show_suspect.v
+	end
+end
+
 function draw_hotkey_settings()
 	imgui.Text('')
 	imgui.CenterTextColoredRGB('ИЗМЕНЕНИЕ ГОРЯЧИХ КЛАВИШ')
@@ -3791,7 +3850,7 @@ function draw_another_custom_command()
 						if string.match(line, '{param = (%d+)}') then
 							param_cmd = tonumber(string.match(line, '{param = (%d+)}'))
 						else 
-							cmd_text = string.format('%s %s\n', cmd_text, u8(line))
+							cmd_text = string.format('%s%s\n', cmd_text, u8(line))
 						end
 					end
 					text_cmd.v = cmd_text
@@ -4998,7 +5057,7 @@ function attempToGetFileAndDir()
 		command_t[#command_t + 1] = val
 	end
 
-	local d = {'helpers', 'helpers//commands', 'helpers//gnews'}
+	local d = {'helper', 'helper//commands', 'helper//gnews'}
 	
 	for _, val in ipairs(d) do
 		local path = string.format('moonloader//%s', val)
@@ -5006,6 +5065,30 @@ function attempToGetFileAndDir()
 			createDirectory(path)
 		end
 	end
+	
+	local ip = sampGetCurrentServerAddress()
+	local url_uk = string.format('https://raw.githubusercontent.com/skezz-perry/files/master/%s_of_uk', ip)
+	
+	async_http_request('GET', url_uk, nil, 
+		function(response)
+			for line in string.gmatch(response.text, '[^\n]+') do
+				local line = u8:decode(line)
+				
+				if string.match(line, '(.+) | (.+) | (.+)') then
+					local stars, reason, text = string.match(line, '(.+) | (.+) | (.+)')
+					local tab, n_tab = string.match(reason, '(%d+).(%d+)')
+					if smart_suspect.text[tonumber(tab)] == nil then
+						table.insert(smart_suspect.text, tonumber(tab), {})
+					end
+					
+					table.insert(smart_suspect.text[tonumber(tab)], tonumber(n_tab), line)
+				end
+			end
+			print(string.format('Уголовный кодекс был заполнен на %d элемент(-ов).', #smart_suspect.text))
+		end, 
+		function(error) 
+			print('При попытке обновления уголовного кодекса произошла ошибка, для вашего сервера нет настроек.')
+	end)
 end
 
 function explode_argb(argb)
@@ -5253,7 +5336,14 @@ end
 
 function ItemPovered(text)
 	if (imgui.IsItemHovered()) then
-        imgui.SetTooltip(u8(text))
+		local line = ' '
+		
+		for i = 0, string.len(text) / 80 do
+			line = string.format('%s\n%s', line, string.sub(text, i * 80, i * 80 + 79))
+		end
+		line = line:gsub(' \n', '')
+		
+        imgui.SetTooltip(u8(line))
     end
 end
 
@@ -5949,19 +6039,19 @@ function sampev.onSendTakeDamage(playerId, damage, weapon, bodypart)
 						suspect_id = {playerId, 4, '1.1 УК', name}
 					end
 				elseif TypeWeapon[tonumber(weapon)] == 3 then
-					if suspect_id[4] ~= name  and suspect_id[3] ~= '1.6 УК' then
-						SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 1.6 УК нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerNickname(playerId), playerId))
-						suspect_id = {playerId, 6, '1.6 УК', name}
+					if suspect_id[4] ~= name  and suspect_id[3] ~= '2.3 УК' then
+						SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 2.3 УК нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerNickname(playerId), playerId))
+						suspect_id = {playerId, 4, '2.3 УК', name}
 					end
 				--[[elseif tonumber(weapon) == 49 then
 					local res, ped = sampGetCharHandleBySampPlayerId(playerId)
 					if res then
-						if isCharInAnyCar(ped) then
+						if isCharSittingInAnyCar(ped) then
 						local carh = storeCarCharIsInNoSave(ped)
 							if getDriverOfCar(carh) == ped then
 								if suspect_id[4] ~= name and suspect_id[3] ~= '7.9 ЕПК' then
 									SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 7.9 ЕПК нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerNickname(playerId), playerId))
-									suspect_id = {playerId, 1, '7.9 ЕПК', name}
+									suspect_id = {playerId, 1, '1.1 ЕПК', name}
 								end
 							end
 						end
@@ -6249,8 +6339,8 @@ end
 
 addEventHandler("onWindowMessage", function (msg, wparam, lparam)
     if wparam == KEY.VK_ESCAPE then
-		if show_menu.v or piemenu.v or show_info.v then
-			show_menu.v, piemenu.v, show_info.v = false, false, false
+		if show_menu.v or piemenu.v or show_info.v or show_suspect.v then
+			show_menu.v, piemenu.v, show_info.v, show_suspect.v = false, false, false, false
 			consumeWindowMessage(true, true)
        end
     end

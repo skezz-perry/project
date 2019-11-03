@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(10.8)
+script_version(10.9)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -13,8 +13,11 @@ local pie               = require 'imgui_piemenu'
 local encoding          = require 'encoding'
 local color             = require "colorise"
 local inicfg            = require 'inicfg'
+local ffi               = require "ffi"
+local getBonePosition   = ffi.cast("int (__thiscall*)(void*, float*, int, bool)", 0x5E4280)
 local lanes             = require('lanes').configure()
 local dlstatus          = require('moonloader').download_status
+local font_flag         = require('moonloader').font_flag
 local bNotf, notf       = pcall(import, "imgui_notf1.lua")
 lsampev, sampev         = pcall(require, 'lib.samp.events')
 imgui.HotKey            = require('imgui_addons').HotKey
@@ -220,7 +223,13 @@ local ini = inicfg.load({
 		new_clock            = true,
 		new_group            = true,
 		new_wanted           = true,
-		blacklist            = ''
+		blacklist            = '',
+		streetlight          = false,
+		slhour               = 21,
+		mslhour              = 7,
+		kvadrocopter         = false,
+		pkvadrocopter        = false,
+		skvadrocopter        = false
 	},
 	weapon = {
 		shit                 = false,
@@ -442,7 +451,9 @@ local ini = inicfg.load({
 		lock = '76',
 		menu = '99',
 		fast_menu = '90',
-		camera = '123'
+		camera = '123',
+		camhack_on = '67, 49',
+		camhack_off = '67, 50'
 	},
 	custom_hkey = {
 	},
@@ -471,7 +482,9 @@ local hotkey_butt = {
 	camera = {key = {v = {}}, last = {}, bind = -1, name = 'Клавиша для использования RP-камеры'},
 	onvec_m = {key = {v = {}}, last = {}, bind = -1, name = 'Использование мегафона в машине'},
 	onfoot_m = {key = {v = {}}, last = {}, bind = -1, name = 'Сообщение о погоне в рацию'},
-	smart_su = {key = {v = {}}, last = {}, bind = -1, name = 'Использование быстрого розыска'}
+	smart_su = {key = {v = {}}, last = {}, bind = -1, name = 'Использование быстрого розыска'},
+	camhack_on = {key = {v = {}}, last = {}, bind = -1, name = 'Включить CamHack'},
+	camhack_off = {key = {v = {}}, last = {}, bind = -1, name = 'Выключить CamHack'},
 }
 
 local hotkey_cust_butt = {}
@@ -572,7 +585,13 @@ local prpmask            = imgui.ImBool(ini.lowrp.rpmask)
 local prpfbi             = imgui.ImBool(ini.lowrp.rpfbi)
 local prpbar             = imgui.ImBool(ini.lowrp.rpbar)
 local pmessage_megafon   = imgui.ImBool(ini.set.message_megafon)
+local pstreetlight       = imgui.ImBool(ini.set.streetlight)
+local pslhour            = imgui.ImInt(ini.set.slhour)
+local pmslhour           = imgui.ImInt(ini.set.mslhour)
 local punmask            = imgui.ImBool(ini.lowrp.unmask)
+local pkvadrocopter      = imgui.ImBool(ini.set.kvadrocopter)
+local ppkvadrocopter     = imgui.ImBool(ini.set.pkvadrocopter)
+local pskvadrocopter     = imgui.ImBool(ini.set.skvadrocopter)
 local editor             = imgui.ImBool(false)
 
 function main()
@@ -743,6 +762,7 @@ function main()
 	end)
 	lua_thread.create(strobe)
 	lua_thread.create(rpweapon)
+	lua_thread.create(show_flymode)
 	
 	apply_custom_style()
 	register_custom_hotkey()
@@ -824,6 +844,24 @@ function main()
 			imgui.Process = false
 		end
 		
+		if ini.set.streetlight then
+			local hour = getTimeOfDay() 
+			if hour >= ini.set.slhour or hour <= ini.set.mslhour then 
+				local x, y, z = getCharCoordinates(PLAYER_PED)
+				for _, object in ipairs(mad.get_all_objects(x, y, z, 300)) do
+					local model = getObjectModel(object)
+					if model == 1226 and getObjectHealth(object) > 0 then
+						local matrix = mad.get_object_matrix(object)
+						if matrix then
+							local objx, objy, objz = matrix:get_coords_with_offset(-1.3, 0.165, 3.69)
+							local ground_z = getGroundZFor3dCoord(objx, objy, objz)
+							mad.draw_spotlight(objx, objy, objz, objx, objy, ground_z, 0.065, 27)
+						end
+					end
+				end
+			end
+		end
+		
 		if successful_login and sampGetCurrentServerName() ~= 'SA-MP' then
 			local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 			local name = sampGetPlayerNickname(id)
@@ -856,18 +894,6 @@ function main()
 
 			end
 
-		end
-		
-		if isKeyDown(VK_C) and isKeyDown(VK_1) then
-			if not flymode and isKeyCheckAvailable() then     
-				posX, posY, posZ = getCharCoordinates(playerPed)
-				angZ = getCharHeading(playerPed)
-				angZ = angZ * -1.0
-				setFixedCameraPosition(posX, posY, posZ, 0.0, 0.0, 0.0)
-				angY = 0.0 
-				lockPlayerControl(true)
-				flymode = not flymode
-			end
 		end
 		
 		if flymode and not sampIsChatInputActive() and not isSampfuncsConsoleActive() then
@@ -998,13 +1024,24 @@ function main()
 			cosZ = cosZ * cosY 
 			sinZ = sinZ * 1.0      
 			cosZ = cosZ * 1.0     
-			sinY = sinY * 1.0         
-			poiX = posX
-			poiY = posY
-			poiZ = posZ      
-			poiX = poiX + sinZ 
-			poiY = poiY + cosZ 
-			poiZ = poiZ + sinY
+			sinY = sinY * 1.0
+			if targetSet == nil then
+				poiX = posX
+				poiY = posY
+				poiZ = posZ   
+				poiX = poiX + sinZ 
+				poiY = poiY + cosZ 
+				poiZ = poiZ + sinY
+			else
+				local result, ped = sampGetCharHandleBySampPlayerId(targetSet)
+				
+				if result then
+					poiX, poiY, poiZ = getCharCoordinates(ped)
+				else
+					targetSet = nil
+				end
+			end
+			
 			pointCameraAtPoint(poiX, poiY, poiZ, 2)
 
 			if isKeyDown(187) then 
@@ -1015,17 +1052,6 @@ function main()
 				speed = speed - 0.0005
 				if speed < 0.001 then speed = 0.001 end
 			end   
-
-			if isKeyDown(VK_C) and isKeyDown(VK_2) and isKeyCheckAvailable() then
-				if flymode then
-					radarHud = 0	    
-					angPlZ = angZ * -1.0
-					lockPlayerControl(false)
-					restoreCameraJumpcut()
-					setCameraBehindPlayer()
-					flymode = false
-				end
-			end
 		end
 		
 		if edit_obj ~= nil and not sampIsChatInputActive() and not sampIsDialogActive() and text_id == nil then
@@ -2657,6 +2683,156 @@ function CheckPlayersOfBlackList(name, tab)
 	end
 end
 
+function show_flymode()
+	local font_t = renderCreateFont('Century Gothic', 14, font_flag.BOLD)
+
+	while true do
+		wait(0)
+		
+		if flymode and ini.set.kvadrocopter then
+			local sx, sy = getScreenResolution()
+			
+			-- эффект затемнения
+			if ini.set.skvadrocopter then
+				renderDrawBox(0.0, 0.0, sx, sy, 0x991C1C1C)
+			end
+			--
+			
+			-- прицел перекрестие
+			renderDrawLine(sx / 2 - 3.0, sy / 2 - 25, sx / 2 - 3.0, sy / 2 - 235, 3.0, 0xFFFFFFFF)
+			renderDrawLine(sx / 2, sy / 2 + 25, sx / 2, sy / 2 + 235, 3.0, 0xFFFFFFFF)
+			renderDrawLine(sx / 2 - 25, sy / 2 - 3.0, sx / 2 - 235, sy / 2 - 3.0, 3.0, 0xFFFFFFFF)
+			renderDrawLine(sx / 2 + 25, sy / 2 - 3.0, sx / 2 + 235, sy / 2 - 3.0, 3.0, 0xFFFFFFFF)
+			
+			renderDrawLine(sx / 2 - 22.0, sy / 2 - 235, sx / 2 + 20.0, sy / 2 - 235, 3.0, 0xFFFFFFFF)
+			renderDrawLine(sx / 2 - 23.0, sy / 2 + 235, sx / 2 + 20.0, sy / 2 + 235, 3.0, 0xFFFFFFFF)
+			renderDrawLine(sx / 2 - 235, sy / 2 - 23.0, sx / 2 - 235, sy / 2 + 20.0, 3.0, 0xFFFFFFFF)
+			renderDrawLine(sx / 2 + 235, sy / 2 - 22.0, sx / 2 + 235, sy / 2 + 20.0, 3.0, 0xFFFFFFFF)
+			
+			renderDrawLine(sx / 2 - 22.0, sy / 2 - (235 / 2), sx / 2 + 20.0, sy / 2 - (235 / 2), 3.0, 0xFFFFFFFF)
+			renderDrawLine(sx / 2 - 23.0, sy / 2 + (235 / 2), sx / 2 + 20.0, sy / 2 + (235 / 2), 3.0, 0xFFFFFFFF)
+			renderDrawLine(sx / 2 - (235 / 2), sy / 2 - 23.0, sx / 2 - (235 / 2), sy / 2 + 20.0, 3.0, 0xFFFFFFFF)
+			renderDrawLine(sx / 2 + (235 / 2), sy / 2 - 22.0, sx / 2 + (235 / 2), sy / 2 + 20.0, 3.0, 0xFFFFFFFF)
+			--
+			
+			-- изображение времени
+			local t_time = string.format('%s', os.date('%X'))
+			local t_date = string.format('%d of %s, %d', os.date('%d'), os.date('%B'), os.date('%Y'))
+			
+			renderFontDrawText(font_t, t_time, sx / 2 + 410, sy / 2 + 300, 0xFFFFFFFF)
+			renderFontDrawText(font_t, t_date, sx / 2 + 410, sy / 2 + 280, 0xFFFFFFFF)
+			--
+			
+			-- изображение текста
+			local f_line = string.format('0    A-G    MAN    NARO')
+			local s_line = string.format('RAY    FF 30')
+			local t_line = string.format('A-LIR    B0RE')
+			local p_line = string.format('UNMANNED AERIAL VEHICLE')
+			local m_line = string.upper(string.format('%s [%s]', calculateZone(posX, posY, posZ), kvadrat(posX, posY, posZ)))
+			
+			renderFontDrawText(font_t, f_line, sx - 215, 300, 0xFFFFFFFF)
+			renderFontDrawText(font_t, s_line, sx - 115, 330, 0xFFFFFFFF)
+			renderFontDrawText(font_t, t_line, sx - 120, 360, 0xFFFFFFFF)
+			renderFontDrawText(font_t, p_line, sx / 2 - ((string.len(p_line) / 2) * 10), sy - 30, 0xFFFFFFFF)
+			renderFontDrawText(font_t, m_line, sx / 2 - ((string.len(m_line) / 2) * 10), sy - 48, 0xFFFFFFFF)
+			--
+			
+			-- изображение игроков
+			if ini.set.pkvadrocopter then
+				for i = 0, sampGetMaxPlayerId() do
+					if IPC(i) then
+						local result, ped = sampGetCharHandleBySampPlayerId(i)
+						
+						if result then
+							if doesCharExist(ped) and isCharOnScreen(ped) then
+								local pos1X, pos1Y, pos1Z = getBodyPartCoordinates(2, ped)
+								local pos1, pos2 = convert3DCoordsToScreen(pos1X, pos1Y, pos1Z)
+								renderDrawBox(pos1, pos2, 3, 3, 0xFFFFFFFF)
+							end
+						end
+					end
+				end
+			end
+			--
+			
+			-- проверка на отдаление
+			local x, y, z = getCharCoordinates(playerPed)
+			local distance = getDistanceBetweenCoords3d(x, y, z, posX, posY, posZ)
+			
+			if distance >= 245 then
+				destroy_camhack()
+			elseif distance >= 235 then
+				renderFontDrawText(font_t, 'LOSS OF CONNECTION. SHUTDOWN.', sx / 2 + 30, sy / 2 + 30, 0xFFFF0000)
+			elseif distance >= 200 then
+				renderFontDrawText(font_t, 'LOSS OF CONNECTION. RETURN BACK.', sx / 2 + 30, sy / 2 + 30, 0xFFFF0000)
+			else
+				local text = string.format('%d meter(s) from user', distance)
+				renderFontDrawText(font_t, text, sx / 2 + 30, sy / 2 + 30, 0xFFFFFFFF)
+			end
+			--
+			
+			if targetSet ~= nil then
+				local result, pped = sampGetCharHandleBySampPlayerId(targetSet)
+				
+				if result then
+					local px, py, pz = getCharCoordinates(pped)
+					local pdistance = getDistanceBetweenCoords3d(x, y, z, px, py, pz)
+					
+					local text = string.format('%d meter(s) to the target', pdistance)
+					renderFontDrawText(font_t, text, sx / 2 + 30, sy / 2 + 48, 0xFFFFFFFF)
+				else
+					targetSet = nil
+				end
+			end
+			
+			if wasKeyPressed(KEY.VK_LBUTTON) then
+				targetSet = getnear()
+			end
+			
+			if wasKeyPressed(KEY.VK_RBUTTON) then
+				targetSet = nil
+			end
+		end
+	end
+end
+
+function getnear()
+    local all_players = getAllChars()
+    local lastchar = {}
+    local mx, my, mz = poiX, poiY, poiZ
+
+    for k, v in pairs(all_players) do
+        if v ~= nil and v ~= 1 then
+            local x, y, z = getCharCoordinates(v)
+            if lastchar[1] == nil and isCharOnScreen(v) then
+                local distance = getDistanceBetweenCoords2d(mx, my, x, y)
+                lastchar = {v, distance}
+            else
+				if isCharOnScreen(v) then
+					local distance = getDistanceBetweenCoords2d(mx, my, x, y)
+					if tonumber(lastchar[2]) > tonumber(distance) then
+						lastchar = {v, distance}
+					end
+				end
+            end
+        end
+    end
+
+    if lastchar[1] ~= nil then
+		local id = select(2, sampGetPlayerIdByCharHandle(lastchar[1]))
+		--local nick = sampGetPlayerNickname(id)
+		--SCM(string.format('Ближайший игрок: %s [%s]', nick, lastchar[2]))
+		return id
+    end
+end
+
+function getBodyPartCoordinates(id, handle)
+  local pedptr = getCharPointer(handle)
+  local vec = ffi.new("float[3]")
+  getBonePosition(ffi.cast("void*", pedptr), vec, id, true)
+  return vec[0], vec[1], vec[2]
+end
+
 function imgui.OnDrawFrame()
 	if show_menu.v then
 		local w, h = getScreenResolution()
@@ -2875,6 +3051,8 @@ function imgui.OnDrawFrame()
 					imgui.SameLine()
 					if imgui.Button(u8'Изменение горячих клавиш', imgui.ImVec2(255, 20)) then set_item.v = 6 end
 					
+					if imgui.Button(u8'Модификации', imgui.ImVec2(515, 20)) then set_item.v = 7 end
+					
 					
 					if set_item.v == 0 then
 						imgui.Text('')
@@ -3017,6 +3195,10 @@ function imgui.OnDrawFrame()
 					
 					if set_item.v == 6 then
 						draw_hotkey_settings()
+					end
+					
+					if set_item.v == 7 then
+						draw_modification()
 					end
 				imgui.EndChild()
 			end
@@ -3667,6 +3849,51 @@ function draw_show_suspect()
 	end
 end
 
+function draw_modification()
+	imgui.Text('')
+
+	if imgui.TreeNode(u8'Уличные фонари') then
+		if imgui.Checkbox(u8'Включить отображение уличных фонарей в указанное время', pstreetlight) then 
+			ini.set.streetlight = pstreetlight.v
+			inicfg.save(ini, 'Helper for MIA.ini') 
+		end
+		
+		imgui.PushItemWidth(200)
+		if imgui.SliderInt('##ITEM1', pslhour, 0, 23) then
+			ini.set.slhour = pslhour.v
+			inicfg.save(ini, 'Helper for MIA.ini') 
+		end
+		imgui.SameLine() imgui.Text(u8'Время включения уличных фонарей')
+		
+		if imgui.SliderInt('##ITEM2', pmslhour, 0, 23) then
+			ini.set.mslhour = pmslhour.v
+			inicfg.save(ini, 'Helper for MIA.ini') 
+		end
+		imgui.SameLine() imgui.Text(u8'Время отключения уличных фонарей')
+		
+		imgui.TreePop()
+	end
+	
+	if imgui.TreeNode(u8'Модицированный CamHack') then
+		if imgui.Checkbox(u8'Включить отображение эффектов при использовании CamHack`a', pkvadrocopter) then 
+			ini.set.kvadrocopter = pkvadrocopter.v
+			inicfg.save(ini, 'Helper for MIA.ini') 
+		end
+		
+		if imgui.Checkbox(u8'Включить затемнение экрана при использовании CamHack`a', pskvadrocopter) then 
+			ini.set.skvadrocopter = pskvadrocopter.v
+			inicfg.save(ini, 'Helper for MIA.ini') 
+		end
+		
+		if imgui.Checkbox(u8'Включить отображение точек на игроках при использовании CamHack`a', ppkvadrocopter) then 
+			ini.set.pkvadrocopter = ppkvadrocopter.v
+			inicfg.save(ini, 'Helper for MIA.ini') 
+		end
+		
+		imgui.TreePop()
+	end
+end
+
 function draw_hotkey_settings()
 	imgui.Text('')
 	imgui.CenterTextColoredRGB('ИЗМЕНЕНИЕ ГОРЯЧИХ КЛАВИШ')
@@ -3761,13 +3988,13 @@ function draw_head_page()
 			
 			imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ОБНОВЛЕНИИ')
 			
+			imgui.Text(u8'Добавлен раздел модификаций в расширенных настройках.')
+			imgui.Text(u8'Добавлена возможность использовать уличные фонари и эффекты для CamHack`a.')
 			imgui.Text(u8'Добавлена возможность использовать умный розыск с помощь /su id.')
 			imgui.Text(u8'Изменена система параметров для допополнительных команд.')
 			imgui.Text(u8'Была добавлена возможность активировать доп. команды с помощью клавиш.')
 			imgui.Text(u8'Добавлено несколько новых функций для создания доп. команд.')
 			imgui.Text(u8'Изменена минимально возможная скорость использования CamHack`a до 0.001.')
-			imgui.Text(u8'Добавлена возможность сохранить положение CamHack`a с помощью /savecords.')
-			imgui.Text(u8'Возвращены команды для редактирование объектов и 3D-текста.')
 			
 		imgui.EndChild()
 		
@@ -4121,6 +4348,41 @@ function add_new_hotkey()
 			end
 		end)
 	end)
+	
+	hotkey_butt['camhack_off'].bind = rkeys.registerHotKey(hotkey_butt['camhack_off'].key.v, true, function()
+		if isKeyCheckAvailable() then
+			destroy_camhack()
+		end
+	end)
+	
+	hotkey_butt['camhack_on'].bind = rkeys.registerHotKey(hotkey_butt['camhack_on'].key.v, true, function()
+		if isKeyCheckAvailable() then
+			on_camhack()
+		end
+	end)
+end
+
+function on_camhack()
+	if not flymode and isKeyCheckAvailable() then     
+		posX, posY, posZ = getCharCoordinates(playerPed)
+		angZ = getCharHeading(playerPed)
+		angZ = angZ * -1.0
+		setFixedCameraPosition(posX, posY, posZ, 0.0, 0.0, 0.0)
+		angY = 0.0 
+		lockPlayerControl(true)
+		flymode = not flymode
+	end
+end
+
+function destroy_camhack()
+	if flymode then
+		radarHud = 0    
+		angPlZ = angZ * -1.0
+		lockPlayerControl(false)
+		restoreCameraJumpcut()
+		setCameraBehindPlayer()
+		flymode = false
+	end
 end
 
 function patch_samp_time_set(enable) 
@@ -4446,7 +4708,7 @@ function sampGetOnlineInFraction()
 	return online
 end
 
-function kvadrat()
+function kvadrat(X, Y, Z)
     local KV = {
         [1] = "А",
         [2] = "Б",
@@ -4473,7 +4735,10 @@ function kvadrat()
         [23] = "Ш",
         [24] = "Я",
     }
-    local X, Y, Z = getCharCoordinates(playerPed)
+	if X == nil then
+		X, Y, Z = getCharCoordinates(playerPed)
+	end
+	
     X = math.ceil((X + 3000) / 250)
     Y = math.ceil((Y * - 1 + 3000) / 250)
     Y = KV[Y]
@@ -4615,8 +4880,11 @@ function sampWeaponSceneOff(id)
 	return false, ''
 end
 
-function calculateZone()
-	x, y, z = getCharCoordinates(playerPed)
+function calculateZone(x, y, z)
+	if x == nil then
+		x, y, z = getCharCoordinates(playerPed)
+	end
+	
     local streets = {{"Avispa Country Club", -2667.810, -302.135, -28.831, -2646.400, -262.320, 71.169},
     {"Easter Bay Airport", -1315.420, -405.388, 15.406, -1264.400, -209.543, 25.406},
     {"Avispa Country Club", -2550.040, -355.493, 0.000, -2470.040, -318.493, 39.700},

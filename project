@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(10.9)
+script_version(11.1)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -510,6 +510,7 @@ local weapon             = {}
 local sus_table          = {}
 local command_t          = {}
 local static_camera      = {}
+local mark_vehicle       = {}
 local smart_suspect      = {id = nil, text = {}}
 local param_cmd          = 0
 local last_sms           = 0
@@ -532,6 +533,7 @@ local piemenu            = imgui.ImBool(false)
 local show_help          = imgui.ImBool(false)
 local show_info          = imgui.ImBool(false)
 local show_suspect       = imgui.ImBool(false)
+local show_uk_list       = imgui.ImBool(false)
 local vfilt              = imgui.ImBool(false)
 local lines              = imgui.ImBool(false)
 local command_edit       = imgui.ImBool(false)
@@ -661,7 +663,7 @@ function main()
 	sampRegisterChatCommand(string.match(ini.cmd.del_text, '(.+) | (.+)'), command_dtext)
 	sampRegisterChatCommand(string.match(ini.cmd.edit_text, '(.+) | (.+)'), command_etext)
 	
-	sampRegisterChatCommand('sendvk', function(text)
+	--[[sampRegisterChatCommand('sendvk', function(text)
 		if string.match(text, '(%S+)') then
 			local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 			local name = sampGetPlayerNickname(id)
@@ -671,7 +673,7 @@ function main()
 		else
 			SCM('Используйте команду /sendvk [текст]')
 		end
-	end)
+	end)]]
 	
 	sampRegisterChatCommand('savecords', function(id)
 		if flymode then
@@ -838,7 +840,7 @@ function main()
 			end
 		end
 		
-		if show_menu.v or piemenu.v or show_info.v or show_suspect.v then
+		if show_menu.v or piemenu.v or show_info.v or show_suspect.v or show_uk_list.v then
 			imgui.Process = true
 		else
 			imgui.Process = false
@@ -1623,7 +1625,7 @@ end
 function command_gov(id) 
 	local cmd, ucmd = string.match(ini.cmd.gov, '(.+) | (.+)')
 
-	if player_status > 3 then
+	if player_status > 0 then
 		if string.match(id, '(%d+)') then
 			if gnews[1] ~= nil then
 				local timed = getTimeByPeriod(tonumber(gnews[1]), tonumber(gnews[2]), tonumber(gnews[3]), 5)
@@ -1874,7 +1876,7 @@ end
 function command_uk(text)
 	local cmd, ucmd = string.match(ini.cmd.uk, '(.+) | (.+)')
 
-	if not string.match(text, '(.+)') then SCM(string.format('Используйте команду /%s [часть или номер статьи]', cmd))
+	if not string.match(text, '(.+)') then show_uk_list.v = not show_uk_list.v
 	else
 		search_file('uk', text)
 	end
@@ -1935,7 +1937,7 @@ end
 function command_invite(param)
 	local cmd, ucmd = string.match(ini.cmd.invite, '(.+) | (.+)')
 
-	if player_status > 2 then
+	if player_status > 0 then
 		if string.match(param, '(%d+) (%d+)') then
 			inv_id, inv_rang = string.match(param, '(%d+) (%d+)')
 			if IPC(id) then
@@ -1971,7 +1973,7 @@ end
 function command_uninvite(param)
 	local cmd, ucmd = string.match(ini.cmd.uninvite, '(.+) | (.+)')
 
-	if player_status > 2 then
+	if player_status > 0 then
 		if string.match(param, '(%d+) (%S+)') then
 			local id, reason = string.match(param, '(%d+) (.+)')
 			if IPC(id) then
@@ -2037,7 +2039,7 @@ end
 function command_rang(param)
 	local cmd, ucmd = string.match(ini.cmd.rang, '(.+) | (.+)')
 
-	if player_status > 2 then
+	if player_status > 0 then
 		if string.match(param, '(%d+) [+?-]') then
 			local id, rang = string.match(param, '(%d+) (.+)')
 			if IPC(id) then
@@ -2072,7 +2074,7 @@ end
 function command_changeskin(id)
 	local cmd, ucmd = string.match(ini.cmd.changeskin, '(.+) | (.+)')
 
-	if player_status > 2 then
+	if player_status > 0 then
 		if string.match(id, '(%d+)') then
 			if IPC(id) then
 				if sampGetDistance(PLAYER_PED, id) < 3 then
@@ -2511,14 +2513,10 @@ function command_users()
 	for line in string.gmatch(users, "[^\n]+") do
 		if string.match(line, '(.+) | (.+) | (.+) | (.+)') then
 			local name, rang, nrang = string.match(line, '(.+) | (.+) | (.+) | (.+)')
-			if tonumber(nrang) > 5 then rang = string.format('{CD5C5C}%s', rang)
-			elseif tonumber(nrang) == 5 then rang = string.format('{EE2C2C}%s', rang)
-			elseif tonumber(nrang) == 4 then rang = string.format('{228B22}%s', rang)
-			elseif tonumber(nrang) == 3 then rang = string.format('{90EE90}%s', rang)
-			elseif tonumber(nrang) == 2 then rang = string.format('{FFD700}%s', rang)
-			else rang = string.format('{4876FF}%s', rang) end
 			local id = sampGetPlayerIdByNickname(name)
 			all = all + 1
+			
+			local rang = string.format('%s %s', getColorRang(nrang), rang)
 			
 			if id == 'offline' then
 				dline = string.format('%s{696969}%s\t{696969}%s ранг. %s\t{ff5c33}Оффлайн\n', dline, name, player_rang[name], rang)
@@ -2755,7 +2753,7 @@ function show_flymode()
 			end
 			--
 			
-			-- проверка на отдаление
+			-- проверка на отдаление и изображение помех
 			local x, y, z = getCharCoordinates(playerPed)
 			local distance = getDistanceBetweenCoords3d(x, y, z, posX, posY, posZ)
 			
@@ -2766,8 +2764,14 @@ function show_flymode()
 			elseif distance >= 200 then
 				renderFontDrawText(font_t, 'LOSS OF CONNECTION. RETURN BACK.', sx / 2 + 30, sy / 2 + 30, 0xFFFF0000)
 			else
-				local text = string.format('%d meter(s) from user', distance)
+				local text = string.format('%d m from unit', distance)
 				renderFontDrawText(font_t, text, sx / 2 + 30, sy / 2 + 30, 0xFFFFFFFF)
+			end
+			
+			for i = 1, distance * 4 do
+				local err_col = {0xFF363636, 0xFF4F4F4F, 0xFF696969, 0xFF828282, 0xFF9C9C9C}
+				local psx, psy, err = math.random(0, sx), math.random(0, sy), math.random(1, 5)
+				renderDrawBox(psx, psy, 3, 3, 0xFFCECECE, err_col[err])
 			end
 			--
 			
@@ -2778,7 +2782,7 @@ function show_flymode()
 					local px, py, pz = getCharCoordinates(pped)
 					local pdistance = getDistanceBetweenCoords3d(x, y, z, px, py, pz)
 					
-					local text = string.format('%d meter(s) to the target', pdistance)
+					local text = string.format('%d m to the target', pdistance)
 					renderFontDrawText(font_t, text, sx / 2 + 30, sy / 2 + 48, 0xFFFFFFFF)
 				else
 					targetSet = nil
@@ -2855,7 +2859,7 @@ function imgui.OnDrawFrame()
 				if imgui.Button(u8'Дополнительные возможности', imgui.ImVec2(235, 20)) then show_item.v = 4 end
 				if imgui.Button(u8'Кастомизация', imgui.ImVec2(235, 20)) then show_item.v = 5 end
 				if imgui.Button(u8'Менеджер паролей', imgui.ImVec2(235, 20)) then show_item.v = 6 end
-			    if player_status > 3 then 	
+			    if player_status > 0 then 	
 					if imgui.Button(u8'Панель лидера', imgui.ImVec2(235, 20)) then show_item.v = 7 end
 				end
 				if imgui.Button(u8'Перезагрузить', imgui.ImVec2(235, 20)) then
@@ -2879,45 +2883,6 @@ function imgui.OnDrawFrame()
 					
 					draw_head_page()
 					
-					--[[imgui.CenterTextColoredRGB('ГЛАВНАЯ СТРАНИЦА')
-					
-					imgui.Text('')
-					
-					local update_info = {
-						'Лол, чо биндер добавили или чо??',
-						'Добавлена возможность изменять горячие клавиши в расширенных настройках',
-						'Добавлена возможность закрывать imgui-окна с помощью клавиши ESC',
-						'Добавлена возможность использовать скрипт на разных аккаунтах обходя привязку',
-						'.. по нику. Для активации функции отправьте сообщение разработчику (/sendvk)'
-					}
-					table_to_text(update_info)
-					
-					imgui.Text('')
-					imgui.Text('')
-					
-					imgui.CenterTextColoredRGB('Оставьте оценку и комментарий к обновлению')
-					imgui.Text('')
-					
-					if imgui.Button(u8'Отправить', imgui.ImVec2(515, 20)) then
-						local comment = u8'The user did not leave a comment.'
-						
-						if inpcomment.v ~= '' then
-							comment = string.format('Comment ~ %s', inpcomment.v)
-						end
-						
-						local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-						local name = sampGetPlayerNickname(id)
-
-						tovk(string.format(u8'-\n%s\n(id %d ~ rang %d) %s rated the update %d point(-s).\n%s\n-', u8(sampGetCurrentServerName()), id, player_status, name, inpball.v, comment), true)
-						
-						inpball.v, inpcomment.v = 5, ''
-					end
-					
-					imgui.Text(u8'Оценка: '); imgui.SameLine()
-					imgui.PushItemWidth(460)
-					imgui.SliderInt('##inpball', inpball, 1, 5)
-					imgui.PushItemWidth(420)
-					imgui.InputTextMultiline('##update_com', inpcomment, imgui.ImVec2(-1, imgui.GetTextLineHeight() * 8))]]
 				imgui.EndChild()
 			end
 			
@@ -3473,6 +3438,7 @@ function imgui.OnDrawFrame()
 				'getPlayerScore_{param} | getPlayerScore_{param2} | <Уровень игрока>',
 				
 				'sendChat(text) | Сообщение в обычный чат | <Сообщение>',
+				'setChatInput(text) | Сообщение в чат без отправки | <Сообщение>',
 				'addChat(text) | Серв. сообщение | <Сообщение>',
 				'wait(delay) | Задержка | <Задержка>',
 				'setKeyDown(key[, bool]) | Нажатие клавиши KEY | <Нажатие клавиши>'
@@ -3494,7 +3460,7 @@ function imgui.OnDrawFrame()
 						end
 						imgui.SameLine(200)
 						imgui.Text(string.format('%s', u8(i)))
-						imgui.SameLine(380)
+						imgui.SameLine(390)
 						imgui.Text(string.format('%s', u8(r)))
 					end
 				end
@@ -3508,6 +3474,14 @@ function imgui.OnDrawFrame()
 		imgui.SetNextWindowSize(imgui.ImVec2(600, 550))
 		
 		draw_show_suspect()
+	end
+	
+	if show_uk_list.v then
+		local w, h = getScreenResolution()
+		imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
+		imgui.SetNextWindowSize(imgui.ImVec2(600, 550))
+		
+		draw_uk_list()
 	end
 	
 	if show_info.v then
@@ -3821,6 +3795,28 @@ function draw_another_settings()
 	end
 end
 
+function draw_uk_list()
+	imgui.Begin(u8'Уголовный кодекс • Helper for MIA', show_uk_list, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
+		for name, val in pairs(smart_suspect.text) do
+			if imgui.TreeNode(string.format(u8'СТАТЬЯ %d | %s', name, u8(val.name))) then
+				for i, item in ipairs(val.st) do
+					if string.match(item, '(.+) | (.+) | (.+)') then
+						local stars, reason, text = string.match(item, '(.+) | (.+) | (.+)')
+							
+						imgui.Button(string.format('%s | %d | %s..', u8(reason), stars, string.sub(u8(text), 0, 120)), imgui.ImVec2(540, 20))
+						if (imgui.IsItemHovered()) then
+							imgui.SetTooltip(u8(text))
+						end
+					else 
+						imgui.Text('Unexpected line.')
+					end
+				end
+				imgui.TreePop()
+			end
+		end
+	imgui.End()
+end
+
 function draw_show_suspect()
 	local id = smart_suspect.id
 	if IPC(id) then
@@ -3831,7 +3827,7 @@ function draw_show_suspect()
 						if string.match(item, '(.+) | (.+) | (.+)') then
 							local stars, reason, text = string.match(item, '(.+) | (.+) | (.+)')
 							
-							if imgui.Button(string.format('%s | %s..', u8(reason), string.sub(u8(text), 0, 120)), imgui.ImVec2(540, 20)) then
+							if imgui.Button(string.format('%s | %d | %s..', u8(reason), stars, string.sub(u8(text), 0, 120)), imgui.ImVec2(540, 20)) then
 								command_su(string.format('%d %d %s', id, stars, reason))
 							end
 							ItemPovered(text)
@@ -3902,7 +3898,7 @@ function draw_hotkey_settings()
 	
 	for name in pairs(ini.hkey) do
 		if imgui.HotKey('##' .. name, hotkey_butt[name].key, hotkey_butt[name].last, 100) then
-			if not rkeys.isHotKeyDefined(hotkey_cust_butt[id].key.v) then
+			if not rkeys.isHotKeyDefined(hotkey_butt[name].key.v) then
 				rkeys.changeHotKey(hotkey_butt[name].bind, hotkey_butt[name].key.v)
 				
 				local key = ' '
@@ -3912,10 +3908,10 @@ function draw_hotkey_settings()
 				
 				ini.hkey[name] = string.gsub(key, '%s,%s', '')
 				inicfg.save(ini, 'Helper for MIA.ini')
-				pushMessage('Для этой команды установленно новое сочетание клавиш.', 3, 3)
+				pushMessage('Для этой команды установленно новое сочетание клавиш.', 3, 4)
 			else
 				hotkey_butt[name].key = hotkey_butt[name].last
-				pushMessage('Данное сочетание клавиш уже используется.', 3, 4)
+				pushMessage('Данное сочетание клавиш уже используется.', 3, 3)
 			end
 		end
 		imgui.SameLine()
@@ -4025,7 +4021,7 @@ function draw_head_page()
 			local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 			local name = sampGetPlayerNickname(id)
 
-			tovk(string.format(u8'-\n%s\n(id %d ~ rang %d) %s ~ %s\n-', u8(sampGetCurrentServerName()), id, player_status, name, inpcomment.v), true)
+			tovk(string.format(u8'-m\n%s\n(id %d ~ rang %d) %s ~ %s\n-m', u8(sampGetCurrentServerName()), id, player_status, name, inpcomment.v), true)
 			inpcomment.v = ''
 		end
 
@@ -5273,6 +5269,11 @@ end
 function sampGetColor(id)
 	a, r, g, b = explode_argb(sampGetPlayerColor(id))
 	rgb = {r, g, b}
+	
+	return colorRgbToHex(rgb)
+end
+
+function colorRgbToHex(rgb)
 	local hexadecimal = ''
 
 	for key, value in pairs(rgb) do
@@ -5400,7 +5401,7 @@ function stroboscopes(adress, ptr, _1, _2, _3, _4)
 		markCarAsNoLongerNeeded(storeCarCharIsInNoSave(PLAYER_PED))
 		return
 	end
-
+	
 	callMethod(adress, ptr, _1, _2, _3, _4)
 end
 
@@ -5422,6 +5423,7 @@ function strobe()
 
 				while isCarSirenOn(car) do
 					wait(0)
+					
 					for i = 1, 12 do
 						wait(100)
 						stroboscopes(7086336, ptr, 2, 0, 1, 0)
@@ -5825,6 +5827,17 @@ function sampGetMonthName()
 	end
 end
 
+function getColorRang(nrang)
+	if nrang ~= nil then
+		if tonumber(nrang) > 3 then return '{CD5C5C}'
+		elseif tonumber(nrang) == 3 then return '{EE2C2C}'
+		elseif tonumber(nrang) == 2 then return '{FFD700}'
+		else 
+			return '{4876FF}'
+		end
+	end
+end
+
 function sampev.onServerMessage(color, text)
 	logchat[tonumber(table.maxn(logchat)) + 1] = 'CHAT\t   [' .. os.date('%H') .. ':' .. os.date('%M') .. ':' .. os.date('%S') .. '] ' .. text
 	
@@ -5850,6 +5863,7 @@ function sampev.onServerMessage(color, text)
 		sampAddChatMessage('[TAC-2] '..text,0x20B2AA)
 		return false
 	end
+	
 
 	if text:find('Вы оглушили (.+) на 15 секунд') then
 		lua_thread.create(function()
@@ -6057,7 +6071,7 @@ function sampev.onServerMessage(color, text)
 	
 	if text:find('Вы отключились от внутреннего канала связи организации') then
 		follow_state = false
-	end
+	end 
 end
 
 function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
@@ -6430,6 +6444,9 @@ function process_command(file, input)
 					elseif string.match(val, 'searchFile%((%S+), (%S+)%)') then
 						local file, text = string.match(val, 'searchFile%((%S+), (%S+)%)')
 						search_file(file, text)
+					elseif string.match(val, 'setChatInput%((.+)%)') then
+						sampSetChatInputEnabled(true)
+						sampSetChatInputText(string.match(val, 'setChatInput%((.+)%)'))
 					else
 						print(string.format('Неизвестная линия: %s', val))
 					end
@@ -6613,8 +6630,8 @@ end
 
 addEventHandler("onWindowMessage", function (msg, wparam, lparam)
     if wparam == KEY.VK_ESCAPE then
-		if show_menu.v or piemenu.v or show_info.v or show_suspect.v then
-			show_menu.v, piemenu.v, show_info.v, show_suspect.v = false, false, false, false
+		if show_menu.v or piemenu.v or show_info.v or show_suspect.v or show_uk_list.v then
+			show_menu.v, piemenu.v, show_info.v, show_suspect.v, show_uk_list.v = false, false, false, false, false
 			consumeWindowMessage(true, true)
        end
     end

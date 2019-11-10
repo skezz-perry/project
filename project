@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(11.1)
+script_version(11.2)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -229,7 +229,8 @@ local ini = inicfg.load({
 		mslhour              = 7,
 		kvadrocopter         = false,
 		pkvadrocopter        = false,
-		skvadrocopter        = false
+		skvadrocopter        = false,
+		strob_lr             = 500
 	},
 	weapon = {
 		shit                 = false,
@@ -453,7 +454,9 @@ local ini = inicfg.load({
 		fast_menu = '90',
 		camera = '123',
 		camhack_on = '67, 49',
-		camhack_off = '67, 50'
+		camhack_off = '67, 50',
+		strob_left = '77',
+		strob_right = '66'
 	},
 	custom_hkey = {
 	},
@@ -485,6 +488,8 @@ local hotkey_butt = {
 	smart_su = {key = {v = {}}, last = {}, bind = -1, name = 'Использование быстрого розыска'},
 	camhack_on = {key = {v = {}}, last = {}, bind = -1, name = 'Включить CamHack'},
 	camhack_off = {key = {v = {}}, last = {}, bind = -1, name = 'Выключить CamHack'},
+	strob_left = {key = {v = {}}, last = {}, bind = -1, name = 'Включить правый поворотник'},
+	strob_right = {key = {v = {}}, last = {}, bind = -1, name = 'Включить левый поворотник'}
 }
 
 local hotkey_cust_butt = {}
@@ -542,6 +547,7 @@ local show_item          = imgui.ImInt(8)
 local set_item           = imgui.ImInt(0)
 local page_num           = imgui.ImInt(0)
 local weaponid           = imgui.ImInt(46)
+local strob_lr           = imgui.ImInt(ini.set.strob_lr)
 local commandid          = imgui.ImInt(0)
 local inpball            = imgui.ImInt(5)
 local pdelay_rk          = imgui.ImInt(ini.set.delay_rk)
@@ -840,6 +846,24 @@ function main()
 			end
 		end
 		
+		if wasKeyPressed(KEY.VK_OEM_6) then
+			if isKeyCheckAvailable() then
+				sampSetChatInputEnabled(true)
+			else
+				lua_thread.create(function()
+					local timer = os.clock()
+				
+					while isKeyDown(VK_OEM_6) do
+						wait(0)
+						
+						if os.clock() - timer >= 0.3 then
+							sampSetChatInputEnabled(false)
+						end
+					end
+				end)
+			end
+		end
+		
 		if show_menu.v or piemenu.v or show_info.v or show_suspect.v or show_uk_list.v then
 			imgui.Process = true
 		else
@@ -871,7 +895,7 @@ function main()
 			tovk(text, true)
 			successful_login = false
 		end
-
+		
 		if isCharInAnyCar(PLAYER_PED) and ini.set.strobes then
 
 			local car = storeCarCharIsInNoSave(PLAYER_PED)
@@ -3773,9 +3797,18 @@ function draw_another_settings()
 		ini.set.delay_rk = pdelay_rk.v
 		inicfg.save(ini, 'Helper for MIA.ini')
 	end
-						
+	
 	imgui.SameLine(220)
 	imgui.Text(u8'Задержка, установленная для RK')
+	
+	imgui.PushItemWidth(200)
+	if imgui.SliderInt('##ITEM2', strob_lr, 300, 600) then
+		ini.set.strob_lr = strob_lr.v
+		inicfg.save(ini, 'Helper for MIA.ini')
+	end
+
+	imgui.SameLine(220)
+	imgui.Text(u8'Задержка между работой поворотников')
 	
 	if imgui.InputText(u8'Ссылка на чёрный список', url_bl) then
 		ini.set.blacklist = url_bl.v
@@ -3984,13 +4017,13 @@ function draw_head_page()
 			
 			imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ОБНОВЛЕНИИ')
 			
+			imgui.Text(u8'Добавлены поворотники для автомобилий, активация B и M.')
 			imgui.Text(u8'Добавлен раздел модификаций в расширенных настройках.')
 			imgui.Text(u8'Добавлена возможность использовать уличные фонари и эффекты для CamHack`a.')
 			imgui.Text(u8'Добавлена возможность использовать умный розыск с помощь /su id.')
 			imgui.Text(u8'Изменена система параметров для допополнительных команд.')
 			imgui.Text(u8'Была добавлена возможность активировать доп. команды с помощью клавиш.')
 			imgui.Text(u8'Добавлено несколько новых функций для создания доп. команд.')
-			imgui.Text(u8'Изменена минимально возможная скорость использования CamHack`a до 0.001.')
 			
 		imgui.EndChild()
 		
@@ -4304,6 +4337,28 @@ function add_new_hotkey()
 			else
 				targetid = nil
 				piemenu.v = not piemenu.v
+			end
+		end
+	end)
+	
+	hotkey_butt['strob_left'].bind = rkeys.registerHotKey(hotkey_butt['strob_left'].key.v, true, function()
+		if isKeyCheckAvailable() then
+			if isCharInAnyCar(playerPed) and ini.set.strobes then
+				local car = storeCarCharIsInNoSave(playerPed)
+				strobes_left = not strobes_left
+				local state = not isCarSirenOn(car)
+				switchCarSiren(car, state)
+			end
+		end
+	end)
+	
+	hotkey_butt['strob_right'].bind = rkeys.registerHotKey(hotkey_butt['strob_right'].key.v, true, function()
+		if isKeyCheckAvailable() then
+			if isCharInAnyCar(playerPed) and ini.set.strobes then
+				local car = storeCarCharIsInNoSave(playerPed)
+				strobes_right = not strobes_right
+				local state = not isCarSirenOn(car)
+				switchCarSiren(car, state)
 			end
 		end
 	end)
@@ -5423,106 +5478,122 @@ function strobe()
 
 				while isCarSirenOn(car) do
 					wait(0)
-					
-					for i = 1, 12 do
-						wait(100)
-						stroboscopes(7086336, ptr, 2, 0, 1, 0)
-						wait(100)
-						stroboscopes(7086336, ptr, 2, 0, 0, 0)
-						stroboscopes(7086336, ptr, 2, 0, 1, 1)
-						wait(100)
-						stroboscopes(7086336, ptr, 2, 0, 0, 1)
-						stroboscopes(7086336, ptr, 2, 0, 1, 0)
-						wait(100)
-						stroboscopes(7086336, ptr, 2, 0, 1, 0)
-						stroboscopes(7086336, ptr, 2, 0, 1, 1)
-						if not isCarSirenOn(car) or not isCharInAnyCar(PLAYER_PED) then break end
-					end
 
-					if not isCarSirenOn(car) or not isCharInAnyCar(PLAYER_PED) then break end
-
-					for i = 1, 6 do
-						wait(80)
+					if strobes_right then
 						stroboscopes(7086336, ptr, 2, 0, 1, 3)
 						stroboscopes(7086336, ptr, 2, 0, 0, 0)
-						wait(80)
+						wait(ini.set.strob_lr)
+						stroboscopes(7086336, ptr, 2, 0, 0, 1)
+						wait(ini.set.strob_lr)
+						stroboscopes(7086336, ptr, 2, 0, 1, 1)
+					elseif strobes_left then
+						wait(ini.set.strob_lr)
+						stroboscopes(7086336, ptr, 2, 0, 0, 1)
 						stroboscopes(7086336, ptr, 2, 0, 1, 0)
-						wait(80)
-						stroboscopes(7086336, ptr, 2, 0, 0, 0)
-						wait(80)
+						wait(ini.set.strob_lr)
 						stroboscopes(7086336, ptr, 2, 0, 1, 0)
+						stroboscopes(7086336, ptr, 2, 0, 1, 1)
+					else
+						for i = 1, 12 do
+							wait(100)
+							stroboscopes(7086336, ptr, 2, 0, 1, 0)
+							wait(100)
+							stroboscopes(7086336, ptr, 2, 0, 0, 0)
+							stroboscopes(7086336, ptr, 2, 0, 1, 1)
+							wait(100)
+							stroboscopes(7086336, ptr, 2, 0, 0, 1)
+							stroboscopes(7086336, ptr, 2, 0, 1, 0)
+							wait(100)
+							stroboscopes(7086336, ptr, 2, 0, 1, 0)
+							stroboscopes(7086336, ptr, 2, 0, 1, 1)
+							if not isCarSirenOn(car) or not isCharInAnyCar(PLAYER_PED) then break end
+						end
+
 						if not isCarSirenOn(car) or not isCharInAnyCar(PLAYER_PED) then break end
-						wait(300)
-						stroboscopes(7086336, ptr, 2, 0, 0, 1)
-						wait(80)
-						stroboscopes(7086336, ptr, 2, 0, 1, 1)
-						wait(80)
-						stroboscopes(7086336, ptr, 2, 0, 0, 1)
-						wait(80)
-						stroboscopes(7086336, ptr, 2, 0, 1, 1)
+
+						for i = 1, 6 do
+							wait(80)
+							stroboscopes(7086336, ptr, 2, 0, 1, 3)
+							stroboscopes(7086336, ptr, 2, 0, 0, 0)
+							wait(80)
+							stroboscopes(7086336, ptr, 2, 0, 1, 0)
+							wait(80)
+							stroboscopes(7086336, ptr, 2, 0, 0, 0)
+							wait(80)
+							stroboscopes(7086336, ptr, 2, 0, 1, 0)
+							if not isCarSirenOn(car) or not isCharInAnyCar(PLAYER_PED) then break end
+							wait(300)
+							stroboscopes(7086336, ptr, 2, 0, 0, 1)
+							wait(80)
+							stroboscopes(7086336, ptr, 2, 0, 1, 1)
+							wait(80)
+							stroboscopes(7086336, ptr, 2, 0, 0, 1)
+							wait(80)
+							stroboscopes(7086336, ptr, 2, 0, 1, 1)
+							if not isCarSirenOn(car) or not isCharInAnyCar(PLAYER_PED) then break end
+						end
+
+						if not isCarSirenOn(car) or not isCharInAnyCar(PLAYER_PED) then break end
+
+						for i = 1, 3 do
+							wait(60)
+							stroboscopes(7086336, ptr, 2, 0, 1, 3)
+							stroboscopes(7086336, ptr, 2, 0, 1, 0)
+							stroboscopes(7086336, ptr, 2, 0, 0, 1)
+							wait(60)
+							stroboscopes(7086336, ptr, 2, 0, 1, 1)
+							wait(60)
+							stroboscopes(7086336, ptr, 2, 0, 0, 1)
+							wait(60)
+							stroboscopes(7086336, ptr, 2, 0, 1, 1)
+							wait(60)
+							stroboscopes(7086336, ptr, 2, 0, 0, 1)
+							wait(60)
+							stroboscopes(7086336, ptr, 2, 0, 1, 1)
+							wait(60)
+							stroboscopes(7086336, ptr, 2, 0, 0, 0)
+							wait(60)
+							if not isCarSirenOn(car) or not isCharInAnyCar(PLAYER_PED) then break end
+							stroboscopes(7086336, ptr, 2, 0, 1, 0)
+							wait(60)
+							stroboscopes(7086336, ptr, 2, 0, 0, 0)
+							wait(350)
+							stroboscopes(7086336, ptr, 2, 0, 1, 0)
+							stroboscopes(7086336, ptr, 2, 0, 0, 1)
+							wait(60)
+							if not isCarSirenOn(car) or not isCharInAnyCar(PLAYER_PED) then break end
+							stroboscopes(7086336, ptr, 2, 0, 1, 1)
+							stroboscopes(7086336, ptr, 2, 0, 0, 0)
+							wait(50)
+							stroboscopes(7086336, ptr, 2, 0, 1, 0)
+							stroboscopes(7086336, ptr, 2, 0, 0, 1)
+							wait(50)
+							stroboscopes(7086336, ptr, 2, 0, 1, 1)
+							stroboscopes(7086336, ptr, 2, 0, 0, 0)
+							wait(100)
+							stroboscopes(7086336, ptr, 2, 0, 1, 1)
+							stroboscopes(7086336, ptr, 2, 0, 1, 1)
+							wait(80)
+							stroboscopes(7086336, ptr, 2, 0, 0, 1)
+							stroboscopes(7086336, ptr, 2, 0, 0, 0)
+							wait(100)
+							if not isCarSirenOn(car) or not isCharInAnyCar(PLAYER_PED) then break end
+							stroboscopes(7086336, ptr, 2, 0, 1, 1)
+							stroboscopes(7086336, ptr, 2, 0, 1, 0)
+							wait(80)
+							stroboscopes(7086336, ptr, 2, 0, 0, 1)
+							stroboscopes(7086336, ptr, 2, 0, 0, 0)
+							wait(100)
+							stroboscopes(7086336, ptr, 2, 0, 0, 1)
+							stroboscopes(7086336, ptr, 2, 0, 1, 0)
+							wait(80)
+							stroboscopes(7086336, ptr, 2, 0, 1, 1)
+							stroboscopes(7086336, ptr, 2, 0, 0, 0)
+							if not isCarSirenOn(car) or not isCharInAnyCar(PLAYER_PED) then break end
+						end
+
 						if not isCarSirenOn(car) or not isCharInAnyCar(PLAYER_PED) then break end
 					end
-
-					if not isCarSirenOn(car) or not isCharInAnyCar(PLAYER_PED) then break end
-
-					for i = 1, 3 do
-						wait(60)
-						stroboscopes(7086336, ptr, 2, 0, 1, 3)
-						stroboscopes(7086336, ptr, 2, 0, 1, 0)
-						stroboscopes(7086336, ptr, 2, 0, 0, 1)
-						wait(60)
-						stroboscopes(7086336, ptr, 2, 0, 1, 1)
-						wait(60)
-						stroboscopes(7086336, ptr, 2, 0, 0, 1)
-						wait(60)
-						stroboscopes(7086336, ptr, 2, 0, 1, 1)
-						wait(60)
-						stroboscopes(7086336, ptr, 2, 0, 0, 1)
-						wait(60)
-						stroboscopes(7086336, ptr, 2, 0, 1, 1)
-						wait(60)
-						stroboscopes(7086336, ptr, 2, 0, 0, 0)
-						wait(60)
-						if not isCarSirenOn(car) or not isCharInAnyCar(PLAYER_PED) then break end
-						stroboscopes(7086336, ptr, 2, 0, 1, 0)
-						wait(60)
-						stroboscopes(7086336, ptr, 2, 0, 0, 0)
-						wait(350)
-						stroboscopes(7086336, ptr, 2, 0, 1, 0)
-						stroboscopes(7086336, ptr, 2, 0, 0, 1)
-						wait(60)
-						if not isCarSirenOn(car) or not isCharInAnyCar(PLAYER_PED) then break end
-						stroboscopes(7086336, ptr, 2, 0, 1, 1)
-						stroboscopes(7086336, ptr, 2, 0, 0, 0)
-						wait(50)
-						stroboscopes(7086336, ptr, 2, 0, 1, 0)
-						stroboscopes(7086336, ptr, 2, 0, 0, 1)
-						wait(50)
-						stroboscopes(7086336, ptr, 2, 0, 1, 1)
-						stroboscopes(7086336, ptr, 2, 0, 0, 0)
-						wait(100)
-						stroboscopes(7086336, ptr, 2, 0, 1, 1)
-						stroboscopes(7086336, ptr, 2, 0, 1, 1)
-						wait(80)
-						stroboscopes(7086336, ptr, 2, 0, 0, 1)
-						stroboscopes(7086336, ptr, 2, 0, 0, 0)
-						wait(100)
-						if not isCarSirenOn(car) or not isCharInAnyCar(PLAYER_PED) then break end
-						stroboscopes(7086336, ptr, 2, 0, 1, 1)
-						stroboscopes(7086336, ptr, 2, 0, 1, 0)
-						wait(80)
-						stroboscopes(7086336, ptr, 2, 0, 0, 1)
-						stroboscopes(7086336, ptr, 2, 0, 0, 0)
-						wait(100)
-						stroboscopes(7086336, ptr, 2, 0, 0, 1)
-						stroboscopes(7086336, ptr, 2, 0, 1, 0)
-						wait(80)
-						stroboscopes(7086336, ptr, 2, 0, 1, 1)
-						stroboscopes(7086336, ptr, 2, 0, 0, 0)
-						if not isCarSirenOn(car) or not isCharInAnyCar(PLAYER_PED) then break end
-					end
-
-					if not isCarSirenOn(car) or not isCharInAnyCar(PLAYER_PED) then break end
 				end
 			end
 		end

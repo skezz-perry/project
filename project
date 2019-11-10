@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(11.4)
+script_version(11.5)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -2707,7 +2707,8 @@ end
 
 function show_flymode()
 	local font_t = renderCreateFont('Century Gothic', 14, font_flag.BOLD)
-
+	local type_vision = 0
+	
 	while true do
 		wait(0)
 		
@@ -2716,7 +2717,7 @@ function show_flymode()
 			
 			-- эффект затемнения
 			if ini.set.skvadrocopter then
-				renderDrawBox(0.0, 0.0, sx, sy, 0x991C1C1C)
+				--renderDrawBox(0.0, 0.0, sx, sy, 0x991C1C1C)
 			end
 			--
 			
@@ -2759,23 +2760,7 @@ function show_flymode()
 			renderFontDrawText(font_t, m_line, sx / 2 - ((string.len(m_line) / 2) * 10), sy - 48, 0xFFFFFFFF)
 			--
 			
-			-- изображение игроков
-			if ini.set.pkvadrocopter then
-				for i = 0, sampGetMaxPlayerId() do
-					if IPC(i) then
-						local result, ped = sampGetCharHandleBySampPlayerId(i)
-						
-						if result then
-							if doesCharExist(ped) and isCharOnScreen(ped) then
-								local pos1X, pos1Y, pos1Z = getBodyPartCoordinates(2, ped)
-								local pos1, pos2 = convert3DCoordsToScreen(pos1X, pos1Y, pos1Z)
-								renderDrawBox(pos1, pos2, 3, 3, 0xFFFFFFFF)
-							end
-						end
-					end
-				end
-			end
-			--
+			
 			
 			-- проверка на отдаление и изображение помех
 			local x, y, z = getCharCoordinates(playerPed)
@@ -2792,11 +2777,11 @@ function show_flymode()
 				renderFontDrawText(font_t, text, sx / 2 + 30, sy / 2 + 30, 0xFFFFFFFF)
 			end
 			
-			for i = 1, distance * 4 do
+			--[[for i = 1, distance * 4 do
 				local err_col = {0xFF363636, 0xFF4F4F4F, 0xFF696969, 0xFF828282, 0xFF9C9C9C}
 				local psx, psy, err = math.random(0, sx), math.random(0, sy), math.random(1, 5)
 				renderDrawBox(psx, psy, 3, 3, 0xFFCECECE, err_col[err])
-			end
+			end]]
 			--
 			
 			if targetSet ~= nil then
@@ -2820,7 +2805,38 @@ function show_flymode()
 			if wasKeyPressed(KEY.VK_RBUTTON) then
 				targetSet = nil
 			end
-		end
+			
+			if wasKeyPressed(KEY.VK_O) then
+				if isKeyCheckAvailable() then
+					type_vision = type_vision + 1
+					if type_vision > 2 then type_vision = 0 end
+				
+					if type_vision == 0 then
+						setNightVision(false)
+						setInfraredVision(false)
+					elseif type_vision == 1 then
+						setInfraredVision(true)
+						setNightVision(false)
+					elseif type_vision == 2 then
+						setInfraredVision(false)
+						setNightVision(true)
+					end
+				end
+			end
+			
+			-- изображение типа отображения
+			if type_vision == 0 then
+				color_infra, color_night = 0x88FFFFFF, 0x88FFFFFF
+			elseif type_vision == 1 then
+				color_infra, color_night = 0xFFFFFFFF, 0x88FFFFFF
+			elseif type_vision == 2 then
+				color_infra, color_night = 0x88FFFFFF, 0xFFFFFFFF
+			end
+			
+			renderFontDrawText(font_t, 'INFRARED VISION', 60, sy / 2, color_infra)
+			renderFontDrawText(font_t, 'NIGHT VISION', 60, sy / 2 + 30, color_night)
+			--
+ 		end
 	end
 end
 
@@ -3909,16 +3925,6 @@ function draw_modification()
 			inicfg.save(ini, 'Helper for MIA.ini') 
 		end
 		
-		if imgui.Checkbox(u8'Включить затемнение экрана при использовании CamHack`a', pskvadrocopter) then 
-			ini.set.skvadrocopter = pskvadrocopter.v
-			inicfg.save(ini, 'Helper for MIA.ini') 
-		end
-		
-		if imgui.Checkbox(u8'Включить отображение точек на игроках при использовании CamHack`a', ppkvadrocopter) then 
-			ini.set.pkvadrocopter = ppkvadrocopter.v
-			inicfg.save(ini, 'Helper for MIA.ini') 
-		end
-		
 		imgui.TreePop()
 	end
 end
@@ -4017,13 +4023,13 @@ function draw_head_page()
 			
 			imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ОБНОВЛЕНИИ')
 			
+			imgui.Text(u8'Добавлена смена режимов CamHack`a на клавишу O.')
 			imgui.Text(u8'Добавлены поворотники для автомобилей, активация B и M.')
 			imgui.Text(u8'Добавлен раздел модификаций в расширенных настройках.')
 			imgui.Text(u8'Добавлена возможность использовать уличные фонари и эффекты для CamHack`a.')
 			imgui.Text(u8'Добавлена возможность использовать умный розыск с помощь /su id.')
 			imgui.Text(u8'Изменена система параметров для допополнительных команд.')
 			imgui.Text(u8'Была добавлена возможность активировать доп. команды с помощью клавиш.')
-			imgui.Text(u8'Добавлено несколько новых функций для создания доп. команд.')
 			
 		imgui.EndChild()
 		
@@ -4424,6 +4430,8 @@ function on_camhack()
 		angY = 0.0 
 		lockPlayerControl(true)
 		flymode = not flymode
+		type_vision = 0
+		color_infra, color_night = 0x88FFFFFF, 0x88FFFFFF
 	end
 end
 
@@ -4435,6 +4443,10 @@ function destroy_camhack()
 		restoreCameraJumpcut()
 		setCameraBehindPlayer()
 		flymode = false
+		setInfraredVision(false)
+		setNightVision(false)
+		type_vision = 0
+		color_infra, color_night = 0x88FFFFFF, 0x88FFFFFF
 	end
 end
 

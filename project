@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(11.3)
+script_version(11.4)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -4346,7 +4346,7 @@ function add_new_hotkey()
 			if isCharInAnyCar(playerPed) and ini.set.strobes then
 				local car = storeCarCharIsInNoSave(playerPed)
 				strobes_left = not strobes_left
-				strobes_right = not strobes_left
+				strobes_right = false
 				local state = not isCarSirenOn(car)
 				switchCarSiren(car, state)
 			end
@@ -4358,7 +4358,7 @@ function add_new_hotkey()
 			if isCharInAnyCar(playerPed) and ini.set.strobes then
 				local car = storeCarCharIsInNoSave(playerPed)
 				strobes_right = not strobes_right
-				strobes_left = not strobes_right
+				strobes_left = false
 				local state = not isCarSirenOn(car)
 				switchCarSiren(car, state)
 			end

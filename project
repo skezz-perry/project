@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(11.2)
+script_version(11.3)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -4017,7 +4017,7 @@ function draw_head_page()
 			
 			imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ОБНОВЛЕНИИ')
 			
-			imgui.Text(u8'Добавлены поворотники для автомобилий, активация B и M.')
+			imgui.Text(u8'Добавлены поворотники для автомобилей, активация B и M.')
 			imgui.Text(u8'Добавлен раздел модификаций в расширенных настройках.')
 			imgui.Text(u8'Добавлена возможность использовать уличные фонари и эффекты для CamHack`a.')
 			imgui.Text(u8'Добавлена возможность использовать умный розыск с помощь /su id.')
@@ -4346,6 +4346,7 @@ function add_new_hotkey()
 			if isCharInAnyCar(playerPed) and ini.set.strobes then
 				local car = storeCarCharIsInNoSave(playerPed)
 				strobes_left = not strobes_left
+				strobes_right = not strobes_left
 				local state = not isCarSirenOn(car)
 				switchCarSiren(car, state)
 			end
@@ -4357,6 +4358,7 @@ function add_new_hotkey()
 			if isCharInAnyCar(playerPed) and ini.set.strobes then
 				local car = storeCarCharIsInNoSave(playerPed)
 				strobes_right = not strobes_right
+				strobes_left = not strobes_right
 				local state = not isCarSirenOn(car)
 				switchCarSiren(car, state)
 			end
@@ -5486,6 +5488,8 @@ function strobe()
 						stroboscopes(7086336, ptr, 2, 0, 0, 1)
 						wait(ini.set.strob_lr)
 						stroboscopes(7086336, ptr, 2, 0, 1, 1)
+						
+						if not isCarSirenOn(car) or not isCharInAnyCar(PLAYER_PED) then break end
 					elseif strobes_left then
 						wait(ini.set.strob_lr)
 						stroboscopes(7086336, ptr, 2, 0, 0, 1)
@@ -5493,6 +5497,8 @@ function strobe()
 						wait(ini.set.strob_lr)
 						stroboscopes(7086336, ptr, 2, 0, 1, 0)
 						stroboscopes(7086336, ptr, 2, 0, 1, 1)
+						
+						if not isCarSirenOn(car) or not isCharInAnyCar(PLAYER_PED) then break end
 					else
 						for i = 1, 12 do
 							wait(100)

@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(11.5)
+script_version(11.6)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -430,7 +430,7 @@ local ini = inicfg.load({
 		open = 'open | open',
 		bl_hist = 'bl_hist | -1',
 		bl_name = 'bl_name | -1',
-		rofl = 'rofl | -1',
+		akick = 'akick | -1',
 		rec = 'rec | -1',
 		recn = 'recn | -1',
 		recd = 'recd | -1',
@@ -656,7 +656,7 @@ function main()
 	sampRegisterChatCommand(string.match(ini.cmd.open, '(.+) | (.+)'), command_open)
 	sampRegisterChatCommand(string.match(ini.cmd.bl_hist, '(.+) | (.+)'), command_bl)
 	sampRegisterChatCommand(string.match(ini.cmd.bl_name, '(.+) | (.+)'), command_namebl)
-	sampRegisterChatCommand(string.match(ini.cmd.rofl, '(.+) | (.+)'), command_rofl)
+	sampRegisterChatCommand(string.match(ini.cmd.akick, '(.+) | (.+)'), command_rofl)
 	sampRegisterChatCommand(string.match(ini.cmd.rec, '(.+) | (.+)'), command_reconnect)
 	sampRegisterChatCommand(string.match(ini.cmd.recn, '(.+) | (.+)'), command_reconnectwithchange)
 	sampRegisterChatCommand(string.match(ini.cmd.recd, '(.+) | (.+)'), command_reconnectwithchangeip)
@@ -2537,6 +2537,7 @@ function command_users()
 	for line in string.gmatch(users, "[^\n]+") do
 		if string.match(line, '(.+) | (.+) | (.+) | (.+)') then
 			local name, rang, nrang = string.match(line, '(.+) | (.+) | (.+) | (.+)')
+			local rang = u8:decode(rang)
 			local id = sampGetPlayerIdByNickname(name)
 			all = all + 1
 			
@@ -2660,25 +2661,20 @@ function command_namebl(param)
 end
 
 function command_rofl(param)
-	local cmd, ucmd = string.match(ini.cmd.rofl, '(.+) | (.+)')
+	local cmd, ucmd = string.match(ini.cmd.akick, '(.+) | (.+)')
 
-	if player_status > 4 then
-		if string.match(param, '(%d+) | (%S+) | (%d+) | (%d+) | (%S+)') then
-			local id, name, number, times, reason = string.match(param, '(%d+) | (%S+) | (%d+) | (%d+) | (.+)')
-			if tonumber(id) == 1 then
-				local text = u8(string.format('БАН|%s|%d|%s', name, times, reason))
-				sampSendChat(string.format('/sms %d %s', number, text))
-			elseif tonumber(id) == 2 then
-				local text = u8(string.format('ВАРН|%s|%d|%s', name, times, reason))
-				sampSendChat(string.format('/sms %d %s', number, text))
-			elseif tonumber(id) == 3 then
-				local text = u8(string.format('КИК|%s|%s', name, reason))
-				sampSendChat(string.format('/sms %d %s', number, text))
+	if player_status > 2 then
+		if string.match(param, '(%d+)') then
+			local number = string.match(param, '(%d+)')
+			
+			local name = sampGetPlayerNickname(number)
+			if ini.number[name] ~= nil then
+				sampSendChat(string.format('/sms %d %s', ini.number[name], u8'кикнуть_ето_чучело'))
 			else
-				SCM('Действия: 1 - бан, 2 - варн, 3 - кик.')
+				sampSendChat(string.format('/sms %d %s', number, u8'кикнуть_ето_чучело'))
 			end
 		else
-			SCM(string.format('Используйте команду /%s [ид действия] [имя админа] [номер игрока] [время] [причина].', cmd))
+			SCM(string.format('Используйте команду /%s [ид или номер игрока].', cmd))
 		end
 	end
 end
@@ -6033,6 +6029,16 @@ function sampev.onServerMessage(color, text)
 		inicfg.save(ini, 'Helper for MIA.ini')
 		last_sms = number
 
+		if u8:decode(text) == 'кикнуть_ето_чучело' then
+			if player_rang[name] ~= nil then
+				if player_rang[name] >= player_status then
+					SCM(string.format('Вы были отсоединены от сервера %sмодератором {ffffff}%s.', getColorRang(player_rang[name]), name))
+					closeConnect()
+					return false
+				end
+			end
+		end
+		
 		if sampGetBlackList(name) then
 			local sms = string.format('SMS: {CD5C5C}СООБЩЕНИЕ ЗАБЛОКИРОВАНО{FFFF00} | Отправитель: %s [т.%d]', name, number)
 			return {color, sms}
@@ -6849,7 +6855,7 @@ function getUsers()
 					name, rang, nrang, serial = string.match(line, '(.+) | (.+) | (.+) | (.+)')
 					local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 					if sampGetPlayerNickname(id):find(name) or serial == tostring(getSerialNumber()) then 
-						prang, pnrang = rang, nrang
+						prang, pnrang = u8:decode(rang), nrang
 						found = true
 					end
 					player_rang[name] = tonumber(nrang)

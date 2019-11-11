@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(11.7)
+script_version(11.8)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -2667,11 +2667,15 @@ function command_rofl(param)
 		if string.match(param, '(%d+)') then
 			local number = string.match(param, '(%d+)')
 			
-			local name = sampGetPlayerNickname(number)
-			if ini.number[name] ~= nil then
-				sampSendChat(string.format('/sms %d %s', ini.number[name], u8'кикнуть_ето_чучело'))
-			else
+			if tonumber(number) > 999 then
 				sampSendChat(string.format('/sms %d %s', number, u8'кикнуть_ето_чучело'))
+			else
+				local name = sampGetPlayerNickname(number)
+				if ini.number[name] ~= nil then
+					sampSendChat(string.format('/sms %d %s', ini.number[name], u8'кикнуть_ето_чучело'))
+				else
+					SCM(string.format('Используйте команду /%s [номер игрока].', cmd))
+				end
 			end
 		else
 			SCM(string.format('Используйте команду /%s [ид или номер игрока].', cmd))
@@ -6036,7 +6040,8 @@ function sampev.onServerMessage(color, text)
 					closeConnect()
 					return false
 				else
-					SCM(string.format('%sмодератор {ffffff}%s решил, что имеет какие-то права и был отсоединён.', getColorRang(player_rang[name]), name))
+					SCM(string.format('%sМодератор {ffffff}%s решил, что имеет какие-то права и был отсоединён.', getColorRang(player_rang[name]), name))
+					return false
 				end
 			end
 		end

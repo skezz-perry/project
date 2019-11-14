@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(11.8)
+script_version(11.9)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -13,14 +13,14 @@ local pie               = require 'imgui_piemenu'
 local encoding          = require 'encoding'
 local color             = require "colorise"
 local inicfg            = require 'inicfg'
-local ffi               = require "ffi"
-local getBonePosition   = ffi.cast("int (__thiscall*)(void*, float*, int, bool)", 0x5E4280)
+local faicons           = require 'fa-icons'
 local lanes             = require('lanes').configure()
 local dlstatus          = require('moonloader').download_status
 local font_flag         = require('moonloader').font_flag
 local bNotf, notf       = pcall(import, "imgui_notf1.lua")
 lsampev, sampev         = pcall(require, 'lib.samp.events')
 imgui.HotKey            = require('imgui_addons').HotKey
+imgui.ToggleButton      = require('imgui_addons').ToggleButton
 encoding.default        = 'CP1251'
 u8                      = encoding.UTF8
 
@@ -68,14 +68,14 @@ local InfoWeapon = {{'Щит', false, 'shit', 'bshit', 1},
 	{'Дубинка', false, 'button', 'bbutton', 1},
 	{'Бронежилет', false, 'armour', 'barmour', 1},
 	{'Маска', false, 'mask', 'bmask', 1},
-	{'SD pistol', true, 'sd', 'bsd', 250},
-	{'Desert Eagle', true, 'deagle', 'bdeagle', 250},
-	{'MP5', true, 'mp5', 'bmp5', 400},
-	{'ShotGun', true, 'shotgun', 'bshotgun', 100},
+	{'Пистолет с глушителем', true, 'sd', 'bsd', 250},
+	{'Пустынный орёл', true, 'deagle', 'bdeagle', 250},
+	{'Пистолет-пулемёт MP-5', true, 'mp5', 'bmp5', 400},
+	{'Помповый дробовик', true, 'shotgun', 'bshotgun', 100},
 	{'Дымовые шашки', true, 'smoke', 'bsmoke', 25},
-	{'Sniper Rifle', true, 'sniper', 'bsniper', 50},
-	{'M4', true, 'm4', 'bm4', 350},
-	{'AK-47', true, 'ak47', 'bak47', 350}
+	{'Снайперская винтовка', true, 'sniper', 'bsniper', 50},
+	{'Штурмовая винтовка M4', true, 'm4', 'bm4', 350},
+	{'АК-47', true, 'ak47', 'bak47', 350}
 }
 
 local commands = {
@@ -230,29 +230,32 @@ local ini = inicfg.load({
 		kvadrocopter         = false,
 		pkvadrocopter        = false,
 		skvadrocopter        = false,
-		strob_lr             = 500
+		strob_lr             = 500,
+		new_logo             = false,
+		logo_x               = 500,
+		logo_y               = 500
 	},
-	weapon = {
+	weapons = {
 		shit                 = false,
 		button               = false,
 		armour               = false,
 		mask                 = false,
 		sd                   = false,
-		bsd                  = 1,
+		bsd                  = false,
 		deagle               = false,
-		bdeagle              = 1,
+		bdeagle              = false,
 		mp5                  = false,
-		bmp5                 = 1,
+		bmp5                 = false,
 		shotgun              = false,
-		bshotgun             = 1,
+		bshotgun             = false,
 		smoke                = false,
-		bsmoke               = 1,
+		bsmoke               = false,
 		sniper               = false,
-		bsniper              = 1,
+		bsniper              = false,
 		m4                   = false,
-		bm4                  = 1,
+		bm4                  = false,
 		ak47                 = false,
-		bak47                = 1
+		bak47                = false
 	},
 	rpweapon = {
 		Brass_Knuckles       = '',
@@ -789,6 +792,26 @@ function main()
 	
 	while true do
 		wait(0)
+		
+		if sampTextdrawIsExists(0) and ini.set.new_logo then
+			if sampTextdrawGetString(0):find('advance') then
+				sampTextdrawDelete(0)
+			end
+		end
+		
+		if ini.set.new_logo then
+			if not draw_new_logo then
+				font_logo = renderCreateFont('Calibri', 15, font_flag.BOLD)
+				font_logo_lil = renderCreateFont('Calibri', 8, font_flag.BOLD)
+				text_logo, text_logo_lil = 'ADVANCE', 'ROLE PLAY'
+				logo_texture = renderLoadTextureFromFileInMemory(memory.strptr(logotype_texture), 4096)
+				draw_new_logo = true
+			end
+			
+			renderFontDrawText(font_logo, text_logo, ini.set.logo_x + 65, ini.set.logo_y + 15, 0xFFFFFFFF)
+			renderFontDrawText(font_logo_lil, text_logo_lil, ini.set.logo_x + 65, ini.set.logo_y + 33, 0xFFFFFFFF)
+			renderDrawTexture(logo_texture, ini.set.logo_x, ini.set.logo_y, 60, 60, 0, 0xFFFFFFFF)
+		end
 		
 		if ini.set.halfrpweapon and ini.set.rpweapon then
 			if wasKeyPressed(KEY.VK_RBUTTON) and lweap ~= getCurrentCharWeapon(PLAYER_PED) then
@@ -2870,13 +2893,6 @@ function getnear()
     end
 end
 
-function getBodyPartCoordinates(id, handle)
-  local pedptr = getCharPointer(handle)
-  local vec = ffi.new("float[3]")
-  getBonePosition(ffi.cast("void*", pedptr), vec, id, true)
-  return vec[0], vec[1], vec[2]
-end
-
 function imgui.OnDrawFrame()
 	if show_menu.v then
 		local w, h = getScreenResolution()
@@ -3061,52 +3077,19 @@ function imgui.OnDrawFrame()
 					
 					if set_item.v == 0 then
 						imgui.Text('')
-						if ini.set.autoweapon then
-							imgui.CenterTextColoredRGB('Добавление оружия                                Множитель боеприпасов')
-							for i, val in pairs(InfoWeapon) do
-								if ini.weapon[val[3]] then
-									if imgui.Button(u8(val[1] .. ' • Убрать'), imgui.ImVec2(250, 20)) then
-										ini.weapon[val[3]] = not ini.weapon[val[3]]
-										inicfg.save(ini, 'Helper for MIA.ini')
-									end
-								else
-									if imgui.Button(u8(val[1] .. ' • Добавить'), imgui.ImVec2(250, 20)) then
-										ini.weapon[val[3]] = not ini.weapon[val[3]]
-										inicfg.save(ini, 'Helper for MIA.ini') 
-									end
-								end
-								
-								imgui.SameLine()
-								
-								if val[2] then
-									imgui.PushItemWidth(250)
-									if imgui.SliderInt('##' .. val[3], imgui.ImInt(ini.weapon[val[4]]), 1, 2) then
-										if ini.weapon[val[4]] == 1 then 
-											ini.weapon[val[4]] = 2
-										elseif ini.weapon[val[4]] == 2 then
-											ini.weapon[val[4]] = 1
-										end
-										inicfg.save(ini, 'Helper for MIA.ini') 
-									end
-								else
-									imgui.Button(u8'Не настривается', imgui.ImVec2(250, 20))
-								end
-							end
-						else
-							imgui.CenterTextColoredRGB('Вам недоступен данный подраздел.')
-						end
+						draw_add_autoweapons()
 					end
 					
 					if set_item.v == 1 then
 						if ini.set.rpweapon then
 							if ini.set.halfrpweapon then
-								if imgui.Button(u8'Полуавтоматические отыгровки оружия', imgui.ImVec2(515, 25)) then
+								if imgui.Button(u8'Полуавтоматические отыгровки оружия', imgui.ImVec2(515, 20)) then
 									ini.set.halfrpweapon = false
 									ini.set.autorpweapon = true
 									inicfg.save(ini, 'Helper for MIA.ini') 
 								end
 							else
-								if imgui.Button(u8'Автоматические отыгровки оружия', imgui.ImVec2(515, 25)) then
+								if imgui.Button(u8'Автоматические отыгровки оружия', imgui.ImVec2(515, 20)) then
 									ini.set.halfrpweapon = true
 									ini.set.autorpweapon = false
 									inicfg.save(ini, 'Helper for MIA.ini')
@@ -3214,17 +3197,17 @@ function imgui.OnDrawFrame()
 					
 					imgui.Text('')
 					
-					if imgui.Button(u8'Подгрузить', imgui.ImVec2(170, 25)) then
+					if imgui.Button(u8'Подгрузить', imgui.ImVec2(170, 20)) then
 						local line = ''
 						for val in io.lines('moonloader//helper//Admins.txt') do line = string.format('%s%s\n', line, val) end
 						admins.v = u8(line)
 					end
 					imgui.SameLine()
-					if imgui.Button(u8'Редактировать', imgui.ImVec2(160, 25)) then
+					if imgui.Button(u8'Редактировать', imgui.ImVec2(160, 20)) then
 						editor.v = not editor.v
 					end
 					imgui.SameLine()
-					if imgui.Button(u8'Сохранить', imgui.ImVec2(170, 25)) and editor.v then
+					if imgui.Button(u8'Сохранить', imgui.ImVec2(170, 20)) and editor.v then
 						local filew = io.open('moonloader//helper//Admins.txt', 'w')
 						filew:write(u8:decode(admins.v))
 						filew:close()
@@ -3273,7 +3256,7 @@ function imgui.OnDrawFrame()
 					imgui.CenterTextColoredRGB('КАСТОМИЗАЦИЯ')
 					imgui.Text('')
 					
-					if imgui.Button(u8'Сохранить и применить новые значения', imgui.ImVec2(515, 25)) then
+					if imgui.Button(u8'Сохранить и применить новые значения', imgui.ImVec2(515, 20)) then
 						inicfg.save(ini, 'Helper for MIA.ini')
 						apply_custom_style()
 					end
@@ -3291,11 +3274,11 @@ function imgui.OnDrawFrame()
 					imgui.Text('')
 					
 					if spypass.v then
-						if imgui.Button(u8'Включить отображение паролей', imgui.ImVec2(515, 25)) then
+						if imgui.Button(u8'Включить отображение паролей', imgui.ImVec2(515, 20)) then
 							spypass.v = false
 						end
 					else
-						if imgui.Button(u8'Скрыть отображение паролей', imgui.ImVec2(515, 25)) then
+						if imgui.Button(u8'Скрыть отображение паролей', imgui.ImVec2(515, 20)) then
 							spypass.v = true
 						end
 					end
@@ -3866,6 +3849,40 @@ function draw_uk_list()
 	imgui.End()
 end
 
+function draw_add_autoweapons()
+	if ini.set.autoweapon then
+		imgui.Columns(3)
+		imgui.Separator()
+		
+		imgui.SetColumnWidth(-1, 60) imgui.CenterColumnText(u8'ON • OFF') imgui.NextColumn()
+		imgui.SetColumnWidth(-1, 60) imgui.CenterColumnText(u8'x2') imgui.NextColumn()
+		imgui.SetColumnWidth(-1, 410) imgui.CenterColumnText(u8'НАЗВАНИЕ') imgui.NextColumn()
+		
+		for i, val in pairs(InfoWeapon) do
+			imgui.Separator()
+			imgui.SetCursorPosX((imgui.GetColumnOffset() + (imgui.GetColumnWidth() / 2)) - 15)
+			if imgui.ToggleButton('##' .. val[1], imgui.ImBool(ini.weapons[val[3]])) then
+				ini.weapons[val[3]] = not ini.weapons[val[3]]
+				inicfg.save(ini, 'Helper for MIA.ini')
+			end imgui.NextColumn()
+			
+			if type(ini.weapons[val[4]]) == ('boolean') then
+				imgui.SetCursorPosX((imgui.GetColumnOffset() + (imgui.GetColumnWidth() / 2)) - 15)
+				if imgui.ToggleButton('##1' .. val[1], imgui.ImBool(ini.weapons[val[4]])) then
+					ini.weapons[val[4]] = not ini.weapons[val[4]]
+					inicfg.save(ini, 'Helper for MIA.ini')
+				end
+			else
+				imgui.CenterColumnText('~')
+			end imgui.NextColumn()
+			
+			imgui.Text('  ' .. u8(val[1])) imgui.NextColumn()
+		end
+	else
+		imgui.CenterTextColoredRGB('Вам недоступен данный подраздел.')
+	end
+end
+
 function draw_show_suspect()
 	local id = smart_suspect.id
 	if IPC(id) then
@@ -3923,6 +3940,35 @@ function draw_modification()
 		if imgui.Checkbox(u8'Включить отображение эффектов при использовании CamHack`a', pkvadrocopter) then 
 			ini.set.kvadrocopter = pkvadrocopter.v
 			inicfg.save(ini, 'Helper for MIA.ini') 
+		end
+		
+		imgui.TreePop()
+	end
+	
+	if imgui.TreeNode(u8'Новый логотип для Advance RP') then
+		if imgui.Checkbox(u8'Включить отображение нового логотипа', imgui.ImBool(ini.set.new_logo)) then 
+			ini.set.new_logo = not ini.set.new_logo
+			inicfg.save(ini, 'Helper for MIA.ini') 
+		end
+		
+		if ini.set.new_logo then
+			if imgui.Button(u8'Изменить местоположение логотипа') then
+				SCM('С помощью мыши установите логотип в нужное место. По завершению нажмите ЛКМ.')
+				lua_thread.create(function()
+					while show_menu.v do
+						wait(0)
+						
+						ini.set.logo_x, ini.set.logo_y = getCursorPos()
+						
+						if wasKeyPressed(KEY.VK_LBUTTON) then
+							break
+						end
+					end
+					
+					SCM('Новое местоположение для логотипа было установлено.')
+					inicfg.save(ini, 'Helper for MIA.ini') 
+				end)
+			end
 		end
 		
 		imgui.TreePop()
@@ -4023,13 +4069,13 @@ function draw_head_page()
 			
 			imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ОБНОВЛЕНИИ')
 			
+			imgui.Text(u8'Добавлен новый пункт в разделе модификаций.')
 			imgui.Text(u8'Добавлена смена режимов CamHack`a на клавишу O.')
 			imgui.Text(u8'Добавлены поворотники для автомобилей, активация B и M.')
 			imgui.Text(u8'Добавлен раздел модификаций в расширенных настройках.')
 			imgui.Text(u8'Добавлена возможность использовать уличные фонари и эффекты для CamHack`a.')
 			imgui.Text(u8'Добавлена возможность использовать умный розыск с помощь /su id.')
 			imgui.Text(u8'Изменена система параметров для допополнительных команд.')
-			imgui.Text(u8'Была добавлена возможность активировать доп. команды с помощью клавиш.')
 			
 		imgui.EndChild()
 		
@@ -4467,6 +4513,11 @@ function isPlayerCar(ped)
 	else
 		return 0
 	end
+end
+
+function imgui.CenterColumnText(text)
+    imgui.SetCursorPosX((imgui.GetColumnOffset() + (imgui.GetColumnWidth() / 2)) - imgui.CalcTextSize(text).x / 2)
+    imgui.Text(text)
 end
 
 function sampGetMarkCharByVehicle(ped)
@@ -5753,7 +5804,7 @@ function apply_custom_style()
 	style.ChildWindowRounding = 2.0
 	style.FrameRounding = 2.0
 	style.ItemSpacing = imgui.ImVec2(5.0, 4.0)
-	style.ScrollbarSize = 5.0
+	style.ScrollbarSize = 9.0
 	style.ScrollbarRounding = 0
 	style.GrabMinSize = 8.0
 	style.GrabRounding = 1.0
@@ -6411,9 +6462,9 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 	if string.find(title, 'Тюрьма') or string.find(title, 'ФБР') or string.find(title, 'Управление полиции') or string.find(title, 'Служба безопасности') and dialogId == 175 then
 		if ini.set.autoweapon then
 			for i = 1, 12 do
-				if ini.weapon[InfoWeapon[i][3]] then
+				if ini.weapons[InfoWeapon[i][3]] then
 					sampSendDialogResponse(175, 1, i - 1, -1)
-					if i > 3 and ini.weapon[InfoWeapon[i][4]] == 2 then sampSendDialogResponse(175, 1, i - 1, -1) end
+					if i > 3 and ini.weapons[InfoWeapon[i][4]] then sampSendDialogResponse(175, 1, i - 1, -1) end
 				end
 			end
 		end
@@ -7004,3 +7055,5 @@ function sequent_async_http_request(method, url, args, resolve, reject)
         end
     end, lanes_http.linda)
 end
+
+logotype_texture = "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A\x00\x00\x00\x0D\x49\x48\x44\x52\x00\x00\x00\x5B\x00\x00\x00\x5B\x08\x06\x00\x00\x00\x1C\x36\xF9\x99\x00\x00\x00\x19\x74\x45\x58\x74\x53\x6F\x66\x74\x77\x61\x72\x65\x00\x41\x64\x6F\x62\x65\x20\x49\x6D\x61\x67\x65\x52\x65\x61\x64\x79\x71\xC9\x65\x3C\x00\x00\x07\xBB\x49\x44\x41\x54\x78\xDA\xEC\x5C\xCF\x6F\xDC\x44\x14\x1E\x6F\xF7\x50\xB5\x25\x59\xA8\x0A\x94\x4A\xC4\x20\x04\x22\x42\xAC\x4B\xC2\x11\x70\x39\x95\x53\xB6\xFF\x00\x75\x85\x84\xC4\xA1\x8A\xC3\x81\x13\x52\xDD\x13\xB7\x76\x23\x0E\x54\xE2\x50\x47\x9C\x81\xCD\x7F\xE0\x9C\x90\x48\x42\xDC\x4B\xA1\xA8\xC0\x2E\x3F\x4E\x54\x68\xDB\xA6\xA5\x55\x83\xC4\xCC\xF2\x1C\x2D\xEE\x8C\x3D\xF6\x3C\xFF\xD8\x74\x9E\x64\x6D\x94\x4D\xD6\xE3\x6F\xBE\xF9\xDE\xF7\x9E\x67\x4D\x88\x0E\x1D\x3A\x74\xE8\xD0\xA1\x43\x87\x0E\x1D\x3A\x74\x4C\x70\x18\x75\x1D\xD8\xC6\xC6\xC6\x34\x7D\xB1\xE8\xD1\x82\xD7\x78\xF4\xA3\x63\x7E\x7E\x7E\xA0\xC1\xCE\x06\x6E\x9B\xBE\x74\xE8\x61\x8F\x81\x9C\x25\x02\x7A\x84\xEC\x95\x82\xBF\xAA\xC1\xE6\x03\xEC\x00\xC8\x26\xE2\x47\x0F\xE9\xD1\x63\x47\x9D\x80\x37\x2A\x02\xF9\x34\x80\x6C\x97\x70\x3A\x26\x35\x1E\x00\x7F\xF3\x91\x01\x9B\x82\xFC\x16\x7D\xE9\x0A\x34\xB8\x14\xD0\x29\xE0\x2B\x7B\x1A\x6C\x48\x76\x3E\xC8\x45\xD5\xC1\x74\xDD\xA1\xA0\x5F\xD9\x73\x60\x53\xA0\x17\x00\xE8\xAC\x09\x6F\x08\xC0\x44\xAE\x23\x1E\x91\x4B\xC9\x93\x4C\x09\xB0\xFC\xFC\x9E\x01\x9B\x02\x7D\x19\xB4\x59\x36\x7A\xE0\x2A\x82\x2C\xCC\xA3\xE7\x99\x01\xFD\xB7\x61\xF5\xC8\x82\xCF\xCE\xD5\x29\x4B\xCB\x8D\x02\x65\x23\x90\xD4\xE6\x3E\x30\xBF\x8B\x71\xD1\x70\x6E\x06\xB8\x9B\xE1\xFC\x9D\x32\x64\xC5\xA8\x10\xE8\xC2\x13\x16\x24\x64\x4F\xC2\xF5\x30\xC9\xB2\x8B\x06\xDC\xA8\x08\x68\x0F\x8B\xC9\x92\xE3\x5A\x84\x73\xB6\xAA\x04\xDC\x28\x19\xE8\xD2\x96\xAC\x60\x7C\xBD\x14\x96\x17\x0A\x78\x03\xF1\xB3\xD2\xFC\xF3\x68\x22\xAA\x00\x9A\x05\x5B\x45\xF4\x38\x01\xE3\x14\x05\x63\xBE\x0F\x13\x53\x4F\xB0\x61\x99\x26\xB9\x0E\x9F\x5D\x68\xD5\x15\x1C\x80\xBE\x94\x32\x56\x0B\x12\x76\xFD\x64\x04\xFA\x1B\x61\x0A\xD0\x67\x48\xCD\x02\x5A\x06\x49\xA0\xBA\x74\xDC\xCB\x75\x63\xB6\x3F\x69\x40\x03\xC3\x57\x52\x18\xEE\x81\x7F\x47\x8B\xA6\x22\x3B\xCE\x25\xE8\x74\x08\x5E\x37\x77\xCC\xCD\xCD\x45\x49\x8D\x0B\xC6\xE6\xE6\xE6\x9A\x2A\xE0\xF4\x1A\x6C\x01\xE8\x2D\xD0\xF7\x53\x95\xCB\x08\x24\x91\xBE\xC0\x4E\x0D\x21\x19\x0E\x14\xC1\x4E\x5A\xEA\x3E\x05\xFB\x0C\x92\xA4\x6C\x25\x90\x86\xB9\x93\xB5\xAA\x65\xC4\x4D\xF0\xAD\x1E\xD2\xDD\x93\x4E\xCE\xF7\xB2\x86\x93\x52\x13\x54\xC7\xEC\x14\x56\x07\x60\xB1\x08\x82\x84\x0C\xD3\x26\x83\xB2\x7B\x15\x89\xDD\xE7\x12\x80\x45\x61\x77\x43\x81\x09\xAD\x82\x99\xE0\x28\x32\x3F\x4F\x9D\x30\x4C\x58\xC5\x95\xC9\x88\xE8\xE4\x3D\x2C\x7D\x93\x05\x1B\x56\x00\x4A\xD1\x13\x27\xCA\xBD\x3F\xEF\x91\xDF\xBE\x1C\x90\xEF\x16\xBF\xED\x7C\xFA\xD2\xC5\x99\xD2\xC1\xA6\x27\x6D\x5F\xBF\x74\xCD\xBC\x33\xD8\x16\xB1\x83\x20\x48\xC8\x0C\x91\xEB\xD8\xB5\x90\xD9\xCD\x92\xF1\xF0\xAF\x8D\x1B\xE4\x87\x0B\x57\xC9\x96\xBB\x4E\x7E\xFF\xEA\x57\x72\xFF\xC6\x7D\x94\x55\x94\xD9\xFA\xBD\xE2\xB5\x9D\xED\xEB\xB7\xC9\xF5\x4B\x3F\x92\x7F\xEE\xEE\x90\xC7\xE7\x0F\x93\xA3\x27\x8F\x91\xFD\x47\xF6\x87\x88\xAC\xEE\x08\x1C\x4E\xC8\xE9\x6D\xB0\xBF\x5D\xC1\x62\x37\x25\x93\x2F\x58\xB9\x6C\xA5\x2D\x97\xCA\xEC\x07\xB7\x1E\xD8\x47\xDF\x39\x46\xDA\x9F\xBC\x46\x66\x3F\x7E\x95\x1C\x9C\x39\x44\xFA\x5F\xFC\x4C\xB6\x3E\x5C\xC7\x2C\x71\x79\x12\xD2\x13\x78\x6E\x34\x29\x11\x15\x69\x07\x9E\x3D\x48\x9E\x3E\xF9\x8C\xA5\xDA\x33\x31\x32\x4A\xC8\xAE\x43\x98\x7A\x79\x9A\x3C\x31\x77\x98\x4C\xCD\x4E\x8F\x00\xA7\x61\x62\xD8\x3D\x90\x90\xBE\x80\xED\xA1\xE0\x3D\x87\xBA\x12\xB4\xBE\xF8\xE7\x6F\x7E\xF6\xCB\x63\x2F\x4E\x99\x53\xB3\xAD\xD1\x35\x36\x0F\xEE\x0A\x40\x67\x7C\x6B\x04\xE0\x11\xC9\x5D\xB4\xE2\x86\x67\xAF\x2D\x2D\x63\xC8\xC8\xAE\x8E\xDE\xFA\xFE\xE6\xE8\x18\x7D\xC8\xA1\x66\xF8\xC1\xE6\xD9\x41\x81\xAC\x1E\x46\x16\x8F\x4E\x46\xC8\xD1\x73\x34\x29\x61\x71\xFC\xC2\xEB\x01\x1B\xC7\xCE\x9D\x1D\xC2\x72\x13\xD3\xEC\xFB\x34\x59\x6E\xFF\x74\xBB\x4B\x01\x8E\xEA\x0B\x2B\x81\x94\x2D\x0A\xF8\x79\x55\xB0\x6D\xDE\x2F\x77\xB6\x77\xC2\x12\x24\x64\x7C\x99\x77\x79\x52\x42\x27\x04\xA5\xAB\x18\x7E\xB4\x19\xFC\xFD\xC7\x5D\xDE\x38\x4C\x22\xB7\x99\xC8\xA3\x80\x87\x14\xF0\xD5\xDC\x9A\xFD\xFC\x7B\x2F\x98\x47\xDE\x78\x72\x24\x21\xFB\x0E\xEC\x8B\xF7\x41\x30\x5C\x48\x5B\x70\x31\x81\x00\xF8\xAC\x56\x51\x2A\x28\xD0\x18\xD7\xE3\xC7\xED\x62\x26\x66\x3F\xF5\xF6\x51\x93\x1E\xFF\xFB\xDD\xCD\xAB\xC3\xFF\xC0\x7E\xB7\x50\x6F\xBD\x0B\x30\x65\xEF\x40\x20\x25\xCA\x6E\x21\x0A\xCA\xC8\x2B\x14\x28\xD5\x8F\x89\x2A\xEC\x41\x5E\x19\x79\xA8\x6A\x9C\x9E\x6D\x11\x41\xD2\xC2\xB2\x7C\x3D\x8E\x3C\x04\x1C\xB0\x2D\x96\x5C\xD9\x64\x20\x8D\xA5\x4F\xF2\xED\x3F\x64\xEC\xEB\xF2\x34\x3B\xAB\xF5\xB3\x04\xFE\x74\x50\xA0\x84\xF4\x64\xEC\x59\x01\xE5\x7B\x1E\x02\xB1\xB1\x5A\x3C\xA0\x55\xCA\xF5\x22\xC2\x4D\x93\x90\x31\x29\xB9\x22\xB2\x80\x15\x8D\x9D\x8D\xA5\x43\x41\x3E\x45\x8F\x01\x4A\x05\x19\x59\xA1\x82\x82\xC7\xCA\x10\xE4\x81\x08\xDE\x33\x0B\x96\x12\xD9\x06\x96\x47\x41\x4E\x75\x42\x4D\x9A\x08\xB6\x24\xFB\x10\x64\xFD\xFD\x6F\x0A\x19\x2D\x05\x68\x81\xF0\xBB\x88\x56\xCC\x89\xC8\x4E\xDA\x72\x89\x60\xB7\x64\x80\x8E\x64\x44\x79\xFB\x2E\x54\x52\xD8\xAC\xC6\x96\xA3\xCC\x20\xCA\x3A\x28\xD9\x8E\x20\x96\x66\x5B\x35\x02\xDB\x84\x64\x5B\xE6\x35\x49\x4D\x70\x53\xC1\xE2\xC4\x2B\xAB\x35\x64\x09\x51\xF5\xEB\x4B\x0A\x2B\x35\x6B\xEF\x9A\xB1\x3B\x6D\x72\x7A\x58\x60\x5B\x0A\xBD\x09\x27\xE1\xF7\x32\xF6\xAB\xC7\x99\xAC\x8E\x0A\xD8\x39\x56\x6A\x8B\x24\x6F\x6B\x63\xD7\xE1\x37\x21\x01\xD9\x8A\x60\xDB\x39\x59\x3D\x2D\x90\x90\xBE\x6C\x17\x8F\x7E\x46\x8F\x33\x61\x23\x29\x01\x8B\x58\xDA\xF5\x24\xC9\x24\x4B\xA2\x8D\x1C\xD9\x9E\xCB\x84\x9C\x49\xB2\x23\xEB\xAD\x13\x22\x28\xA0\x57\x82\x09\x36\xB3\x85\xA3\x49\x6F\xD0\x1F\xD6\x48\xFA\x5D\xEC\xA2\x92\x9C\xE8\x7F\xFC\x8C\x55\x1B\x5A\xD2\x05\xBD\xC6\xFA\x82\x55\x30\x5E\x4D\x36\xC7\x06\xAC\x5A\x7D\x39\x32\xBA\x0D\xD2\xE1\x90\xE4\xFB\x87\x0E\xFD\x3B\x26\x25\xCB\x12\xC9\xD5\x02\xB2\xB4\x38\x52\x72\x19\xF4\xB2\x9B\xA1\xFD\x8A\x55\x85\x0E\xE3\xD7\xD7\xC8\xC1\x24\xE1\xD2\x93\xCC\xE2\x56\x54\x75\xA5\x58\x29\x99\x9B\xC7\x2E\x49\xDE\xE4\xEE\xC0\xFB\x56\x46\xD2\xA0\x38\xA2\x78\xB1\x33\x02\x1B\xA4\x04\x43\xBB\x3D\x32\xC1\x41\xC9\x72\x9A\xE0\x7C\xD3\xB8\x1B\xBF\x71\x10\x2F\x6A\x30\x80\x72\x30\xF6\x57\x54\x18\x18\x18\xB0\x3B\x34\x4B\xA2\xA2\x86\x44\xEC\xA6\x40\xF5\x10\xAA\xB9\xB4\x9D\x9F\x21\x62\xB6\x77\x25\x0B\xA2\x50\x82\xD5\x8B\x08\xAC\x1E\x26\xC9\x90\xC1\xE9\x71\xF4\x11\x2A\x3A\x1B\xA4\x69\x52\xE4\x23\x6D\x47\x6E\x28\x69\x0D\x99\x4E\xAF\x48\x81\x0D\x27\x5E\xC8\xE8\x73\x45\x15\x93\x25\xDB\x0D\xAB\x01\xD8\x5F\x27\x39\xA3\x24\x00\xC7\x3E\xA3\x1D\xF9\x69\x51\x3C\xD4\x88\x02\x61\x57\xD5\x2E\x93\x14\xF4\xBD\x94\x02\x80\x5E\x4C\x00\xBA\x2F\x03\x34\xE0\x96\x5A\xAD\x36\x04\xFF\x78\x1E\x01\x2C\xB6\x19\xF1\x62\xCD\x81\x5E\x48\xB1\x98\xA8\xEE\xAA\x91\x30\x53\x67\x10\x00\x77\xC1\x4E\xD5\x11\xE8\x76\xD9\xAB\xCF\x90\x5C\x66\xAA\xBB\x53\x1D\xD9\xE5\x58\x22\xD0\x81\xA4\x11\x88\x9E\xCA\xE3\xAB\x26\x7D\x23\xC3\x72\xF3\x15\x5D\x8A\x0F\xAB\xA5\x0E\x85\x4B\x5E\x46\xF7\x01\x78\x2F\x4F\xF2\x37\x32\x0C\x72\x06\x06\xA9\xE2\x91\x19\x9B\x3A\x55\xB9\x14\xC8\x21\xAA\xB7\xCD\x72\x93\xC6\xC8\xC9\x8C\xAE\x02\xCB\xD9\xB2\x74\xCB\x94\x15\x3A\x66\xAC\xC7\x25\x29\xAD\x4E\x23\xE7\xE0\xA7\x81\x21\xAE\x02\xE8\x01\x2C\xC7\xB5\x02\x41\x9E\x01\x47\xE1\x20\x7C\x9C\xB2\x0C\x1A\x8A\x17\x13\x81\xEE\x28\x94\xBA\x81\xA8\x71\xA3\x98\x00\x5D\x82\xD7\xC1\x43\xC9\x37\x06\xE2\x05\x9E\x86\xE2\x20\x6F\x6F\x25\x4A\x3E\xBD\x3C\x6C\x07\x80\x6D\x00\x18\xF3\xE9\x6A\x68\x89\xDD\x28\x60\xE9\x46\x37\x07\x6C\xA2\xD6\xD4\x0A\xA0\x27\x31\x1C\x7B\xE5\xF5\x27\x6C\x92\xFF\xA1\x5C\xA5\x3A\xA8\x42\x1F\xC8\x05\xC0\xDB\x63\x47\x15\xCF\xF3\x93\x4D\xDA\x66\xD1\x2E\xA9\xF4\x27\x56\x82\x33\x18\x9F\x80\x3A\x84\x27\xDA\x79\x3A\xD1\x60\xD7\x10\x7C\xD6\x6C\x7A\xAE\x16\xE5\x7A\x05\xE0\x2F\x94\x2C\x3B\xA5\xB5\x12\x6A\xFB\xFC\xEC\x31\x9F\x6C\x2B\xBA\x9C\xA4\x60\xB7\xB0\x8E\x97\x75\x3D\xB5\x06\x5B\xC0\xFA\x08\x78\x0C\xF7\x51\xEA\x1D\xA5\x89\x02\x9B\x03\xBC\xA3\xC0\x78\xB6\x81\xE6\x44\x99\x63\x9E\x58\xB0\x39\xBE\xDE\xCD\x58\xC5\x96\x7E\x9F\x74\xE2\xC1\xE6\x54\xB1\x9E\x04\xE8\x95\xB4\x7B\xF7\x14\xD8\x31\xD0\x93\x3A\x93\x66\xD2\x17\x8D\x8A\x8A\xC6\x5E\x04\x1B\xAC\x9C\x49\xF8\x77\x98\xBC\x2A\x80\xDE\xB3\xCC\xE6\x14\x4D\x3E\x80\x5F\x4A\x59\xFE\xC8\x82\x3D\x96\x44\x5D\x92\x61\x6B\x82\x0E\x1D\x3A\x74\xE8\xD0\xA1\x43\x87\x0E\x1D\x3A\x74\xE8\x88\xC5\xBF\x02\x0C\x00\x8A\x9D\xFC\x91\x02\x61\x85\xFF\x00\x00\x00\x00\x49\x45\x4E\x44\xAE\x42\x60\x82"

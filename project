@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(11.9)
+script_version(12.0)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -794,7 +794,7 @@ function main()
 		wait(0)
 		
 		if sampTextdrawIsExists(0) and ini.set.new_logo then
-			if sampTextdrawGetString(0):find('advance') then
+			if sampTextdrawGetString(0):find('Advance_RP') then
 				sampTextdrawDelete(0)
 			end
 		end

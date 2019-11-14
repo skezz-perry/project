@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(12.1)
+script_version(12.2)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -13,7 +13,6 @@ local pie               = require 'imgui_piemenu'
 local encoding          = require 'encoding'
 local color             = require "colorise"
 local inicfg            = require 'inicfg'
-local faicons           = require 'fa-icons'
 local lanes             = require('lanes').configure()
 local dlstatus          = require('moonloader').download_status
 local font_flag         = require('moonloader').font_flag

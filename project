@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(12.2)
+script_version(12.3)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -232,7 +232,8 @@ local ini = inicfg.load({
 		strob_lr             = 500,
 		new_logo             = false,
 		logo_x               = 500,
-		logo_y               = 500
+		logo_y               = 500,
+		color_line           = 0xFF4169E1
 	},
 	weapons = {
 		shit                 = false,
@@ -558,12 +559,12 @@ local pgline1            = imgui.ImBuffer(250)
 local pgline2            = imgui.ImBuffer(250)
 local pgline3            = imgui.ImBuffer(250)
 local idnews             = imgui.ImBuffer(4)
-local pname              = imgui.ImBuffer(256)
-local prang              = imgui.ImBuffer(256)
-local pfrac              = imgui.ImBuffer(256)
-local pnumber            = imgui.ImBuffer(256)
-local rteg               = imgui.ImBuffer(256)
-local fteg               = imgui.ImBuffer(256)
+local pname              = imgui.ImBuffer(u8(ini.info.name), 256)
+local prang              = imgui.ImBuffer(u8(ini.info.rang), 256)
+local pfrac              = imgui.ImBuffer(u8(ini.info.frac), 256)
+local pnumber            = imgui.ImBuffer(u8(tostring(ini.info.number)), 256)
+local rteg               = imgui.ImBuffer(u8(ini.info.rteg), 256)
+local fteg               = imgui.ImBuffer(u8(ini.info.fteg), 256)
 local name_cmd           = imgui.ImBuffer(256)
 local takeweap           = imgui.ImBuffer(256)
 local takeweapoff        = imgui.ImBuffer(256)
@@ -574,34 +575,6 @@ local inpcomment         = imgui.ImBuffer(1000)
 local search_place       = imgui.ImBuffer(1000)
 local text_cmd           = imgui.ImBuffer(9999)
 local admins             = imgui.ImBuffer(9999)
-local male				 = imgui.ImBool(not ini.info.male)
-local pcamera            = imgui.ImBool(ini.set.camera)
-local pstopad            = imgui.ImBool(ini.set.stopad)
-local pmasktimer         = imgui.ImBool(ini.set.masktimer)
-local pstrobes           = imgui.ImBool(ini.set.strobes)
-local pradio             = imgui.ImBool(ini.set.radio)
-local pautopass          = imgui.ImBool(ini.set.autopass)
-local pautoweapon        = imgui.ImBool(ini.set.autoweapon)
-local prpweapon          = imgui.ImBool(ini.set.rpweapon)
-local plowrp             = imgui.ImBool(ini.set.lowrp)
-local pnew_leaders       = imgui.ImBool(ini.set.new_leaders)
-local pnew_find          = imgui.ImBool(ini.set.new_find)
-local pnew_clock         = imgui.ImBool(ini.set.new_clock)
-local pnew_group         = imgui.ImBool(ini.set.new_group)
-local pnew_wanted        = imgui.ImBool(ini.set.new_wanted)
-local prpradio           = imgui.ImBool(ini.lowrp.rpradio)
-local prphealme          = imgui.ImBool(ini.lowrp.rphealme)
-local prpmask            = imgui.ImBool(ini.lowrp.rpmask)
-local prpfbi             = imgui.ImBool(ini.lowrp.rpfbi)
-local prpbar             = imgui.ImBool(ini.lowrp.rpbar)
-local pmessage_megafon   = imgui.ImBool(ini.set.message_megafon)
-local pstreetlight       = imgui.ImBool(ini.set.streetlight)
-local pslhour            = imgui.ImInt(ini.set.slhour)
-local pmslhour           = imgui.ImInt(ini.set.mslhour)
-local punmask            = imgui.ImBool(ini.lowrp.unmask)
-local pkvadrocopter      = imgui.ImBool(ini.set.kvadrocopter)
-local ppkvadrocopter     = imgui.ImBool(ini.set.pkvadrocopter)
-local pskvadrocopter     = imgui.ImBool(ini.set.skvadrocopter)
 local editor             = imgui.ImBool(false)
 
 function main()
@@ -773,6 +746,7 @@ function main()
 	lua_thread.create(strobe)
 	lua_thread.create(rpweapon)
 	lua_thread.create(show_flymode)
+	lua_thread.create(logotyp)
 	
 	apply_custom_style()
 	register_custom_hotkey()
@@ -796,20 +770,6 @@ function main()
 			if sampTextdrawGetString(0):find('Advance_RP') then
 				sampTextdrawDelete(0)
 			end
-		end
-		
-		if ini.set.new_logo then
-			if not draw_new_logo then
-				font_logo = renderCreateFont('Calibri', 15, font_flag.BOLD)
-				font_logo_lil = renderCreateFont('Calibri', 8, font_flag.BOLD)
-				text_logo, text_logo_lil = 'ADVANCE', 'ROLE PLAY'
-				logo_texture = renderLoadTextureFromFileInMemory(memory.strptr(logotype_texture), 4096)
-				draw_new_logo = true
-			end
-			
-			renderFontDrawText(font_logo, text_logo, ini.set.logo_x + 65, ini.set.logo_y + 15, 0xFFFFFFFF)
-			renderFontDrawText(font_logo_lil, text_logo_lil, ini.set.logo_x + 65, ini.set.logo_y + 33, 0xFFFFFFFF)
-			renderDrawTexture(logo_texture, ini.set.logo_x, ini.set.logo_y, 60, 60, 0, 0xFFFFFFFF)
 		end
 		
 		if ini.set.halfrpweapon and ini.set.rpweapon then
@@ -1178,6 +1138,34 @@ function main()
 	end
 end
 
+function logotyp()
+	local server_name = {'RED', 'GREEN', '', '', 'BLUE'}
+
+	while true do
+		wait(0)
+		
+		if sampIsLocalPlayerSpawned() then
+			if ini.set.new_logo then
+				if not draw_new_logo then
+					font_logo = renderCreateFont('Calibri', 15, font_flag.BOLD)
+					font_logo_lil = renderCreateFont('Calibri', 8, font_flag.BOLD)
+					logo_texture = renderLoadTextureFromFileInMemory(memory.strptr(logotype_texture), 4096)
+					text_logo = 'ADVANCE'
+					draw_new_logo = true
+				else
+					if string.match(sampGetCurrentServerAddress(), '5.254.104.13(%d+)') then
+						local id = string.match(sampGetCurrentServerAddress(), '5.254.104.13(%d+)')
+						text_logo_lil = 'ROLE PLAY ' .. server_name[tonumber(id)]
+						renderFontDrawText(font_logo, text_logo, ini.set.logo_x + 65, ini.set.logo_y + 15, 0xFFFFFFFF)
+						renderFontDrawText(font_logo_lil, text_logo_lil, ini.set.logo_x + 65, ini.set.logo_y + 33, 0xFFFFFFFF)
+						renderDrawTexture(logo_texture, ini.set.logo_x, ini.set.logo_y, 60, 60, 0, 0xFFFFFFFF)
+					end
+				end
+			end
+		end
+	end
+end
+
 function command_r(text)
 	local cmd, ucmd = string.match(ini.cmd.r, '(.+) | (.+)')
 
@@ -1209,7 +1197,7 @@ function command_r(text)
 			lua_thread.create(function()
 				wait(800)
 			
-				if ini.info.male then
+				if not ini.info.male then
 					sampSendChat('/me снял тангету с плеча, зажал кнопку PTT и что-то произнёс по рации')
 				else
 					sampSendChat('/me сняла тангету с плеча, зажала кнопку PTT и что-то произнесла по рации')
@@ -1239,7 +1227,7 @@ function command_f(text)
 			lua_thread.create(function()
 				wait(800)
 			
-				if ini.info.male then
+				if not ini.info.male then
 					sampSendChat('/me снял тангету с плеча, зажал кнопку PTT и что-то произнёс по рации')
 				else
 					sampSendChat('/me снял тангету с плеча, зажала кнопку PTT и что-то произнесла по рации')
@@ -1831,7 +1819,7 @@ end
 
 function command_ud()
 	lua_thread.create(function()
-		if ini.info.male then
+		if not ini.info.male then
 			sampSendChat('/me достал удостоверение, открыл его и показал человеку напротив')
 			wait(1500); sampSendChat('/do В удостоверение: ' .. ini.info.frac .. ', ' .. ini.info.rang .. ', ' .. ini.info.name .. '.')
 			wait(1000); sampSendChat('/me закрыл удостоверение и убрал его обратно')
@@ -1874,7 +1862,7 @@ function command_search(id)
 		if IPC(id) then
 			if sampGetDistance(PLAYER_PED, id) < 5 then
 				lua_thread.create(function()
-					if ini.info.male then
+					if not ini.info.male then
 						sampSendChat('/me из внутреннего кармана достал белые, латекстные перчатки и одел их на руки')
 					else
 						sampSendChat('/me из внутреннего кармана достала белые, латекстные перчатки и одела их на руки')
@@ -1958,7 +1946,7 @@ function command_hack(id)
 
 	if string.match(id, '(%d+)') then
 		lua_thread.create(function()
-			if ini.info.male then
+			if not ini.info.male then
 				sampSendChat('/do На плечах висит рюкзак в котором лежит балончик с заморозкой.')
 				wait(1500); sampSendChat('/me скинув рюкзак с плеч, открыл его и достал балончик')
 				wait(1500); sampSendChat('/me закрыл рюкзак и повесил его на плечи')
@@ -1989,7 +1977,7 @@ function command_invite(param)
 			if IPC(id) then
 				if sampGetDistance(PLAYER_PED, inv_id) < 3 then
 					lua_thread.create(function()
-						if ini.info.male then
+						if not ini.info.male then
 							sampSendChat('/me из внутреннего кармана достал планшет и включил его')
 							wait(1500); sampSendChat('/me зайдя в базу данных МВД, добавил новое личное дело ' .. string.gsub(sampGetPlayerNickname(inv_id),'_',' ') .. '')
 							wait(1500); sampSendChat('/me потушил экран планшета и убрал его обратно')
@@ -2024,7 +2012,7 @@ function command_uninvite(param)
 			local id, reason = string.match(param, '(%d+) (.+)')
 			if IPC(id) then
 				lua_thread.create(function()
-					if ini.info.male then
+					if not ini.info.male then
 						sampSendChat('/me из внутреннего кармана достал планшет и включил его')
 						wait(1500); sampSendChat('/me зайдя в базу данных МВД, удалил личное дело ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. '')
 						wait(1000); sampSendChat(string.format('/%s %d %s', ucmd, id, reason))
@@ -2053,7 +2041,7 @@ function command_follow()
 
 	lua_thread.create(function()
 		if follow_state then
-			if ini.info.male then
+			if not ini.info.male then
 				sampSendChat('/me достал планшет, перешёл в базу данных и выбрал пункт с настройкой радио-канала')
 				wait(1000); sampSendChat(string.format('/%s', cmd))
 				wait(1500); sampSendChat('/me отключился от внутреннего радио-канала, снял наушники и убрал их')
@@ -2065,7 +2053,7 @@ function command_follow()
 				wait(1500); sampSendChat('/me потушила экран планшета, убрала его обратно')
 			end
 		else
-			if ini.info.male then
+			if not ini.info.male then
 				sampSendChat('/me достал планшет, перешёл в базу данных МВД и выбрал пункт с настройкой радио-канала')
 				wait(1500); sampSendChat('/me ввёл необходимые параметры для подключенния к внутреннему радио-каналу')
 				wait(1500); sampSendChat('/me достал наушники, параллельно заполнив нужную форму получения радио-сигналов')
@@ -2091,7 +2079,7 @@ function command_rang(param)
 			if IPC(id) then
 				if sampGetDistance(PLAYER_PED, id) < 3 then
 					lua_thread.create(function()
-						if ini.info.male then
+						if not ini.info.male then
 							sampSendChat('/me из внутреннего кармана достал планшет и включил его')
 							wait(1500); sampSendChat('/me зайдя в базу данных МВД, изменил должность ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. '')
 							wait(1000); sampSendChat(string.format('/%s %d %s', ucmd, id, rang))
@@ -2125,7 +2113,7 @@ function command_changeskin(id)
 			if IPC(id) then
 				if sampGetDistance(PLAYER_PED, id) < 3 then
 					lua_thread.create(function()
-						if ini.info.male then
+						if not ini.info.male then
 							sampSendChat('/me достал ключ от шкафчика под номером ' .. id .. ' и передал его ' .. string.gsub(sampGetPlayerNickname(id),'_',' '))
 						else
 							sampSendChat('/me достала ключ от шкафчика под номером ' .. id .. ' и передала его ' .. string.gsub(sampGetPlayerNickname(id),'_',' '))
@@ -2153,7 +2141,7 @@ function command_cuff(id)
 		if IPC(id) then
 			if sampGetDistance(PLAYER_PED, id) < 3 then
 				lua_thread.create(function()
-					if ini.info.male then
+					if not ini.info.male then
 						sampSendChat('/me завёл руки нарушителя за спину, после чего растягнул чехол для наручников'); wait(1500)
 						sampSendChat('/me достав наручники из чехла, застегнул их на запястьях преступника')
 					else
@@ -2181,7 +2169,7 @@ function command_uncuff(id)
 			if sampGetDistance(PLAYER_PED, id) < 3 then
 				lua_thread.create(function()
 					sampSendChat('/do На запястьях ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. ' находятся наручники.'); wait(1500)
-					if ini.info.male then
+					if not ini.info.male then
 						sampSendChat('/me сняв с пояса связку ключей, провернул один из них в замке наручников'); wait(1000)
 						sampSendChat(string.format('/%s %d', ucmd, id)); wait(1500)
 						sampSendChat('/me убрав наручники в чехол, повесил связку ключей на пояс')
@@ -2209,7 +2197,7 @@ function command_skip(id)
 		if IPC(id) then
 			if sampGetDistance(PLAYER_PED, id) < 5 then
 				lua_thread.create(function()
-					if ini.info.male then
+					if not ini.info.male then
 						sampSendChat('/me из внутреннего кармана достал планшет и включил его')
 						wait(1500); sampSendChat('/me зайдя в базу данных МВД, оформил временный пропуск на имя ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. '')
 						wait(1000); sampSendChat(string.format('/%s %d', ucmd, id))
@@ -2253,7 +2241,7 @@ function command_clear(param)
 		if IPC(id) then
 			if sampGetDistance(PLAYER_PED, id) < 10 then
 				lua_thread.create(function()
-					if ini.info.male then
+					if not ini.info.male then
 						sampSendChat('/me достав планшет, зашёл в базу данных МВД и нашёл нужное дело')
 						wait(1500); sampSendChat('/me пролистав страницу в самый низ, выбрал пункт с закрытием дела')
 						wait(1000); sampSendChat(string.format('/%s %d' , ucmd, id))
@@ -2285,7 +2273,7 @@ function command_putpl(id)
 		if IPC(id) then
 			if sampGetDistance(PLAYER_PED, id) < 4 then
 				lua_thread.create(function()
-					if ini.info.male then
+					if not ini.info.male then
 						sampSendChat('/me подведя подозреваемого к автомобилю, открыл дверь и посадил его туда')
 					else
 						sampSendChat('/me подведя подозреваемого к автомобилю, открыла дверь и посадила его туда')
@@ -2310,7 +2298,7 @@ function command_hold(id)
 		if IPC(id) then
 			if sampGetDistance(PLAYER_PED, id) < 3 then
 				lua_thread.create(function()
-					if ini.info.male then
+					if not ini.info.male then
 						sampSendChat('/me заломав руку подозреваемого, повёл его за собой')
 					else
 						sampSendChat('/me заломав руку подозреваемого, повела его за собой')
@@ -2337,7 +2325,7 @@ function command_ticket(param)
 		if IPC(id) then
 			if sampGetDistance(PLAYER_PED, id) < 5 then
 				lua_thread.create(function()
-					if ini.info.male then
+					if not ini.info.male then
 						sampSendChat('/me достал блокнот, ручку и начал записывать информацию о нарушении')
 						wait(1500); sampSendChat('/me заполнив всю информацию о нарушении, передал бланк нарушителю')
 						wait(1000); sampSendChat(string.format('/%s %d %d %s', ucmd, id, money, reason))
@@ -2368,7 +2356,7 @@ function command_takelic(param)
 		if IPC(id) then
 			if sampGetDistance(PLAYER_PED, id) < 15 then
 				lua_thread.create(function()
-					if ini.info.male then
+					if not ini.info.male then
 						sampSendChat('/me достал планшет, зашёл в базу данных МВД и ввёл номер Т/С')
 						wait(1500); sampSendChat('/me получив информацию о водителе, изъял его лицензию на вождение')
 					else
@@ -2398,7 +2386,7 @@ function command_pull(id)
 				if res then
 					lua_thread.create(function()
 						if tCarsType[vid - 399] == 2 or tCarsType[vid - 399] == 9 then
-							if ini.info.male then
+							if not ini.info.male then
 								sampSendChat('/me подойдя к подозреваемому, толкнул его, тем самым скинул его с байка')
 								wait(1000); sampSendChat(string.format('/%s %d', ucmd, id))
 							else
@@ -2406,7 +2394,7 @@ function command_pull(id)
 								wait(1000); sampSendChat(string.format('/%s %d', ucmd, id))
 							end
 						else
-							if ini.info.male then
+							if not ini.info.male then
 								sampSendChat('/me сняв дубинку с пояса, ударил её тыльную частью по стеклу')
 								wait(1500); sampSendChat('/me повесив дубинку на пояс, просунул руку в стекло и открыл дверь')
 								wait(1500); sampSendChat('/me взявшись за подозреваемого, вытащил его из машины')
@@ -2441,7 +2429,7 @@ function command_arrest(id)
 			if sampGetDistance(PLAYER_PED, id) < 5 then
 				if sampIsPlayerCarHaveSuspect(id) then
 					lua_thread.create(function()
-						if ini.info.male then
+						if not ini.info.male then
 							sampSendChat('/me включил бортовой компьютер и заполнил информацию о нарушителе'); wait(1500)
 							sampSendChat('/me снял рацию с плеча, поднёс её ко рту и что-то произнёс'); wait(1000)
 							sampSendChat('/r ' .. ini.info.rteg .. ' Подозреваемый по делу №' .. id .. ' (' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. ') передан в департамент.'); wait(1000)
@@ -2478,7 +2466,7 @@ function command_su(param)
 			if sampGetPlayerColor(id) ~= 2236962 then
 				lua_thread.create(function()
 					if sampGetCharHandleBySampPlayerId(id) then
-						if ini.info.male then
+						if not ini.info.male then
 							sampSendChat('/me сняв тангету с плеча, передал диспетчеру информацию о подозреваемом')
 						else
 							sampSendChat('/me сняв тангету с плеча, передала диспетчеру информацию о подозреваемом')
@@ -2551,7 +2539,7 @@ function command_users()
 		function(response)
 			users = response.text
 	end)
-	
+		
 	local dline = 'Имя\tСтатус\tДополнительно\n'
 	local all = 0
 	local online = 0
@@ -2562,9 +2550,9 @@ function command_users()
 			local rang = u8:decode(rang)
 			local id = sampGetPlayerIdByNickname(name)
 			all = all + 1
-			
+				
 			local rang = string.format('%s %s', getColorRang(nrang), rang)
-			
+				
 			if id == 'offline' then
 				dline = string.format('%s{696969}%s\t{696969}%s ранг. %s\t{ff5c33}Оффлайн\n', dline, name, player_rang[name], rang)
 			else
@@ -2585,7 +2573,7 @@ function command_users()
 			end
 		end
 	end
-	
+		
 	local caption = string.format('{ffffff}Всего пользователей {FFCD00}%d чел. {00CC66}(онлайн %d)', all, online)
 	sampShowDialog(1001, caption, dline, 'Закрыть', '', 5)
 end
@@ -2688,7 +2676,7 @@ function command_rofl(param)
 	if player_status > 2 then
 		if string.match(param, '(%d+)') then
 			local number = string.match(param, '(%d+)')
-			
+				
 			if tonumber(number) > 999 then
 				sampSendChat(string.format('/sms %d %s', number, u8'кикнуть_ето_чучело'))
 			else
@@ -2892,6 +2880,24 @@ function getnear()
     end
 end
 
+function checkBox(name, block, value)
+	if imgui.Checkbox(u8(name), imgui.ImBool(ini[block][value])) then 
+		ini[block][value] = not ini[block][value]
+		inicfg.save(ini, 'Helper for MIA.ini')
+		return true
+	end
+end
+
+function toggleButton(name, block, value)
+	if imgui.ToggleButton('##' .. name, imgui.ImBool(ini[block][value])) then
+		ini[block][value] = not ini[block][value]
+		inicfg.save(ini, 'Helper for MIA.ini')
+		return true
+	end
+	
+	imgui.SameLine() imgui.Text(u8(name))
+end
+
 function imgui.OnDrawFrame()
 	if show_menu.v then
 		local w, h = getScreenResolution()
@@ -2904,13 +2910,13 @@ function imgui.OnDrawFrame()
 				
 				imgui.Text('')
 				
-				if imgui.Button(u8'Главная страница', imgui.ImVec2(235, 20)) then show_item.v = 8 end
+				if imgui.Button(u8' Главная страница', imgui.ImVec2(235, 20)) then show_item.v = 8 end
 				if imgui.Button(u8'Настройки', imgui.ImVec2(235, 20)) then show_item.v = 0 end
 				if imgui.Button(u8'Расширенные настройки', imgui.ImVec2(235, 20)) then show_item.v = 1 end
 				if player_status > 1 then
 					if imgui.Button(u8'Администрация', imgui.ImVec2(235, 20)) then show_item.v = 2 end
 				end
-				if imgui.Button(u8'Информация', imgui.ImVec2(235, 20)) then show_item.v = 3 end
+				--if imgui.Button(u8'Информация', imgui.ImVec2(235, 20)) then show_item.v = 3 end
 				if imgui.Button(u8'Дополнительные возможности', imgui.ImVec2(235, 20)) then show_item.v = 4 end
 				if imgui.Button(u8'Кастомизация', imgui.ImVec2(235, 20)) then show_item.v = 5 end
 				if imgui.Button(u8'Менеджер паролей', imgui.ImVec2(235, 20)) then show_item.v = 6 end
@@ -2942,7 +2948,7 @@ function imgui.OnDrawFrame()
 			end
 			
 			if show_item.v == 0 then
-				imgui.BeginChild('##another_block', imgui.ImVec2(530, 520), true)
+				imgui.BeginChild('##another_block', imgui.ImVec2(530, 510), true)
 					
 					imgui.CenterTextColoredRGB('ОСНОВНЫЕ НАСТРОЙКИ')
 					
@@ -2990,64 +2996,17 @@ function imgui.OnDrawFrame()
 					
 					imgui.Text('')
 					
-					imgui.BeginChild('##first_block', imgui.ImVec2(250, 150), true)
-						if imgui.Checkbox(u8'Режим женских отыгровок', male) then 
-							ini.info.male = not male.v
-							inicfg.save(ini, 'Helper for MIA.ini') 
-						end
-						if imgui.Checkbox(u8'Объявления от СМИ', pstopad) then 
-							ini.set.stopad = pstopad.v
-							inicfg.save(ini, 'Helper for MIA.ini') 
-						end
-						if imgui.Checkbox(u8'Стробоскопы', pstrobes) then 
-							ini.set.strobes = pstrobes.v
-							inicfg.save(ini, 'Helper for MIA.ini') 
-						end
-						if imgui.Checkbox(u8'Изменённая рация', pradio) then 
-							ini.set.radio = pradio.v
-							inicfg.save(ini, 'Helper for MIA.ini') 
-						end
-						if imgui.Checkbox(u8'Таймер маски', pmasktimer) then 
-							ini.set.masktimer = pmasktimer.v
-							inicfg.save(ini, 'Helper for MIA.ini') 
-						end
-					imgui.EndChild()
+					toggleButton('Режим женских отыгровок', 'info', 'male') imgui.SameLine(250) toggleButton('Отыгровка камеры', 'set', 'camera')
+					toggleButton('Объявления от СМИ', 'set', 'stopad') imgui.SameLine(250) toggleButton('Мелкие отыгровки', 'set', 'lowrp')
+					toggleButton('Стробоскопы', 'set', 'strobes') imgui.SameLine(250) toggleButton('Отыгровки оружия', 'set', 'rpweapon')
+					toggleButton('Изменённая рация', 'set', 'radio') imgui.SameLine(250) toggleButton('Авто-взятие оружия', 'set', 'autoweapon')
+					toggleButton('Таймер маски', 'set', 'masktimer') imgui.SameLine(250) toggleButton('Авто-проверка паспорта', 'set', 'autopass')
 					
-					imgui.SameLine()
-					
-					imgui.BeginChild('##second_block', imgui.ImVec2(250, 215), true)
-						if imgui.Checkbox(u8'Отыгровка камеры', pcamera) then 
-							ini.set.camera = pcamera.v
-							inicfg.save(ini, 'Helper for MIA.ini') 
-						end
-						if imgui.Checkbox(u8'Мелкие отыгровки', plowrp) then 
-							ini.set.lowrp = plowrp.v
-							inicfg.save(ini, 'Helper for MIA.ini') 
-							
-							if plowrp.v then pushMessage('Вам доступно новое подменю «Мелкие отыгровки» в разделе расширенных настроек', 3, 2) end
-						end
-						if imgui.Checkbox(u8'Отыгровки оружия', prpweapon) then 
-							ini.set.rpweapon = prpweapon.v
-							inicfg.save(ini, 'Helper for MIA.ini')
-							
-							if prpweapon.v then pushMessage('Вам доступно новое подменю «Отыгровки оружия» в разделе расширенных настроек', 3, 2) end
-						end
-						if imgui.Checkbox(u8'Авто-взятие оружия', pautoweapon) then 
-							ini.set.autoweapon = pautoweapon.v
-							inicfg.save(ini, 'Helper for MIA.ini') 
-							
-							if pautoweapon.v then pushMessage('Вам доступно новое подменю «Умный склад оружия» в разделе расширенных настроек', 3, 2) end
-						end
-						if imgui.Checkbox(u8'Авто-проверка паспорта', pautopass) then 
-							ini.set.autopass = pautopass.v
-							inicfg.save(ini, 'Helper for MIA.ini') 
-						end
-					imgui.EndChild()
-					
+					imgui.SetCursorPosY(487.0)
 					if imgui.Button('RETURN TO THE NORMAL ENCODING', imgui.ImVec2(515, 20)) then
 						decode()
 					end
-					ShowHelpMarker('Данная кнопка нужна для того, чтобы восстановить кодировку скрипта.\nЕсли же у вас нету иероглифов, то слетит весь текст в скрипте.')
+					ItemPovered('Данная кнопка нужна для того, чтобы восстановить кодировку скрипта. Если же у вас нету иероглифов, то слетит весь текст в скрипте.')
 				imgui.EndChild()
 			end
 				
@@ -3143,26 +3102,11 @@ function imgui.OnDrawFrame()
 					if set_item.v == 2 then
 						imgui.Text('')
 						if ini.set.lowrp then
-							if imgui.Checkbox(u8'Отыгровка при использовании аптечки', prphealme) then 
-								ini.lowrp.rphealme = prphealme.v
-								inicfg.save(ini, 'Helper for MIA.ini') 
-							end
-							if imgui.Checkbox(u8'Отыгровка при использовании маски', prpmask) then 
-								ini.lowrp.rpmask = prpmask.v
-								inicfg.save(ini, 'Helper for MIA.ini') 
-							end
-							if imgui.Checkbox(u8'Отыгровка при открытии спецблока в здание Федерального Бюро', prpfbi) then 
-								ini.lowrp.rpfbi = prpfbi.v
-								inicfg.save(ini, 'Helper for MIA.ini') 
-							end
-							if imgui.Checkbox(u8'Отыгровка при открытии шлагбаума', prpbar) then 
-								ini.lowrp.rpbar = prpbar.v
-								inicfg.save(ini, 'Helper for MIA.ini') 
-							end
-							if imgui.Checkbox(u8'Отыгровка при использовании рации', prpradio) then 
-								ini.lowrp.rpradio = prpradio.v
-								inicfg.save(ini, 'Helper for MIA.ini') 
-							end
+							toggleButton('Отыгровка при использовании аптечки', 'lowrp', 'rphealme')
+							toggleButton('Отыгровка при использовании маски', 'lowrp', 'rpmask')
+							toggleButton('Отыгровка при открытии спецблока в здание Федерального Бюро', 'lowrp', 'rpfbi')
+							toggleButton('Отыгровка при открытии шлагбаума', 'lowrp', 'rpbar')
+							toggleButton('Отыгровка при использовании рации', 'lowrp', 'rpradio')
 						else
 							imgui.CenterTextColoredRGB('Вам недоступен данный подраздел.')
 						end
@@ -3252,15 +3196,6 @@ function imgui.OnDrawFrame()
 			
 			if show_item.v == 5 then
 				imgui.BeginChild('##another_block', imgui.ImVec2(530, 520), true)
-					imgui.CenterTextColoredRGB('КАСТОМИЗАЦИЯ')
-					imgui.Text('')
-					
-					if imgui.Button(u8'Сохранить и применить новые значения', imgui.ImVec2(515, 20)) then
-						inicfg.save(ini, 'Helper for MIA.ini')
-						apply_custom_style()
-					end
-					imgui.Text('')
-					
 					draw_customization()
 				imgui.EndChild()
 			end
@@ -3765,26 +3700,11 @@ end
 function draw_new_dialog()
 	imgui.Text('')
 
-	if imgui.Checkbox(u8'Улучшенный диалог списка лидеров (/leaders)', pnew_leaders) then 
-		ini.set.new_leaders = pnew_leaders.v
-		inicfg.save(ini, 'Helper for MIA.ini') 
-	end
-	if imgui.Checkbox(u8'Улучшенный диалог списка участников группы (/group)', pnew_group) then 
-		ini.set.new_group = pnew_group.v
-		inicfg.save(ini, 'Helper for MIA.ini') 
-	end
-	if imgui.Checkbox(u8'Улучшенный диалог списка сотрудников (/find)', pnew_find) then 
-		ini.set.new_find = pnew_find.v
-		inicfg.save(ini, 'Helper for MIA.ini') 
-	end
-	if imgui.Checkbox(u8'Улучшенный диалог списка преступников (/wanted)', pnew_wanted) then 
-		ini.set.new_wanted = pnew_wanted.v
-		inicfg.save(ini, 'Helper for MIA.ini') 
-	end
-	if imgui.Checkbox(u8'Улучшенный диалог отображения точного времени (/c 60)', pnew_clock) then 
-		ini.set.new_clock = pnew_clock.v
-		inicfg.save(ini, 'Helper for MIA.ini') 
-	end
+	toggleButton('Улучшенный диалог списка лидеров (/leaders)', 'set', 'new_leaders')
+	toggleButton('Улучшенный диалог списка участников группы (/group)', 'set', 'new_group')
+	toggleButton('Улучшенный диалог списка сотрудников (/find)', 'set', 'new_find')
+	toggleButton('Улучшенный диалог списка преступников (/wanted)', 'set', 'new_wanted')
+	toggleButton('Улучшенный диалог отображения точного времени (/c 60)', 'set', 'new_clock')
 end
 
 function draw_another_settings()
@@ -3812,17 +3732,11 @@ function draw_another_settings()
 		ini.set.blacklist = url_bl.v
 		inicfg.save(ini, 'Helper for MIA.ini') 
 	end
-						
-	if imgui.Checkbox(u8'Сообщение в рацию при использовании мегафона (погоня / пешая погоня)', pmessage_megafon) then 
-		ini.set.message_megafon = pmessage_megafon.v
-		inicfg.save(ini, 'Helper for MIA.ini') 
-	end
-						
+	
+	toggleButton('Сообщение в рацию при использовании мегафона (погоня / пешая погоня)', 'set', 'message_megafon')
+	
 	if ini.lowrp.rpmask then
-		if imgui.Checkbox(u8'Сообщение в /do о наличие маски при снятие её системой', punmask) then 
-			ini.lowrp.unmask = punmask.v
-			inicfg.save(ini, 'Helper for MIA.ini') 
-		end
+		toggleButton('Сообщение в /do о наличие маски при снятие её системой', 'lowrp', 'unmask')
 	end
 end
 
@@ -3914,11 +3828,8 @@ function draw_modification()
 	imgui.Text('')
 
 	if imgui.TreeNode(u8'Уличные фонари') then
-		if imgui.Checkbox(u8'Включить отображение уличных фонарей в указанное время', pstreetlight) then 
-			ini.set.streetlight = pstreetlight.v
-			inicfg.save(ini, 'Helper for MIA.ini') 
-		end
-		
+		toggleButton('Включить отображение уличных фонарей в указанное время', 'set', 'streetlight')
+
 		imgui.PushItemWidth(200)
 		if imgui.SliderInt('##ITEM1', pslhour, 0, 23) then
 			ini.set.slhour = pslhour.v
@@ -3936,19 +3847,13 @@ function draw_modification()
 	end
 	
 	if imgui.TreeNode(u8'Модицированный CamHack') then
-		if imgui.Checkbox(u8'Включить отображение эффектов при использовании CamHack`a', pkvadrocopter) then 
-			ini.set.kvadrocopter = pkvadrocopter.v
-			inicfg.save(ini, 'Helper for MIA.ini') 
-		end
+		toggleButton('Включить отображение эффектов при использовании CamHack`a', 'set', 'kvadrocopter')
 		
 		imgui.TreePop()
 	end
 	
 	if imgui.TreeNode(u8'Новый логотип для Advance RP') then
-		if imgui.Checkbox(u8'Включить отображение нового логотипа', imgui.ImBool(ini.set.new_logo)) then 
-			ini.set.new_logo = not ini.set.new_logo
-			inicfg.save(ini, 'Helper for MIA.ini') 
-		end
+		toggleButton('Включить отображение нового логотипа', 'set', 'new_logo')
 		
 		if ini.set.new_logo then
 			if imgui.Button(u8'Изменить местоположение логотипа') then
@@ -4068,13 +3973,13 @@ function draw_head_page()
 			
 			imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ОБНОВЛЕНИИ')
 			
+			imgui.Text(u8'Добавлена базовая кастомизация.')
 			imgui.Text(u8'Добавлен новый пункт в разделе модификаций.')
 			imgui.Text(u8'Добавлена смена режимов CamHack`a на клавишу O.')
 			imgui.Text(u8'Добавлены поворотники для автомобилей, активация B и M.')
 			imgui.Text(u8'Добавлен раздел модификаций в расширенных настройках.')
 			imgui.Text(u8'Добавлена возможность использовать уличные фонари и эффекты для CamHack`a.')
 			imgui.Text(u8'Добавлена возможность использовать умный розыск с помощь /su id.')
-			imgui.Text(u8'Изменена система параметров для допополнительных команд.')
 			
 		imgui.EndChild()
 		
@@ -4293,19 +4198,59 @@ function draw_new_custom_hotkey()
 	end
 end
 
+local color = imgui.ImFloat4(imgui.ImColor(ini.custom['TitleBgActive']):GetFloat4())
+local color_low_custom = imgui.ImFloat3(color.v[1], color.v[2], color.v[3])
+
 function draw_customization()
-	for obj in pairs(ini.custom) do
-		local color = imgui.ImFloat4(imgui.ImColor(ini.custom[obj]):GetFloat4())
-		
-		if imgui.ColorEdit4(obj, color) then
-			local colors = imgui.ImColor.FromFloat4(color.v[1], color.v[2], color.v[3], color.v[4]):GetU32()
-			ini.custom[obj] = colors
+	imgui.CenterTextColoredRGB('КАСТОМИЗАЦИЯ')
+	imgui.Text('')
+	
+	if imgui.Button(u8'СОХРАНИТЬ И ПРИМЕНИТЬ НОВЫЕ ЗНАЧЕНИЯ', imgui.ImVec2(515, 20)) then
+		inicfg.save(ini, 'Helper for MIA.ini')
+		apply_custom_style()
+	end
+	
+	if custom_style then name_of_custom = 'РАСШИРЕННАЯ КАСТОМИЗАЦИЯ' else name_of_custom = 'БАЗОВАЯ КАСТОМИЗАЦИЯ' end
+	if imgui.Button(u8(name_of_custom), imgui.ImVec2(515, 20)) then
+		custom_style = not custom_style
+	end
+	
+	imgui.Text('')
+
+	if custom_style then
+		for obj in pairs(ini.custom) do
+			local color = imgui.ImFloat4(imgui.ImColor(ini.custom[obj]):GetFloat4())
+			
+			if imgui.ColorEdit4(obj, color) then
+				local colors = imgui.ImColor.FromFloat4(color.v[1], color.v[2], color.v[3], color.v[4]):GetU32()
+				ini.custom[obj] = colors
+			end
+			
+			if descript_f[obj] ~= nil then
+				ShowHelpMarker(descript_f[obj])
+			else
+				ShowHelpMarker('Пояснение не было добавлено.')
+			end
 		end
-		if descript_f[obj] ~= nil then
-			ShowHelpMarker(descript_f[obj])
-		else
-			ShowHelpMarker('Пояснение не было добавлено.')
+	else
+		imgui.Text(u8'Изменяя основной цвет, каждый элемент imgui-окон и цвет префикса сообщений')
+		imgui.Text(u8'подстроится под него и станет идентичным, не считая прозрачности, которая будет')
+		imgui.Text(u8'у всех элементов разная. Если вам нужно изменить цвет какого-то конкретного')
+		imgui.Text(u8'элемента, то воспользуйтесь расширенной кастомизацией.')
+		imgui.Text('')
+		if imgui.ColorEdit3('##ЕТО_ШЕДЕВР', color_low_custom) then
+			local color = color_low_custom
+			local color_tab = {['TitleBgActive'] = 255, ['CloseButton'] = 255, ['SliderGrabActive'] = 255, ['ScrollbarGrab'] = 90, ['ResizeGrip'] = 90, ['ScrollbarGrabActive'] = 255, ['ButtonHovered'] = 155, ['FrameBg'] = 90, ['ScrollbarBg'] = 90, ['FrameBgHovered'] = 155, ['ButtonActive'] = 255, ['FrameBgActive'] = 255, ['SliderGrab'] = 90, ['ResizeGripHovered'] = 90, ['Button'] = 90}
+			
+			for obj, val in pairs(color_tab) do
+				local colors = imgui.ImColor.FromFloat4(color.v[1], color.v[2], color.v[3], val / 255):GetU32()
+				ini.custom[obj] = colors
+			end
+			
+			local rgb = {color.v[1] * 255, color.v[2] * 255, color.v[3] * 255}
+			ini.set.color_line = '0xFF' .. colorRgbToHex(rgb)
 		end
+		imgui.SameLine() imgui.Text(u8'Основной цвет')
 	end
 end
 
@@ -5746,7 +5691,7 @@ function sampGetBlackList(name)
 end
 
 function SCM(text)
-	if text ~= nil then sampAddChatMessage('Helper for MIA • {FFFFFF}' .. text, 0xFF4169E1) end
+	if text ~= nil then sampAddChatMessage('Helper for MIA • {FFFFFF}' .. text, ini.set.color_line) end
 end
 
 function ItemPovered(text)
@@ -5803,7 +5748,7 @@ function apply_custom_style()
 	style.ChildWindowRounding = 2.0
 	style.FrameRounding = 2.0
 	style.ItemSpacing = imgui.ImVec2(5.0, 4.0)
-	style.ScrollbarSize = 9.0
+	style.ScrollbarSize = 6.0
 	style.ScrollbarRounding = 0
 	style.GrabMinSize = 8.0
 	style.GrabRounding = 1.0
@@ -5816,7 +5761,7 @@ function apply_custom_style()
 	
 	colors[clr.ChildWindowBg]         = ImVec4(0.00, 0.00, 0.00, 0.00)
     colors[clr.PopupBg]               = ImVec4(0.05, 0.05, 0.10, 0.90);
-    colors[clr.Border]                = ImVec4(0.89, 0.85, 0.92, 0.00);
+    colors[clr.Border]                = ImVec4(1.00, 1.00, 1.00, 0.00);
     colors[clr.BorderShadow]          = ImVec4(0.00, 0.00, 0.00, 0.00);
     colors[clr.MenuBarBg]             = ImVec4(0.30, 0.20, 0.39, 0.57);
     colors[clr.PlotLines]             = ImVec4(0.89, 0.85, 0.92, 0.63);
@@ -6008,7 +5953,7 @@ function sampev.onServerMessage(color, text)
 		lua_thread.create(function()
 			wait(150)
 			
-			if ini.info.male then
+			if not ini.info.male then
 				if getCurrentCharWeapon(PLAYER_PED) == 3 then
 					sampSendChat('/me размахнувшись, ударил нарушителя дубинкой, тем самым оглушил его') 
 				else
@@ -6030,7 +5975,7 @@ function sampev.onServerMessage(color, text)
 		if name == sampGetPlayerNickname(id) then
 			lua_thread.create(function()
 				wait(1000)
-				if ini.info.male then
+				if not ini.info.male then
 					sampSendChat('/me повторно размахнулся дубинкой и ударил тыльной частью по замку')
 				else
 					sampSendChat('/me повторно размахнулась дубинкой и ударила тыльной частью по замку')
@@ -6157,7 +6102,7 @@ function sampev.onServerMessage(color, text)
 			lua_thread.create(function()
 				wait(850)
 				
-				if ini.info.male then
+				if not ini.info.male then
 					sampSendChat('/me достал планшет и включил его, после зашёл в базу данных МВД')
 					wait(1500); sampSendChat(string.format('/me взяв один из найденных патронов у %s записал серийный номер в нужной строке', string.gsub(pname, '_', ' ')))
 					wait(1500); sampSendChat('/do Информация из БД МВД: патрон с данным номером числится как краденный.')
@@ -6181,7 +6126,7 @@ function sampev.onServerMessage(color, text)
 			lua_thread.create(function()
 				wait(850)
 				
-				if ini.info.male then
+				if not ini.info.male then
 					sampSendChat('/me достал ZIP-пакет и чёрный маркер, затем раскрыл ZIP-пакет и положил туда изъятые неизвестнные в-ва')
 					wait(1500); sampSendChat('/me держа в левой руке маркер, правой рукой закрыл пакет и промаркировал его')
 					wait(1500); sampSendChat('/me убрал ZIP-пакет и чёрный маркер обратно')
@@ -6198,7 +6143,7 @@ function sampev.onServerMessage(color, text)
 		lua_thread.create(function()
 			wait(150)
 			
-			if ini.info.male then
+			if not ini.info.male then
 				sampSendChat('/me проведя картой по считывающему устройству, закрыл дверь в спецблок')
 			else
 				sampSendChat('/me проведя картой по считывающему устройству, закрыла дверь в спецблок')
@@ -6210,7 +6155,7 @@ function sampev.onServerMessage(color, text)
 		lua_thread.create(function()
 			wait(150)
 			
-			if ini.info.male then
+			if not ini.info.male then
 				sampSendChat('/me проведя картой по считывающему устройству, открыл дверь в спецблок')
 			else
 				sampSendChat('/me проведя картой по считывающему устройству, открыла дверь в спецблок')
@@ -6222,7 +6167,7 @@ function sampev.onServerMessage(color, text)
 		lua_thread.create(function()
 			wait(150)
 			
-			if ini.info.male then
+			if not ini.info.male then
 				sampSendChat('/me достал шприц с морфием и вколол его себе в бедро')
 			else
 				sampSendChat('/me достала шприц с морфием и вколола его себе в бедро')
@@ -6419,7 +6364,7 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 			if string.match(s, '{FFFFFF}Уровень розыска:		{80aaff}(%d+)') then
 				stars = string.match(s, '{FFFFFF}Уровень розыска:		{80aaff}(%d+)')
 				lua_thread.create(function()
-					if ini.info.male then
+					if not ini.info.male then
 						sampSendChat('/me внимательно изучил паспорт и передал информацию диспетчеру')
 					else
 						sampSendChat('/me внимательно изучила паспорт и передала информацию диспетчеру')
@@ -6756,7 +6701,7 @@ function sampev.onSetPlayerColor(playerId, color)
 					if ini.lowrp.unmask then
 						sampSendChat(string.format('/do Маска всё ещё находится на лице %s.', string.gsub(sampGetPlayerNickname(playerId), '_', ' ')))
 					else
-						if ini.info.male then
+						if not ini.info.male then
 							sampSendChat('/me снял маску с головы, после чего положил её в карман')
 						else
 							sampSendChat('/me сняла маску с головы, после чего положила её в карман')
@@ -6771,7 +6716,7 @@ function sampev.onSetPlayerColor(playerId, color)
 					if ini.lowrp.unmask then
 						sampSendChat(string.format('/do Маска всё ещё находится на лице %s.', string.gsub(sampGetPlayerNickname(playerId), '_', ' ')))
 					else
-						if ini.info.male then
+						if not ini.info.male then
 							sampSendChat('/me снял маску с головы, после чего положил её в карман')
 						else
 							sampSendChat('/me сняла маску с головы, после чего положила её в карман')
@@ -6782,7 +6727,7 @@ function sampev.onSetPlayerColor(playerId, color)
 				startMaskTimer()
 				
 				if ini.set.lowrp and ini.lowrp.rpmask then
-					if ini.info.male then
+					if not ini.info.male then
 						sampSendChat('/me достал маску из кармана, после чего одел её на себя')
 					else
 						sampSendChat('/me достала маску из кармана, после чего одела её на себя')
@@ -6814,7 +6759,7 @@ function sampev.onMoveObject(id, pos, npos, speed, rot)
 			lua_thread.create(function()
 				wait(1000)
 				if rot.y == 0 then
-					if ini.info.male then
+					if not ini.info.male then
 						if isCharInAnyCar(PLAYER_PED) then
 							sampSendChat('/me не отпуская руль, нажал на кнопку открытия шлагбаума, расположенную на руле')
 						else
@@ -6828,7 +6773,7 @@ function sampev.onMoveObject(id, pos, npos, speed, rot)
 						end
 					end
 				else
-					if ini.info.male then
+					if not ini.info.male then
 						if isCharInAnyCar(PLAYER_PED) then
 							sampSendChat('/me не отпуская руль, нажал на кнопку закрытия шлагбаума, расположенную на руле')
 						else

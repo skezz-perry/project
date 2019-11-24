@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(12.3)
+script_version(12.4)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -68,9 +68,9 @@ local InfoWeapon = {{'Щит', false, 'shit', 'bshit', 1},
 	{'Бронежилет', false, 'armour', 'barmour', 1},
 	{'Маска', false, 'mask', 'bmask', 1},
 	{'Пистолет с глушителем', true, 'sd', 'bsd', 250},
-	{'Пустынный орёл', true, 'deagle', 'bdeagle', 250},
-	{'Пистолет-пулемёт MP-5', true, 'mp5', 'bmp5', 400},
-	{'Помповый дробовик', true, 'shotgun', 'bshotgun', 100},
+	{'Desert Eagle', true, 'deagle', 'bdeagle', 250},
+	{'Пистолет-пулемёт MP5', true, 'mp5', 'bmp5', 400},
+	{'Дробовик', true, 'shotgun', 'bshotgun', 100},
 	{'Дымовые шашки', true, 'smoke', 'bsmoke', 25},
 	{'Снайперская винтовка', true, 'sniper', 'bsniper', 50},
 	{'Штурмовая винтовка M4', true, 'm4', 'bm4', 350},
@@ -553,6 +553,8 @@ local weaponid           = imgui.ImInt(46)
 local strob_lr           = imgui.ImInt(ini.set.strob_lr)
 local commandid          = imgui.ImInt(0)
 local inpball            = imgui.ImInt(5)
+local pmslhour           = imgui.ImInt(ini.set.mslhour)
+local pslhour           = imgui.ImInt(ini.set.slhour)
 local pdelay_rk          = imgui.ImInt(ini.set.delay_rk)
 local pgaline1           = imgui.ImBuffer(250)
 local pgline1            = imgui.ImBuffer(250)
@@ -2910,7 +2912,7 @@ function imgui.OnDrawFrame()
 				
 				imgui.Text('')
 				
-				if imgui.Button(u8' Главная страница', imgui.ImVec2(235, 20)) then show_item.v = 8 end
+				if imgui.Button(u8'Главная страница', imgui.ImVec2(235, 20)) then show_item.v = 8 end
 				if imgui.Button(u8'Настройки', imgui.ImVec2(235, 20)) then show_item.v = 0 end
 				if imgui.Button(u8'Расширенные настройки', imgui.ImVec2(235, 20)) then show_item.v = 1 end
 				if player_status > 1 then
@@ -2999,7 +3001,7 @@ function imgui.OnDrawFrame()
 					toggleButton('Режим женских отыгровок', 'info', 'male') imgui.SameLine(250) toggleButton('Отыгровка камеры', 'set', 'camera')
 					toggleButton('Объявления от СМИ', 'set', 'stopad') imgui.SameLine(250) toggleButton('Мелкие отыгровки', 'set', 'lowrp')
 					toggleButton('Стробоскопы', 'set', 'strobes') imgui.SameLine(250) toggleButton('Отыгровки оружия', 'set', 'rpweapon')
-					toggleButton('Изменённая рация', 'set', 'radio') imgui.SameLine(250) toggleButton('Авто-взятие оружия', 'set', 'autoweapon')
+					toggleButton('Изменённая рация', 'set', 'radio') imgui.SameLine(250) toggleButton('Авто-получение оружия', 'set', 'autoweapon')
 					toggleButton('Таймер маски', 'set', 'masktimer') imgui.SameLine(250) toggleButton('Авто-проверка паспорта', 'set', 'autopass')
 					
 					imgui.SetCursorPosY(487.0)
@@ -3016,21 +3018,21 @@ function imgui.OnDrawFrame()
 					
 					imgui.Text('')
 					
-					if imgui.Button(u8'Авто-взятие оружия', imgui.ImVec2(170, 20)) then set_item.v = 0 end
+					if imgui.Button(u8'АВТО-ПОЛУЧЕНИЕ ОРУЖИЯ', imgui.ImVec2(170, 20)) then set_item.v = 0 end
 					imgui.SameLine()
-					if imgui.Button(u8'Отыгровки оружия', imgui.ImVec2(165, 20)) then set_item.v = 1 end
+					if imgui.Button(u8'ОТЫГРОВКИ ОРУЖИЯ', imgui.ImVec2(165, 20)) then set_item.v = 1 end
 					imgui.SameLine()
-					if imgui.Button(u8'Мелкие отыгровки', imgui.ImVec2(170, 20)) then set_item.v = 2 end
+					if imgui.Button(u8'МЕЛКИЕ ОТЫГРОВКИ', imgui.ImVec2(170, 20)) then set_item.v = 2 end
 
-					if imgui.Button(u8'Улучшенные диалоги', imgui.ImVec2(255, 20)) then set_item.v = 3 end
+					if imgui.Button(u8'УЛУЧШЕННЫЕ ДИАЛОГИ', imgui.ImVec2(255, 20)) then set_item.v = 3 end
 					imgui.SameLine()
-					if imgui.Button(u8'Дополнительно', imgui.ImVec2(255, 20)) then set_item.v = 4 end
+					if imgui.Button(u8'ДОПОЛНИТЕЛЬНО', imgui.ImVec2(255, 20)) then set_item.v = 4 end
 					
-					if imgui.Button(u8'Изменение команд', imgui.ImVec2(255, 20)) then set_item.v = 5 end
+					if imgui.Button(u8'ИЗМЕНЕНИЕ КОМАНД', imgui.ImVec2(255, 20)) then set_item.v = 5 end
 					imgui.SameLine()
-					if imgui.Button(u8'Изменение горячих клавиш', imgui.ImVec2(255, 20)) then set_item.v = 6 end
+					if imgui.Button(u8'ИЗМЕНЕНИЕ ГОРЯЧИХ КЛАВИШ', imgui.ImVec2(255, 20)) then set_item.v = 6 end
 					
-					if imgui.Button(u8'Модификации', imgui.ImVec2(515, 20)) then set_item.v = 7 end
+					if imgui.Button(u8'МОДИФИКАЦИИ', imgui.ImVec2(515, 20)) then set_item.v = 7 end
 					
 					
 					if set_item.v == 0 then
@@ -3039,64 +3041,7 @@ function imgui.OnDrawFrame()
 					end
 					
 					if set_item.v == 1 then
-						if ini.set.rpweapon then
-							if ini.set.halfrpweapon then
-								if imgui.Button(u8'Полуавтоматические отыгровки оружия', imgui.ImVec2(515, 20)) then
-									ini.set.halfrpweapon = false
-									ini.set.autorpweapon = true
-									inicfg.save(ini, 'Helper for MIA.ini') 
-								end
-							else
-								if imgui.Button(u8'Автоматические отыгровки оружия', imgui.ImVec2(515, 20)) then
-									ini.set.halfrpweapon = true
-									ini.set.autorpweapon = false
-									inicfg.save(ini, 'Helper for MIA.ini')
-								end
-							end
-							
-							imgui.Text('')
-							
-							imgui.BeginChild('##first_block', imgui.ImVec2(120, 170), true)
-								imgui.PushItemWidth(110)
-								if imgui.ListBox('##weapons', weaponid, weapon, 7) then
-									if weapons.get_name(weaponid.v + 1) ~= nil then
-										rpweaponid = weaponid.v + 1
-										local _, t = sampWeaponScene(rpweaponid)
-										local _, to = sampWeaponSceneOff(rpweaponid)
-										
-										takeweap.v, takeweapoff.v = u8(t), u8(to)
-									end
-								end
-							imgui.EndChild()
-							
-							imgui.SameLine()
-							
-							imgui.BeginChild('##second_block', imgui.ImVec2(400, 150), true)
-								imgui.TextColoredRGB(string.format('{EEEEEE}Оружие, выбранное для редактирования: {B22222}%s', weapons.get_name(rpweaponid)))
-								
-								imgui.PushItemWidth(385)
-								imgui.Text(u8'> Отыгровки при взятие оружия в руки')
-								imgui.InputText('##takeweap', takeweap)
-								imgui.Text(u8'< Отыгровки при скрытие оружия')
-								imgui.InputText('##takeweapoff', takeweapoff)
-								
-								if imgui.Button(u8'Сохранить', imgui.ImVec2(385, 20)) then
-									local wname = weapons.get_name(rpweaponid)
-									if wname == '9mm' then wname = 'p9mm' end
-									local wname = string.gsub(wname, '-', '_')
-									local wname = string.gsub(wname, ' ', '_')
-									
-									ini.rpweapon[wname]     = u8:decode(takeweap.v)
-									ini.rpweaponoff[wname]  = u8:decode(takeweapoff.v)
-									inicfg.save(ini, 'Helper for MIA.ini')
-									
-									pushMessage('Отыгровка успешно сохранена.', 3, 4)
-								end
-							imgui.EndChild()
-						else
-							imgui.Text('')
-							imgui.CenterTextColoredRGB('Вам недоступен данный подраздел.')
-						end
+						draw_settings_rpweapon()
 					end
 					
 					if set_item.v == 2 then
@@ -3140,17 +3085,17 @@ function imgui.OnDrawFrame()
 					
 					imgui.Text('')
 					
-					if imgui.Button(u8'Подгрузить', imgui.ImVec2(170, 20)) then
+					if imgui.Button(u8'ПОДГРУЗИТЬ', imgui.ImVec2(170, 20)) then
 						local line = ''
 						for val in io.lines('moonloader//helper//Admins.txt') do line = string.format('%s%s\n', line, val) end
 						admins.v = u8(line)
 					end
 					imgui.SameLine()
-					if imgui.Button(u8'Редактировать', imgui.ImVec2(160, 20)) then
+					if imgui.Button(u8'РЕДАКТИРОВАТЬ', imgui.ImVec2(160, 20)) then
 						editor.v = not editor.v
 					end
 					imgui.SameLine()
-					if imgui.Button(u8'Сохранить', imgui.ImVec2(170, 20)) and editor.v then
+					if imgui.Button(u8'СОХРАНИТЬ', imgui.ImVec2(170, 20)) and editor.v then
 						local filew = io.open('moonloader//helper//Admins.txt', 'w')
 						filew:write(u8:decode(admins.v))
 						filew:close()
@@ -3159,7 +3104,7 @@ function imgui.OnDrawFrame()
 					imgui.Text('')
 					
 					if editor.v then
-						imgui.PushItemWidth(420)
+						imgui.PushItemWidth(490)
 						imgui.InputTextMultiline('##admins', admins, imgui.ImVec2(-1, imgui.GetTextLineHeight() * 33))
 					else
 						imgui.Text(admins.v)
@@ -3208,11 +3153,11 @@ function imgui.OnDrawFrame()
 					imgui.Text('')
 					
 					if spypass.v then
-						if imgui.Button(u8'Включить отображение паролей', imgui.ImVec2(515, 20)) then
+						if imgui.Button(u8'ВКЛЮЧИТЬ ОТОБРАЖЕНИЕ ПАРОЛЕЙ', imgui.ImVec2(515, 20)) then
 							spypass.v = false
 						end
 					else
-						if imgui.Button(u8'Скрыть отображение паролей', imgui.ImVec2(515, 20)) then
+						if imgui.Button(u8'СКРЫТЬ ОТОБРАЖЕНИЕ ПАРОЛЕЙ', imgui.ImVec2(515, 20)) then
 							spypass.v = true
 						end
 					end
@@ -3251,7 +3196,7 @@ function imgui.OnDrawFrame()
 					
 					imgui.SameLine()
 					
-					if imgui.Button(u8'Найти', imgui.ImVec2(115, 20)) then
+					if imgui.Button(u8'НАЙТИ', imgui.ImVec2(115, 20)) then
 						if string.match(idnews.v, '(%d+)') then
 							if doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
 								pushMessage('Новость найдена и открыта для настройки', 3, 4)
@@ -3282,7 +3227,7 @@ function imgui.OnDrawFrame()
 					
 					imgui.SameLine()
 					
-					if imgui.Button(u8'Создать', imgui.ImVec2(120, 20)) then
+					if imgui.Button(u8'СОЗДАТЬ', imgui.ImVec2(120, 20)) then
 						if string.match(idnews.v, '(%d+)') then
 							if not doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
 								pushMessage('Новость создана и открыта для настройки', 3, 4)
@@ -3302,7 +3247,7 @@ function imgui.OnDrawFrame()
 					
 					imgui.SameLine()
 					
-					if imgui.Button(u8'Сохранить', imgui.ImVec2(115, 20)) then
+					if imgui.Button(u8'СОХРАНИТЬ', imgui.ImVec2(115, 20)) then
 						if string.match(idnews.v, '(%d+)') then
 							if doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
 								local file = string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)
@@ -3740,6 +3685,89 @@ function draw_another_settings()
 	end
 end
 
+function draw_settings_rpweapon()
+	if ini.set.rpweapon then
+		imgui.Text('')
+	
+		if ini.set.halfrpweapon then
+			if imgui.Button(u8'ПОЛУАВТОМАТИЧЕСКИЕ ОТЫГРОВКИ ОРУЖИЯ', imgui.ImVec2(300, 20)) then
+				ini.set.halfrpweapon = false
+				ini.set.autorpweapon = true
+				inicfg.save(ini, 'Helper for MIA.ini') 
+			end
+		else
+			if imgui.Button(u8'АВТОМАТИЧЕСКИЕ ОТЫГРОВКИ ОРУЖИЯ', imgui.ImVec2(300, 20)) then
+				ini.set.halfrpweapon = true
+				ini.set.autorpweapon = false
+				inicfg.save(ini, 'Helper for MIA.ini')
+			end
+		end imgui.SameLine()
+		
+		if imgui.Button(u8'СОХРАНИТЬ', imgui.ImVec2(210, 20)) then
+			local wname = weapons.get_name(rpweaponid)
+			if wname == '9mm' then wname = 'p9mm' end
+			local wname = string.gsub(wname, '-', '_')
+			local wname = string.gsub(wname, ' ', '_')
+				
+			ini.rpweapon[wname]     = u8:decode(takeweap.v)
+			ini.rpweaponoff[wname]  = u8:decode(takeweapoff.v)
+			inicfg.save(ini, 'Helper for MIA.ini')
+									
+			pushMessage('Отыгровка успешно сохранена.', 3, 4)
+		end
+		
+		imgui.CenterTextColoredRGB(string.format('{EEEEEE}Оружие, выбранное для редактирования: {B22222}%s', weapons.get_name(rpweaponid)))
+			
+		imgui.PushItemWidth(515)
+		imgui.CenterTextColoredRGB('Отыгровки при взятие оружия в руки.')
+		imgui.InputText('##takeweap', takeweap) 
+		imgui.CenterTextColoredRGB('Отыгровки при скрытие оружия из рук.')
+		imgui.InputText('##takeweapoff', takeweapoff)
+		
+		imgui.BeginChild('##fisrt_block', imgui.ImVec2(165, 225), true)
+			imgui.Columns(2)
+			imgui.Separator()
+			imgui.SetColumnWidth(-1, 125) imgui.CenterColumnText(u8'НАЗВАНИЕ') imgui.NextColumn()
+			imgui.SetColumnWidth(-1, 30) imgui.CenterColumnText(u8'ID') imgui.NextColumn()
+			
+			for i = 1, 46 do
+				if weapons.get_name(i) ~= nil then 
+					local name_weap = weapons.get_name(i) 
+					
+					imgui.Separator()
+					
+					if rpweaponid ~= i then
+						if imgui.Button(u8(name_weap), imgui.ImVec2(115, 18)) then
+							rpweaponid = i
+						end 
+					else
+						imgui.Button(u8'• ' .. name_weap, imgui.ImVec2(115, 18))
+					end imgui.NextColumn()
+					imgui.CenterColumnText(tostring(i)) imgui.NextColumn()
+				end
+			end
+			
+			imgui.Separator()
+		imgui.EndChild() imgui.SameLine()
+		
+		imgui.BeginChild('##second_block', imgui.ImVec2(390, 225), true)
+			imgui.Text(u8'Для начала редактирования нужно выбрать оружие')
+			imgui.Text(u8'из списка левее и после этого в строках заполнить')
+			imgui.Text(u8'отыгровки, которые будут проигроватся, если вы')
+			imgui.Text(u8'возьмёте оружие в руки или активируйте их клавишей.')
+			imgui.Text('')
+			imgui.Text(u8'Так же можно переключить режим работы отыгровок')
+			imgui.Text(u8'на автоматический или полуавтоматический.')
+			imgui.Text(u8'С авто-отыгровками всё понятно, полуавтоматические')
+			imgui.Text(u8'срабатывают тогда, когда вы активируйте их клавишей')
+			imgui.Text(u8'или нацеливайтесь с помощью оружия.')
+		imgui.EndChild()
+	else
+		imgui.Text('')
+		imgui.CenterTextColoredRGB('Вам недоступен данный подраздел.')
+	end
+end
+
 function draw_uk_list()
 	imgui.Begin(u8'Уголовный кодекс • Helper for MIA', show_uk_list, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 		for name, val in pairs(smart_suspect.text) do
@@ -3764,35 +3792,57 @@ end
 
 function draw_add_autoweapons()
 	if ini.set.autoweapon then
-		imgui.Columns(3)
-		imgui.Separator()
-		
-		imgui.SetColumnWidth(-1, 60) imgui.CenterColumnText(u8'ON • OFF') imgui.NextColumn()
-		imgui.SetColumnWidth(-1, 60) imgui.CenterColumnText(u8'x2') imgui.NextColumn()
-		imgui.SetColumnWidth(-1, 410) imgui.CenterColumnText(u8'НАЗВАНИЕ') imgui.NextColumn()
-		
-		for i, val in pairs(InfoWeapon) do
+		imgui.BeginChild('##first_block', imgui.ImVec2(300, 350), true)
+			imgui.Columns(3)
 			imgui.Separator()
-			imgui.SetCursorPosX((imgui.GetColumnOffset() + (imgui.GetColumnWidth() / 2)) - 15)
-			if imgui.ToggleButton('##' .. val[1], imgui.ImBool(ini.weapons[val[3]])) then
-				ini.weapons[val[3]] = not ini.weapons[val[3]]
-				inicfg.save(ini, 'Helper for MIA.ini')
-			end imgui.NextColumn()
 			
-			if type(ini.weapons[val[4]]) == ('boolean') then
+			imgui.SetColumnWidth(-1, 60) imgui.CenterColumnText(u8'ON • OFF') imgui.NextColumn()
+			imgui.SetColumnWidth(-1, 60) imgui.CenterColumnText(u8'x2') imgui.NextColumn()
+			imgui.SetColumnWidth(-1, 170) imgui.CenterColumnText(u8'НАЗВАНИЕ') imgui.NextColumn()
+			
+			for i, val in pairs(InfoWeapon) do
+				imgui.Separator()
 				imgui.SetCursorPosX((imgui.GetColumnOffset() + (imgui.GetColumnWidth() / 2)) - 15)
-				if imgui.ToggleButton('##1' .. val[1], imgui.ImBool(ini.weapons[val[4]])) then
-					ini.weapons[val[4]] = not ini.weapons[val[4]]
+				if imgui.ToggleButton('##' .. val[1], imgui.ImBool(ini.weapons[val[3]])) then
+					ini.weapons[val[3]] = not ini.weapons[val[3]]
 					inicfg.save(ini, 'Helper for MIA.ini')
-				end
-			else
-				imgui.CenterColumnText('~')
-			end imgui.NextColumn()
+				end imgui.NextColumn()
+				
+				if type(ini.weapons[val[4]]) == ('boolean') then
+					imgui.SetCursorPosX((imgui.GetColumnOffset() + (imgui.GetColumnWidth() / 2)) - 15)
+					if imgui.ToggleButton('##1' .. val[1], imgui.ImBool(ini.weapons[val[4]])) then
+						ini.weapons[val[4]] = not ini.weapons[val[4]]
+						inicfg.save(ini, 'Helper for MIA.ini')
+					end
+				else
+					imgui.CenterColumnText('~')
+				end imgui.NextColumn()
+				
+				imgui.Text('  ' .. u8(val[1])) imgui.NextColumn()
+			end
+		imgui.EndChild()
+		
+		imgui.SameLine()
+		
+		imgui.BeginChild('##second_block', imgui.ImVec2(300, 350), true)
+			imgui.Text(u8'Переключая выключить ON - OFF')
+			imgui.Text(u8'можно включить авто-получение')
+			imgui.Text(u8'оружия на складе ПД, ФБР и т.д.')
+			imgui.Text(u8'Включая множитель x2 можно')
+			imgui.Text(u8'удваивать количество патрон')
+			imgui.Text(u8'взятых на складе.')
 			
-			imgui.Text('  ' .. u8(val[1])) imgui.NextColumn()
-		end
-	else
-		imgui.CenterTextColoredRGB('Вам недоступен данный подраздел.')
+			imgui.Text('')
+			
+			imgui.Text(u8'Патроны полученные множителем')
+			imgui.Text(u8'не являются валидными, хоть и')
+			imgui.Text(u8'получены от сервера. Их нельзя')
+			imgui.Text(u8'положить в шкаф, продать...')
+			imgui.Text(u8'Не стоит злоупотреблять')
+			imgui.Text(u8'множителем боеприпасов, это')
+			imgui.Text(u8'может привести к различным')
+			imgui.Text(u8'последствиям.')
+		imgui.EndChild()
 	end
 end
 
@@ -3910,48 +3960,65 @@ end
 
 function draw_commands_settings()
 	imgui.Text('')
-	imgui.CenterTextColoredRGB('ИЗМЕНЕНИЕ КОМАНД')
 	
-	imgui.Text('')
-	
-	imgui.BeginChild('##first_block', imgui.ImVec2(120, 170), true)
-		imgui.PushItemWidth(110)
-		if imgui.ListBox('##cmdid', commandid, command_t, 7) then end
-	imgui.EndChild()
-	
-	imgui.SameLine()
-	
-	imgui.BeginChild('##second_block', imgui.ImVec2(400, 170), true)
-		imgui.TextColoredRGB(string.format('{EEEEEE}Команда, выбранная для редактирования: {B22222}%s', command_t[commandid.v + 1]))
-		
-		local c, cu = string.match(ini.cmd[command_t[commandid.v + 1]], '(.+) | (.+)')
-		
-		imgui.PushItemWidth(385)
-		imgui.Text(u8'Команда активации (команда скрипта)')
-		ShowHelpMarker('Например, при вводе /cuff происходит выполнение отыгровки.')
-		imgui.InputText('##cmdinp', cmdinp)
-		imgui.Text(u8'Команда, использующиеся сервером (команда сервера)')
-		ShowHelpMarker('Например, при вводе /cuff происходит выполнение отыгровки и после этого вводится серверная команда /cuff, которую и нужно тут указать.')
-		if cu == '-1' then
-			imgui.Button(u8'Не изменяется', imgui.ImVec2(400, 20))
-		else
-			imgui.InputText('##cmduse', cmduse)
-		end
-		
-		if imgui.Button(u8'Сохранить', imgui.ImVec2(400, 20)) then
-			if cmdinp.v ~= '' and (cmduse.v ~= '' or cu == '-1') then
-				if cu ~= '-1' then
-					ini.cmd[command_t[commandid.v + 1]] = string.format('%s | %s', u8:decode(cmdinp.v), u8:decode(cmduse.v))
-				else
-					ini.cmd[command_t[commandid.v + 1]] = string.format('%s | -1', u8:decode(cmdinp.v))
-				end
-				inicfg.save(ini, 'Helper for MIA.ini')
-				
-				pushMessage('Команда успешно сохранена. Изменения вступят в силу после перезагрузки.', 5, 4)
+	if imgui.Button(u8'СОХРАНИТЬ', imgui.ImVec2(515, 20)) then
+		if cmdinp.v ~= '' and (cmduse.v ~= '' or cu == '-1') then
+			if cu ~= '-1' then
+				ini.cmd[command_t[commandid.v]] = string.format('%s | %s', u8:decode(cmdinp.v), u8:decode(cmduse.v))
 			else
-				pushMessage('Поля должны быть заполнены.', 3, 3)
+				ini.cmd[command_t[commandid.v]] = string.format('%s | -1', u8:decode(cmdinp.v))
 			end
+			inicfg.save(ini, 'Helper for MIA.ini')
+				
+			pushMessage('Команда успешно сохранена. Изменения вступят в силу после перезагрузки.', 5, 4)
+		else
+			pushMessage('Поля должны быть заполнены.', 3, 3)
 		end
+	end
+	
+	imgui.CenterTextColoredRGB(string.format('{EEEEEE}Команда, выбранная для редактирования: {B22222}%s', command_t[commandid.v]))
+	
+	imgui.PushItemWidth(515)
+	imgui.CenterTextColoredRGB('Команда активации (команда скрипта)')
+	ShowHelpMarker('Например, при вводе /cuff происходит выполнение отыгровки.')
+	imgui.InputText('##cmdinp', cmdinp)
+	imgui.CenterTextColoredRGB('Команда, использующиеся сервером (команда сервера)')
+	ShowHelpMarker('Например, при вводе /cuff происходит выполнение отыгровки и после этого вводится серверная команда /cuff, которую и нужно тут указать.')
+	if cu == '-1' then
+		imgui.Button(u8'НЕ ИЗМЕНЯЕТСЯ', imgui.ImVec2(515, 20))
+	else
+		imgui.InputText('##cmduse', cmduse)
+	end
+	
+	imgui.BeginChild('##fisrt_block', imgui.ImVec2(165, 225), true)
+		imgui.Columns(2)
+		imgui.Separator()
+		imgui.SetColumnWidth(-1, 125) imgui.CenterColumnText(u8'НАЗВАНИЕ') imgui.NextColumn()
+		imgui.SetColumnWidth(-1, 30) imgui.CenterColumnText(u8'ID') imgui.NextColumn()
+
+		for id, name in pairs(command_t) do
+			imgui.Separator()
+			
+			if imgui.Button(tostring(u8(name)), imgui.ImVec2(115, 20)) then
+				commandid.v = id
+				c, cu = string.match(ini.cmd[command_t[commandid.v]], '(.+) | (.+)')
+			end imgui.NextColumn()
+			
+			imgui.Text(tostring(id)) imgui.NextColumn()
+		end
+	imgui.EndChild() imgui.SameLine()
+		
+	imgui.BeginChild('##second_block', imgui.ImVec2(390, 225), true)
+		imgui.Text(u8'Для изменения активации команд выберите нужную')
+		imgui.Text(u8'команду в списке левее. После в первой строке')
+		imgui.Text(u8'введите ту команду, которая должна быть введена')
+		imgui.Text(u8'ВАМИ, т.е. команду, которую использует скрипт.')
+		imgui.Text(u8'Во второй строке введите команду, которая')
+		imgui.Text(u8'используется сервером.')
+		imgui.Text('')
+		imgui.Text(u8'Учтите, что некоторые команды используется как')
+		imgui.Text(u8'скриптом, так и сервером. Например /cuff')
+		imgui.Text(u8'она есть и в скрипте, и на сервере.')
 	imgui.EndChild()
 end 
 
@@ -3973,13 +4040,13 @@ function draw_head_page()
 			
 			imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ОБНОВЛЕНИИ')
 			
+			imgui.Text(u8'Изменён внешний дизайн расширенных настроек.')
 			imgui.Text(u8'Добавлена базовая кастомизация.')
 			imgui.Text(u8'Добавлен новый пункт в разделе модификаций.')
 			imgui.Text(u8'Добавлена смена режимов CamHack`a на клавишу O.')
 			imgui.Text(u8'Добавлены поворотники для автомобилей, активация B и M.')
 			imgui.Text(u8'Добавлен раздел модификаций в расширенных настройках.')
 			imgui.Text(u8'Добавлена возможность использовать уличные фонари и эффекты для CamHack`a.')
-			imgui.Text(u8'Добавлена возможность использовать умный розыск с помощь /su id.')
 			
 		imgui.EndChild()
 		
@@ -5382,10 +5449,6 @@ function urlencode(str)
 end
 
 function attempToGetFileAndDir()
-	for i = 1, 46 do
-		if weapons.get_name(i) == nil then weapon[i] = 'NOT FOUND' else weapon[i] = weapons.get_name(i) end
-	end
-	
 	for val in pairs(ini.cmd) do
 		command_t[#command_t + 1] = val
 	end

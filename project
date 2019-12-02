@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(12.5)
+script_version(12.6)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -708,7 +708,7 @@ function main()
 	
 	sampRegisterChatCommand('nhold', function(param)
 		if not param:match('(%d+)') then SCM('Используйте команду /nhold [ид игрока]') else sampSendChat('/hold '..param) end
-	end) 
+	end)
 	sampRegisterChatCommand('nfollow', function() 
 		sampSendChat('/follow')
 	end)
@@ -2564,47 +2564,49 @@ function command_su(param)
 end
 
 function command_users()
-	async_http_request('GET', 'https://raw.githubusercontent.com/skezz-perry/project/master/users', nil,
-		function(response)
-			users = response.text
-	end)
-		
-	local dline = 'Имя\tСтатус\tДополнительно\n'
-	local all = 0
-	local online = 0
+	if player_status > 2 then
+		async_http_request('GET', 'https://raw.githubusercontent.com/skezz-perry/project/master/users', nil,
+			function(response)
+				users = response.text
+		end)
+			
+		local dline = 'Имя\tСтатус\tДополнительно\n'
+		local all = 0
+		local online = 0
 
-	for line in string.gmatch(users, "[^\n]+") do
-		if string.match(line, '(.+) | (.+) | (.+) | (.+)') then
-			local name, rang, nrang = string.match(line, '(.+) | (.+) | (.+) | (.+)')
-			local rang = u8:decode(rang)
-			local id = sampGetPlayerIdByNickname(name)
-			all = all + 1
-				
-			local rang = string.format('%s %s', getColorRang(nrang), rang)
-				
-			if id == 'offline' then
-				dline = string.format('%s{696969}%s\t{696969}%s ранг. %s\t{ff5c33}Оффлайн\n', dline, name, player_rang[name], rang)
-			else
-				local res, ped = sampGetCharHandleBySampPlayerId(id)
-				online = online + 1
-				
-				if res then
-					local dist = math.floor(sampGetDistance(PLAYER_PED, id))
+		for line in string.gmatch(users, "[^\n]+") do
+			if string.match(line, '(.+) | (.+) | (.+) | (.+)') then
+				local name, rang, nrang = string.match(line, '(.+) | (.+) | (.+) | (.+)')
+				local rang = u8:decode(rang)
+				local id = sampGetPlayerIdByNickname(name)
+				all = all + 1
 					
-					if sampIsPlayerPaused(id) then
-						dline = string.format('%s{%s}%s[%d]\t%s ранг. %s\t{ff5c33}Дист: %d м\n', dline, sampGetColor(id), name, id, player_rang[name], rang, dist)
-					else
-						dline = string.format('%s{%s}%s[%d]\t%s ранг. %s\t{00cc99}Дист: %d м\n', dline, sampGetColor(id), name, id, player_rang[name], rang, dist)
-					end
+				local rang = string.format('%s %s', getColorRang(nrang), rang)
+					
+				if id == 'offline' then
+					dline = string.format('%s{696969}%s\t{696969}%s ранг. %s\t{ff5c33}Оффлайн\n', dline, name, player_rang[name], rang)
 				else
-					dline = string.format('%s{%s}%s[%d]\t%s ранг. %s\t{00cc99}Онлайн\n', dline, sampGetColor(id), name, id, player_rang[name], rang)
+					local res, ped = sampGetCharHandleBySampPlayerId(id)
+					online = online + 1
+					
+					if res then
+						local dist = math.floor(sampGetDistance(PLAYER_PED, id))
+						
+						if sampIsPlayerPaused(id) then
+							dline = string.format('%s{%s}%s[%d]\t%s ранг. %s\t{ff5c33}Дист: %d м\n', dline, sampGetColor(id), name, id, player_rang[name], rang, dist)
+						else
+							dline = string.format('%s{%s}%s[%d]\t%s ранг. %s\t{00cc99}Дист: %d м\n', dline, sampGetColor(id), name, id, player_rang[name], rang, dist)
+						end
+					else
+						dline = string.format('%s{%s}%s[%d]\t%s ранг. %s\t{00cc99}Онлайн\n', dline, sampGetColor(id), name, id, player_rang[name], rang)
+					end
 				end
 			end
 		end
+			
+		local caption = string.format('{ffffff}Всего пользователей {FFCD00}%d чел. {00CC66}(онлайн %d)', all, online)
+		sampShowDialog(1001, caption, dline, 'Закрыть', '', 5)
 	end
-		
-	local caption = string.format('{ffffff}Всего пользователей {FFCD00}%d чел. {00CC66}(онлайн %d)', all, online)
-	sampShowDialog(1001, caption, dline, 'Закрыть', '', 5)
 end
 
 function command_admins()

@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(12.6)
+script_version(12.7)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -528,6 +528,7 @@ local command_t          = {}
 local static_camera      = {}
 local mark_vehicle       = {}
 local smart_suspect      = {id = nil, text = {}}
+local smart_ticket       = {id = nil, text = {}}
 local param_cmd          = 0
 local last_sms           = 0
 local lweap              = 0
@@ -549,7 +550,9 @@ local piemenu            = imgui.ImBool(false)
 local show_help          = imgui.ImBool(false)
 local show_info          = imgui.ImBool(false)
 local show_suspect       = imgui.ImBool(false)
+local show_ticket        = imgui.ImBool(false)
 local show_uk_list       = imgui.ImBool(false)
+local show_ak_list       = imgui.ImBool(false)
 local show_uk_edit       = imgui.ImBool(false)
 local vfilt              = imgui.ImBool(false)
 local lines              = imgui.ImBool(false)
@@ -874,7 +877,7 @@ function main()
 			end
 		end
 		
-		if show_menu.v or piemenu.v or show_info.v or show_suspect.v or show_uk_list.v then
+		if show_menu.v or piemenu.v or show_info.v or show_suspect.v or show_uk_list.v or show_ticket.v or show_ak_list.v then
 			imgui.Process = true
 		else
 			imgui.Process = false
@@ -1948,7 +1951,7 @@ end
 function command_ak(text)
 	local cmd, ucmd = string.match(ini.cmd.ak, '(.+) | (.+)')
 
-	if not string.match(text, '(.+)') then SCM(string.format('Используйте команду /%s [часть или номер статьи]', cmd))
+	if not string.match(text, '(.+)') then show_ak_list.v = not show_ak_list.v
 	else
 		search_file('ak', text)
 	end
@@ -2371,6 +2374,22 @@ function command_ticket(param)
 			end
 		else
 			SCM('Вы ввели неверный ид игрока (игрок не авторизован)')
+		end
+	elseif string.match(param, '(%d+)') then
+		local id = string.match(param, '(%d+)')
+		if IPC(id) then
+			if sampGetDistance(PLAYER_PED, id) <= 5 then
+				if smart_ticket.text ~= nil then
+					smart_ticket.id = id
+					show_ticket.v = not show_ticket.v
+				else
+					SCM('Данная возможность Вам недоступна.')
+				end
+			else
+				SCM('Данный игрок находится слишком далеко от Вас.')
+			end
+		else
+			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 		end
 	else
 		SCM(string.format('Используйте команду /%s [ид игрока] [сумма] [причина]', cmd))
@@ -3407,12 +3426,28 @@ function imgui.OnDrawFrame()
 		draw_show_suspect()
 	end
 	
+	if show_ticket.v then
+		local w, h = getScreenResolution()
+		imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
+		imgui.SetNextWindowSize(imgui.ImVec2(600, 550))
+		
+		draw_show_ticket()
+	end
+	
 	if show_uk_list.v then
 		local w, h = getScreenResolution()
 		imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
 		imgui.SetNextWindowSize(imgui.ImVec2(600, 550))
 		
 		draw_uk_list()
+	end
+	
+	if show_ak_list.v then
+		local w, h = getScreenResolution()
+		imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
+		imgui.SetNextWindowSize(imgui.ImVec2(600, 550))
+		
+		draw_ak_list()
 	end
 	
 	if show_info.v then
@@ -3808,17 +3843,25 @@ local uk_path = {['Неподчинение сотруднику полиции'
 function draw_uk_list()
 	imgui.Begin(u8'Уголовный кодекс • Helper for MIA', show_uk_list, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 		for name, val in pairs(smart_suspect.text) do
-			if imgui.TreeNode(string.format(u8'СТАТЬЯ %d | %s', name, u8(val.name))) then
+			local named = u8(val.name)
+			if string.len(named) > 135 then
+				named = string.sub(named, 0, 135) .. '..'
+			end
+			
+			if imgui.TreeNode(string.format(u8'СТАТЬЯ %d | %s', name, named)) then
 				for i, item in ipairs(val.st) do
 					if string.match(item, '(.+) | (.+) | (.+)') then
 						local stars, reason, text = string.match(item, '(.+) | (.+) | (.+)')
 							
-						if imgui.Button(string.format('%s | %d | %s..', u8(reason), stars, string.sub(u8(text), 0, 120)), imgui.ImVec2(540, 20)) then
-							uk_static = {name = reason, stars = stars, info = text}
-							show_uk_edit.v = not show_uk_edit.v
+						local ttext = u8(text)
+						if string.len(ttext) > 120 then
+							ttext = string.sub(ttext, 0, 120) .. '..'
 						end
-						if (imgui.IsItemHovered()) then
-							imgui.SetTooltip(u8(text))
+
+						imgui.Button(string.format('%s | %d | %s', u8(reason), stars, ttext), imgui.ImVec2(540, 20))
+						
+						if string.len(u8(text)) > 120 then
+							ItemPovered(text)
 						end
 					else 
 						imgui.Text('Unexpected line.')
@@ -3902,6 +3945,95 @@ function draw_add_autoweapons()
 	end
 end
 
+function draw_ak_list()
+	imgui.Begin(u8'Кодекс о административных правонарушениях', show_ak_list, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
+		for name, val in pairs(smart_ticket.text) do
+			local named = u8(val.name)
+			if string.len(named) > 135 then
+				named = string.sub(named, 0, 135) .. '..'
+			end
+		
+			if imgui.TreeNode(string.format(u8'СТАТЬЯ %d | %s', name, named)) then
+				for i, item in ipairs(val.st) do
+					if string.match(item, '(.+) | (.+) | (.+)') then
+						local stars, reason, text = string.match(item, '(.+) | (.+) | (.+)')
+							
+						local ttext = u8(text)
+						if string.len(ttext) > 120 then
+							ttext = string.sub(ttext, 0, 120) .. '..'
+						end
+
+						imgui.Button(string.format('%s | %d | %s', u8(reason), stars, ttext), imgui.ImVec2(540, 20))
+						
+						if string.len(u8(text)) > 120 then
+							ItemPovered(text)
+						end
+					else 
+						imgui.Text('Unexpected line.')
+					end
+				end
+				imgui.TreePop()
+			end
+		end
+	imgui.End()
+end
+
+function draw_show_ticket()
+	local id = smart_ticket.id
+	if IPC(id) then
+		imgui.Begin(string.format(u8'Выдача штрафа %s [%d]', sampGetPlayerNickname(id), id), show_ticket, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
+			for name, val in pairs(smart_ticket.text) do
+				local named = u8(val.name)
+				if string.len(named) > 135 then
+					named = string.sub(named, 0, 135) .. '..'
+				end
+			
+				if imgui.TreeNode(string.format(u8'СТАТЬЯ %d | %s', name, named)) then
+					for i, item in ipairs(val.st) do
+						if string.match(item, '(.+) | (.+) | (.+)') then
+							local stars, reason, text = string.match(item, '(.+) | (.+) | (.+)')
+							
+							local ttext = u8(text)
+							if string.len(ttext) > 120 then
+								ttext = string.sub(ttext, 0, 120) .. '..'
+							end
+							
+							if imgui.Button(string.format('%s | %d | %s', u8(reason), stars, ttext), imgui.ImVec2(540, 20)) then
+								if stars == '-1' then
+									SCM('За данное нарушение не предусмотрено наказание.')
+								elseif stars == '-2' then
+									command_takelic(string.format('%d %s', id, reason))
+								else
+									if tonumber(stars) > 2000 then
+										SCM('За данное нарушение предусмотрен штраф суммой более {FFCD00}2.000${ffffff}.')
+										SCM('При желании вы можете выписать штраф ещё на {00CC66}' .. tonumber(stars) - 2000 .. '${ffffff}.')
+									end
+									
+									command_ticket(string.format('%d %d %s', id, stars, reason))
+								end
+							end
+							
+							if string.len(u8(text)) > 120 then
+								ItemPovered(text)
+							end
+						else 
+							imgui.Text('Unexpected line.')
+						end
+					end
+					imgui.TreePop()
+				else
+					if string.len(named) > 135 then
+						ItemPovered(val.name)
+					end
+				end
+			end
+		imgui.End()
+	else
+		SCM('Подозревамый пропал из зоны видимости.')
+		show_ticket.v = not show_ticket.v
+	end
+end
+
 function draw_show_suspect()
 	local id = smart_suspect.id
 	if IPC(id) then
@@ -3912,10 +4044,18 @@ function draw_show_suspect()
 						if string.match(item, '(.+) | (.+) | (.+)') then
 							local stars, reason, text = string.match(item, '(.+) | (.+) | (.+)')
 							
-							if imgui.Button(string.format('%s | %d | %s..', u8(reason), stars, string.sub(u8(text), 0, 120)), imgui.ImVec2(540, 20)) then
+							local ttext = u8(text)
+							if string.len(ttext) > 120 then
+								ttext = string.sub(ttext, 0, 120) .. '..'
+							end
+							
+							if imgui.Button(string.format('%s | %d | %s', u8(reason), stars, ttext), imgui.ImVec2(540, 20)) then
 								command_su(string.format('%d %d %s', id, stars, reason))
 							end
-							ItemPovered(text)
+							
+							if string.len(ttext) > 120 then
+								ItemPovered(text)
+							end
 						else 
 							imgui.Text('Unexpected line.')
 						end
@@ -4096,13 +4236,13 @@ function draw_head_page()
 			
 			imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ОБНОВЛЕНИИ')
 			
+			imgui.Text(u8'Добавлена возможность использовать /ticket с выбором пункта КоАП.')
 			imgui.Text(u8'Добавлена возможность настройки быстрого розыска в /ук.')
 			imgui.Text(u8'Изменён внешний дизайн расширенных настроек.')
 			imgui.Text(u8'Добавлена базовая кастомизация.')
 			imgui.Text(u8'Добавлен новый пункт в разделе модификаций.')
 			imgui.Text(u8'Добавлена смена режимов CamHack`a на клавишу O.')
 			imgui.Text(u8'Добавлены поворотники для автомобилей, активация B и M.')
-			imgui.Text(u8'Добавлен раздел модификаций в расширенных настройках.')
 			
 		imgui.EndChild()
 		
@@ -4920,17 +5060,22 @@ function kvadrat(X, Y, Z)
         [23] = "Ш",
         [24] = "Я",
     }
+	
 	if X == nil then
 		X, Y, Z = getCharCoordinates(playerPed)
 	end
 	
-    X = math.ceil((X + 3000) / 250)
-    Y = math.ceil((Y * - 1 + 3000) / 250)
-    Y = KV[Y]
-    local KVX = (Y.."-"..X)
-	
-	if KVX ~= nil then
-		return KVX
+	if X ~= nil and Y ~= nil and Z ~= nil then
+		X = math.ceil((X + 3000) / 250)
+		Y = math.ceil((Y * - 1 + 3000) / 250)
+		Y = KV[Y]
+		local KVX = (Y.."-"..X)
+		
+		if KVX ~= nil then
+			return KVX
+		else
+			return ''
+		end
 	else
 		return ''
 	end
@@ -5507,6 +5652,8 @@ function urlencode(str)
 end
 
 function attempToGetFileAndDir()
+	print('Проверка целостности и актуальности данных. Заполнение основных таблиц...')
+
 	for val in pairs(ini.cmd) do
 		command_t[#command_t + 1] = val
 	end
@@ -5517,11 +5664,13 @@ function attempToGetFileAndDir()
 		local path = string.format('moonloader//%s', val)
 		if not doesDirectoryExist(path) then
 			createDirectory(path)
+			print(string.format('Директории %s не было обнаружено, исправляем...', path))
 		end
 	end
 	
 	local ip = sampGetCurrentServerAddress()
 	local url_uk = string.format('https://raw.githubusercontent.com/skezz-perry/files/master/%s_of_uk', ip)
+	local url_ak = string.format('https://raw.githubusercontent.com/skezz-perry/files/master/%s_of_ak', ip)
 	
 	async_http_request('GET', url_uk, nil, 
 		function(response)
@@ -5532,7 +5681,7 @@ function attempToGetFileAndDir()
 					local stars, reason, text = string.match(line, '(.+) | (.+) | (.+)')
 					local tab, n_tab = string.match(reason, '(%d+).(%d+)')
 					if smart_suspect.text[tonumber(tab)] == nil then
-						table.insert(smart_suspect.text, tonumber(tab), {name = '', st = {}})
+						table.insert(smart_suspect.text, tonumber(tab), {name = '', st = {}}) 
 					end
 					
 					table.insert(smart_suspect.text[tonumber(tab)].st, tonumber(n_tab), line)
@@ -5548,6 +5697,33 @@ function attempToGetFileAndDir()
 		end, 
 		function(error) 
 			print('При попытке обновления уголовного кодекса произошла ошибка, для вашего сервера нет настроек.')
+	end)
+	
+	async_http_request('GET', url_ak, nil, 
+		function(response)
+			for line in string.gmatch(response.text, '[^\n]+') do
+				local line = u8:decode(line)
+				
+				if string.match(line, '(.+) | (.+) | (.+)') then
+					local stars, reason, text = string.match(line, '(.+) | (.+) | (.+)')
+					local tab, n_tab = string.match(reason, '(%d+).(%d+)')
+					if smart_ticket.text[tonumber(tab)] == nil then
+						table.insert(smart_ticket.text, tonumber(tab), {name = '', st = {}}) 
+					end
+					
+					table.insert(smart_ticket.text[tonumber(tab)].st, tonumber(n_tab), line)
+				elseif string.match(line, 'СТАТЬЯ[%s](.+)[%s]|[%s](.+)') then
+					local tab, name = string.match(line, 'СТАТЬЯ[%s](.+)[%s]|[%s](.+)')
+					
+					if smart_ticket.text[tonumber(tab)] == nil then
+						table.insert(smart_ticket.text, tonumber(tab), {name = name, st = {}})
+					end
+				end
+			end
+			print(string.format('Кодекс о административных правонарушениях был заполнен на %d элемент(-ов).', #smart_ticket.text))
+		end, 
+		function(error) 
+			print('При попытке обновления кодекса о административных правонарушениях произошла ошибка, для вашего сервера нет настроек.')
 	end)
 end
 
@@ -5819,8 +5995,8 @@ function ItemPovered(text)
 	if (imgui.IsItemHovered()) then
 		local line = ' '
 		
-		for i = 0, string.len(text) / 80 do
-			line = string.format('%s\n%s', line, string.sub(text, i * 80, i * 80 + 79))
+		for i = 0, string.len(text) / 100 do
+			line = string.format('%s\n%s', line, text:sub(i * 100, i * 100 + 99))
 		end
 		line = line:gsub(' \n', '')
 		
@@ -6869,12 +7045,16 @@ function sampev.onSetPlayerColor(playerId, color)
 	end
 end
 
-addEventHandler("onWindowMessage", function (msg, wparam, lparam)
+addEventHandler('onWindowMessage', function (msg, wparam, lparam)
     if wparam == KEY.VK_ESCAPE then
-		if show_menu.v or piemenu.v or show_info.v or show_suspect.v or show_uk_list.v then
-			show_uk_edit.v, show_help.v = false, false
-			show_menu.v, piemenu.v, show_info.v, show_suspect.v, show_uk_list.v = false, false, false, false, false
+		if imgui.Process then
 			consumeWindowMessage(true, true)
+			
+			if show_uk_edit.v or show_help.v then
+				show_uk_edit.v, show_help.v = false, false
+			else
+				show_menu.v, piemenu.v, show_info.v, show_suspect.v, show_uk_list.v, show_ak_list.v, show_ticket.v = false, false, false, false, false, false, false
+			end
 		end
     end
 end)
@@ -6946,7 +7126,7 @@ function autoupdate(json_url, url) -- Author: http://qrlk.me/samp
                 downloadUrlToFile(updatelink, thisScript().path,
                   function(id3, status1, p13, p23)
                     if status1 == dlstatus.STATUS_DOWNLOADINGDATA then
-                      print(string.format('Загружено %d из %d.', p13, p23))
+                      --print(string.format('Загружено %d из %d.', p13, p23))
                     elseif status1 == dlstatus.STATUS_ENDDOWNLOADDATA then
 						decode()
 						SCM('Игровой помощник для МВД был автоматически обновлён до новейшей версии. Подробнее на главной странице.')

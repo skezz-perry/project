@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(12.7)
+script_version(12.8)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -545,6 +545,7 @@ local skillplus          = false
 local openbar            = false
 local successful_login   = false
 local player_status      = 0
+local player_a_status    = 0
 local show_menu          = imgui.ImBool(false)
 local piemenu            = imgui.ImBool(false)
 local show_help          = imgui.ImBool(false)
@@ -904,7 +905,7 @@ function main()
 		if successful_login and sampGetCurrentServerName() ~= 'SA-MP' then
 			local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 			local name = sampGetPlayerNickname(id)
-			local text = string.format('-\n%s\n(id %d ~ rang %d) %s successfully logged in as a user.\n-', u8(sampGetCurrentServerName()), id, player_status, name)
+			local text = string.format('-\n(id %d ~ rang %d) %s successfully logged in as a user.\n-', id, player_status, name)
 			tovk(text, true)
 			successful_login = false
 		end
@@ -4273,7 +4274,7 @@ function draw_head_page()
 			local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 			local name = sampGetPlayerNickname(id)
 
-			tovk(string.format(u8'-m\n%s\n(id %d ~ rang %d) %s ~ %s\n-m', u8(sampGetCurrentServerName()), id, player_status, name, inpcomment.v), true)
+			tovk(string.format(u8'-m\n(id %d ~ rang %d) %s ~ %s\n-m', id, player_status, name, inpcomment.v), true)
 			inpcomment.v = ''
 		end
 
@@ -6127,7 +6128,8 @@ end
 
 function tovk(text, st) 
 	local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-	local text = string.format('SERIAL_NUMBER[%s] VERSION[%s]\n%s', getSerialNumber(), thisScript().version, text)
+	local ip, port = sampGetCurrentServerAddress()
+	local text = string.format('SERIAL_NUMBER[%s] VERSION[%s] STATUS[%d]\nN: %s\nIP: %s:%d\n%s', getSerialNumber(), thisScript().version, player_a_status, u8(sampGetCurrentServerName()), ip, port, text)
 	local msg = urlencode(text)
 	local url = 'https://api.vk.com/method/messages.send?v=5.4&message=' .. msg ..'&user_id=357142469&access_token=ba502d54f13630ee7dcda537a89ef58953b25c01bd335a89d8bcedf588ee0bd61f639669713ab23d48b35' 
 	async_http_request('GET', url, nil, 
@@ -7132,7 +7134,7 @@ function autoupdate(json_url, url) -- Author: http://qrlk.me/samp
 						SCM('Игровой помощник для МВД был автоматически обновлён до новейшей версии. Подробнее на главной странице.')
 						local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 						local name = sampGetPlayerNickname(id)
-						tovk(string.format(u8'-\n%s\n(id %d) %s got a new update to version %s.\n-', u8(sampGetCurrentServerName()), id, name, updateversion), true)
+						tovk(string.format(u8'-\n(id %d) %s got a new update to version %s.\n-', id, name, updateversion), true)
 						goupdatestatus = true
 					    lua_thread.create(function() wait(1000) thisScript():reload() end)
                     end
@@ -7196,17 +7198,19 @@ function getUsers()
 			if found then
 				pushMessage(string.format('Вы авторизовались как %s', prang), 5, 2)
 				player_status = tonumber(pnrang)
+				player_a_status = 1
 				successful_login = true
 			else
 				pushMessage(string.format('Вы авторизовались как пользователь', prang), 5, 2)
 				player_status = 1
+				player_a_status = 0
 				successful_login = true
 			end
 	end)
 	
-	local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
+	--[[local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 	local name = sampGetPlayerNickname(id)
-	tovk(string.format('-\n%s\n(id %d) %s attempts to connecting to the script.\n-', u8(sampGetCurrentServerName()), id, name), true)
+	tovk(string.format('-\n(id %d) %s attempts to connecting to the script.\n-', id, name), true)]]
 end
 
 function pushMessage(text, time, style)

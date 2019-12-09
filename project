@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(12.8)
+script_version(12.9)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -75,77 +75,6 @@ local InfoWeapon = {{'Щит', false, 'shit', 'bshit', 1},
 	{'Снайперская винтовка', true, 'sniper', 'bsniper', 50},
 	{'Штурмовая винтовка M4', true, 'm4', 'bm4', 350},
 	{'АК-47', true, 'ak47', 'bak47', 350}
-}
-
-local commands = {
-	'КОМАНДА | УРОВЕНЬ | ОПИСАНИЕ',
-	'/r | 1 | Сообщение в обычную рацию',
-	'/rn | 1 | NRP-chat обычной рации',
-	'/f | 1 | Сообщение в общую волну',
-	'/fn | 1 | NRP-chat общей волны',
-	'/cuff | 1 | Надеть наручники на подозреваемого',
-	'/uncuff | 1 | Снять наручники с подозреваемого',
-	'/arrest | 1 | Отправить подозреваемого в департамент',
-	'/pull | 1 | Вытащить подозреваемого из автомобиля',
-	'/su | 1 | Объявить подозреваемого в розыск',
-	'/skip | 1 | Выдать временный пропуск игроку',
-	'/clear | 1 | Очистить уровень розыска для игрока',
-	'/follow | 1 | Начать прослушивание',
-	'/hold | 1 | Тащить игрока за собой',
-	'/ticket | 1 | Выписать штраф нарушителю',
-	'/takelic | 1 | Изъять лицензию на вождение',
-	'/rights | 1 | Зачитать права игроку',
-	'/putpl | 1 | Посадить подозреваемого в автомобиль',
-	'/search | 1 | Обыскать подозреваемого',
-	'/hack | 1 | Взломать дверь дома',
-	'/ud | 1 | Показать удостоверение',
-	'/pas | 1 | Запросить документы у игрока',
-	'/invite | 1 | Принять игрока в организацию',
-	'/uninvite | 1 | Уволить игрока из организации',
-	'/rang | 1 | Изменить ранг игрока',
-	'/changeskin | 1 | Изменить внешность игрока',
-	'  |   |  ',
-	'ДОП. КОМАНДА | УРОВЕНЬ | ОПИСАНИЕ',
-	'/mh | 1 | Открыть основное меню',
-	'/update | 1 | Информация о последнем обновлении',
-	'/admins | 2 | Открыть админ-список',
-	'/users | 1 | Открыть список пользователей',
-	'/gov | 4 | Отправить гос. новость',
-	'/rec | 1 | Переподключится к серверу',
-	'/recn | 1 | Переподключится к серверу со сменой ника',
-	'/recd | 1 | Переподключится к другому серверу',
-	'/account | 1 | Авто-подключение к серверу',
-	'/bl_name | 1 | Проверить никнейм на наличие в ЧС',
-	'/bl_hist | 1 | Проверить весь history на наличие в ЧС',
-	'/ainfo | 1 | Открыть информационное меню',
-	'/rkinfo | 1 | Получить информацию о RK',
-	'/rep | 1 | Быстрая отправка сообщения в репорт',
-	'/asms | 1 | Быстрая отправка SMS-сообщений',
-	'/addbl | 1 | Добавить в чёрный список телефона',
-	'/delbl | 1 | Удалить из чёрного списка телефона',
-	'/епк | 1 | Найти информацию о ЕПК',
-	'/устав | 1 | Найти информацию о УМВД',
-	'/sw | 1 | Изменить погоду',
-	'/st | 1 | Изменить время',
-	'/skin | 2 | Установить визуальный скин для игрока',
-	'/hist | 1 | Открыть history игрока по его ID',
-	'/strobes | 1 | Включить стробоскопы',
-	'  |   |  ',
-	'КЛАВИША | УРОВЕНЬ | ОПИСАНИЕ',
-	'NumPad3 | 1 | Открыть основное меню',
-	'ПКМ + 1 | 1 | Съесть еду',
-	'ПКМ + 2 | 1 | Открыть шлагбаум',
-	'ПКМ + 3 | 1 | Потребовать автомобиль остановится',
-	'ПКМ + 4 | 1 | Объявить о пешей погоне',
-	'ПКМ + 5 | 1 | Объявить игрока в розыск',
-	'ПКМ + Z | 1 | Быстрое меню (взаимод. с игроком)',
-	'ПКМ | 1 | Полу-автоматическая отыгровка оружия',
-	'Alt + R | 1 | Полу-автоматическая отыгровка оружия',
-	'C + 1 | 1 | Включить CamHack',
-	'C + 2 | 1 | Выключить CamHack',
-	'Z | 1 | Быстрое меню',
-	'Alt | 1 | Включить стробоскопы',
-	'L | 1 | Открыть или закрыть свою машину'
 }
 
 local frac = {
@@ -233,7 +162,8 @@ local ini = inicfg.load({
 		new_logo             = false,
 		logo_x               = 500,
 		logo_y               = 500,
-		color_line           = 0xFF4169E1
+		color_line           = 0xFF4169E1,
+		idforname            = false
 	},
 	uk_set = {
 		insubordination      = '3 | 31.2 УК', -- неподчинение
@@ -395,7 +325,6 @@ local ini = inicfg.load({
 		Text = 4294967295
 	},
 	cmd = {
-		admins = 'admins | -1',
 		r = 'r | r',
 		rn = 'rn | -1',
 		f = 'f | f',
@@ -589,7 +518,6 @@ local cmdinp             = imgui.ImBuffer(30)
 local inpcomment         = imgui.ImBuffer(1000)
 local search_place       = imgui.ImBuffer(1000)
 local text_cmd           = imgui.ImBuffer(9999)
-local admins             = imgui.ImBuffer(9999)
 local editor             = imgui.ImBool(false)
 
 function main()
@@ -600,7 +528,6 @@ function main()
 
 	attempToGetFileAndDir()
 	
-	sampRegisterChatCommand(string.match(ini.cmd.admins, '(.+) | (.+)'), command_admins)
 	sampRegisterChatCommand(string.match(ini.cmd.r, '(.+) | (.+)'), command_r)
 	sampRegisterChatCommand(string.match(ini.cmd.rn, '(.+) | (.+)'), command_rn)
 	sampRegisterChatCommand(string.match(ini.cmd.f, '(.+) | (.+)'), command_f)
@@ -2603,7 +2530,7 @@ function command_users()
 					
 				local rang = string.format('%s %s', getColorRang(nrang), rang)
 					
-				if id == 'offline' then
+				if id == 'OFF' then
 					dline = string.format('%s{696969}%s\t{696969}%s ранг. %s\t{ff5c33}Оффлайн\n', dline, name, player_rang[name], rang)
 				else
 					local res, ped = sampGetCharHandleBySampPlayerId(id)
@@ -2626,39 +2553,6 @@ function command_users()
 			
 		local caption = string.format('{ffffff}Всего пользователей {FFCD00}%d чел. {00CC66}(онлайн %d)', all, online)
 		sampShowDialog(1001, caption, dline, 'Закрыть', '', 5)
-	end
-end
-
-function command_admins()
-	if player_status > 1 then
-		local dline = 'Имя\tДолжность\tДополнительно\n'
-		local all = 0
-		local online = 0
-		
-		for line in io.lines('moonloader\\helper\\Admins.txt') do
-			all = all + 1
-			local name, rang, nrang = string.match(line, '(.+) | (.+) | (.+)')
-			local id = sampGetPlayerIdByNickname(name)
-			if id == 'offline' then
-				dline = string.format('%s{696969}%s\t{696969}%s ранг. %s\t{ff5c33}Оффлайн\n', dline, name, nrang, rang)
-			else
-				local res, ped = sampGetCharHandleBySampPlayerId(id)
-				online = online + 1
-				if res then
-					dist = math.floor(sampGetDistance(PLAYER_PED, id))
-					if sampIsPlayerPaused(id) then
-						dline = string.format('%s{%s}%s[%d]\t%s ранг. %s\t{ff5c33}Дист: %d м\n', dline, sampGetColor(id), name, id, nrang, rang, dist)
-					else
-						dline = string.format('%s{%s}%s[%d]\t%s ранг. %s\t{00cc99}Дист: %d м\n', dline, sampGetColor(id), name, id, nrang, rang, dist)
-					end
-				else
-					dline = string.format('%s{%s}%s[%d]\t%s ранг. %s\t{00cc99}Онлайн\n', dline, sampGetColor(id), name, id, nrang, rang)
-				end
-			end
-		end
-		
-		local caption = string.format('{ffffff}Всего администраторов {FFCD00}%d чел. {00CC66}(онлайн %d)', all, online)
-		sampShowDialog(1000, caption, dline, 'Закрыть', '', 5)
 	end
 end
 
@@ -2964,9 +2858,6 @@ function imgui.OnDrawFrame()
 				if imgui.Button(u8'Главная страница', imgui.ImVec2(235, 20)) then show_item.v = 8 end
 				if imgui.Button(u8'Настройки', imgui.ImVec2(235, 20)) then show_item.v = 0 end
 				if imgui.Button(u8'Расширенные настройки', imgui.ImVec2(235, 20)) then show_item.v = 1 end
-				if player_status > 1 then
-					if imgui.Button(u8'Администрация', imgui.ImVec2(235, 20)) then show_item.v = 2 end
-				end
 				--if imgui.Button(u8'Информация', imgui.ImVec2(235, 20)) then show_item.v = 3 end
 				if imgui.Button(u8'Дополнительные возможности', imgui.ImVec2(235, 20)) then show_item.v = 4 end
 				if imgui.Button(u8'Кастомизация', imgui.ImVec2(235, 20)) then show_item.v = 5 end
@@ -3124,39 +3015,6 @@ function imgui.OnDrawFrame()
 					
 					if set_item.v == 7 then
 						draw_modification()
-					end
-				imgui.EndChild()
-			end
-				
-			if show_item.v == 2 then
-				imgui.BeginChild('##another_block', imgui.ImVec2(530, 520), true, imgui.WindowFlags.HorizontalScrollbar)
-					imgui.CenterTextColoredRGB('СПИСОК АДМИНИСТРАЦИИ')
-					
-					imgui.Text('')
-					
-					if imgui.Button(u8'ПОДГРУЗИТЬ', imgui.ImVec2(170, 20)) then
-						local line = ''
-						for val in io.lines('moonloader//helper//Admins.txt') do line = string.format('%s%s\n', line, val) end
-						admins.v = u8(line)
-					end
-					imgui.SameLine()
-					if imgui.Button(u8'РЕДАКТИРОВАТЬ', imgui.ImVec2(160, 20)) then
-						editor.v = not editor.v
-					end
-					imgui.SameLine()
-					if imgui.Button(u8'СОХРАНИТЬ', imgui.ImVec2(170, 20)) and editor.v then
-						local filew = io.open('moonloader//helper//Admins.txt', 'w')
-						filew:write(u8:decode(admins.v))
-						filew:close()
-					end
-					
-					imgui.Text('')
-					
-					if editor.v then
-						imgui.PushItemWidth(490)
-						imgui.InputTextMultiline('##admins', admins, imgui.ImVec2(-1, imgui.GetTextLineHeight() * 33))
-					else
-						imgui.Text(admins.v)
 					end
 				imgui.EndChild()
 			end
@@ -4099,6 +3957,12 @@ function draw_modification()
 		imgui.TreePop()
 	end
 	
+	if imgui.TreeNode(u8'ID игроков в чате') then
+		toggleButton('Дописывает [ID] около ника игрока, если его там нет', 'set', 'idforname')
+		
+		imgui.TreePop()
+	end
+	
 	if imgui.TreeNode(u8'Новый логотип для Advance RP') then
 		toggleButton('Включить отображение нового логотипа', 'set', 'new_logo')
 		
@@ -4237,13 +4101,13 @@ function draw_head_page()
 			
 			imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ОБНОВЛЕНИИ')
 			
+			imgui.Text(u8'Добавлена новая модификация в расширенных настройках.')
 			imgui.Text(u8'Добавлена возможность использовать /ticket с выбором пункта КоАП.')
 			imgui.Text(u8'Добавлена возможность настройки быстрого розыска в /ук.')
 			imgui.Text(u8'Изменён внешний дизайн расширенных настроек.')
 			imgui.Text(u8'Добавлена базовая кастомизация.')
 			imgui.Text(u8'Добавлен новый пункт в разделе модификаций.')
 			imgui.Text(u8'Добавлена смена режимов CamHack`a на клавишу O.')
-			imgui.Text(u8'Добавлены поворотники для автомобилей, активация B и M.')
 			
 		imgui.EndChild()
 		
@@ -5965,9 +5829,9 @@ function sampGetPlayerIdByNickname(nick)
                 end
             end
         end
-		if not successid then return 'offline' end
+		if not successid then return 'OFF' end
     else
-		return 'offline'
+		return 'OFF'
 	end
 end
 
@@ -6482,7 +6346,23 @@ function sampev.onServerMessage(color, text)
 	
 	if text:find('Вы отключились от внутреннего канала связи организации') then
 		follow_state = false
-	end 
+	end
+	
+	
+	if text:match('(%a+)_(%a+)') and not text:match('(%a+)_(%a+)%[(%d+)%]') and ini.set.idforname then
+		if not text:match('(%a+)_(%a+)%)%[(%d+)%]') then
+			for name, surname in text:gmatch('(%a+)_(%a+)') do
+				local allname = string.format('%s_%s', name, surname)
+				local id = sampGetPlayerIdByNickname(allname)
+				
+				if IPC(id) then
+					text = text:gsub(allname, string.format('%s[%s]', allname, id))
+				end
+			end
+			
+			return {color, text}
+		end
+	end
 end
 
 function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
@@ -6572,7 +6452,7 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 			end
 			
 			local id = sampGetPlayerIdByNickname(name)
-			if id == 'offline' then
+			if id == 'OFF' then
 				line = string.format('%s\n{696969}%s\t{696969}%s\t{ff5c33}Оффлайн', line, name, rang)
 			else
 				line = string.format('%s\n{%s}%s[%d]\t%s\t{00cc99}Онлайн', line, sampGetColor(id), name, id, rang)
@@ -6635,7 +6515,7 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 				local name, rang, frac, state = string.match(line, '(.+)	(.+)	(.+)	(.+)')
 				local id = sampGetPlayerIdByNickname(name)
 				all = all + 1
-				if id == 'offline' then
+				if id == 'OFF' then
 					dline = string.format('%s{696969}%s\t{696969}%s\t{696969}%s\t{ff5c33}Оффлайн\n', dline, name, rang, frac)
 				else
 					local res, ped = sampGetCharHandleBySampPlayerId(id)

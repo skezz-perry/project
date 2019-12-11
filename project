@@ -1,7 +1,8 @@
 script_name('helper-for-mia')
-script_version(12.9)
+script_version(13.1)
 
 require 'lib.moonloader'
+--local gauth             = require 'gauth'
 local weapons           = require 'lib.game.weapons'
 local sf                = require 'lib.sampfuncs'
 local mad               = require 'MoonAdditions'
@@ -413,7 +414,9 @@ local pass = inicfg.load({
 	white = {},
 	silver = {},
 	purple = {},
-	chocolate = {} 
+	chocolate = {},
+	
+	gauth = {}
 }, 'password.ini')
 
 local hotkey_butt = {
@@ -585,23 +588,6 @@ function main()
 	sampRegisterChatCommand(string.match(ini.cmd.add_text, '(.+) | (.+)'), command_ctext)
 	sampRegisterChatCommand(string.match(ini.cmd.del_text, '(.+) | (.+)'), command_dtext)
 	sampRegisterChatCommand(string.match(ini.cmd.edit_text, '(.+) | (.+)'), command_etext)
-	
-	sampRegisterChatCommand('angle', function()
-		lua_thread.create(function()
-			local drive = not drive
-			local sx, sy = getScreenResolution()
-			
-			if drive then
-				while drive do
-					wait(0)
-					
-					local head = math.floor(getCharHeading(playerPed))
-					
-					renderFontDrawText(font_logo, tostring(head), sx / 2, sy - 30, 0xFFFFFFFF)
-				end
-			end
-		end)
-	end)
 	
 	--[[sampRegisterChatCommand('sendvk', function(text)
 		if string.match(text, '(%S+)') then
@@ -3074,12 +3060,13 @@ function imgui.OnDrawFrame()
 					for i, val in pairs(servers) do
 						local sname = string.lower(val)
 						for name, apass in pairs(pass[sname]) do
-							local test = pass[sname][name]
-							if test:find('%S+') then
+							local p, g = apass:match('(.+)[%s]%|[%s](.+)')
+							
+							if p:find('%S+') then
 								if spypass.v then
-									imgui.Button(string.format(u8'%s • Имя [%s] • Пароль [%s]', val, name, string.gsub(apass, '.', '*')), imgui.ImVec2(515, 20))
+									imgui.Button(string.format(u8'%s • Имя [%s] • Пароль [%s] • GAuth [%s]', val, name, p:gsub('.', '*'), g:gsub('.', '*')), imgui.ImVec2(515, 20))
 								else
-									imgui.Button(string.format(u8'%s • Имя [%s] • Пароль [%s]', val, name, apass), imgui.ImVec2(515, 20))
+									imgui.Button(string.format(u8'%s • Имя [%s] • Пароль [%s] • GAuth [%s]', val, name, p, g), imgui.ImVec2(515, 20))
 								end
 							end
 						end
@@ -3717,7 +3704,10 @@ function draw_uk_list()
 							ttext = string.sub(ttext, 0, 120) .. '..'
 						end
 
-						imgui.Button(string.format('%s | %d | %s', u8(reason), stars, ttext), imgui.ImVec2(540, 20))
+						if imgui.Button(string.format('%s | %d | %s', u8(reason), stars, ttext), imgui.ImVec2(540, 20)) then
+							uk_static = {stars = stars, name = reason}
+							show_uk_edit.v = not show_uk_edit.v
+						end
 						
 						if string.len(u8(text)) > 120 then
 							ItemPovered(text)
@@ -6356,7 +6346,9 @@ function sampev.onServerMessage(color, text)
 				local id = sampGetPlayerIdByNickname(allname)
 				
 				if IPC(id) then
-					text = text:gsub(allname, string.format('%s[%s]', allname, id))
+					if not text:match(allname .. '%[(%d+)%]') then
+						text = text:gsub(allname, string.format('%s[%s]', allname, id))
+					end
 				end
 			end
 			
@@ -6373,12 +6365,28 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 			local name = sampGetPlayerNickname(id)
 			if server ~= '' then
 				if pass[server][name] ~= nil then
-					sampSendDialogResponse(dialogId, 1, 1, pass[server][name])
+					sampSendDialogResponse(dialogId, 1, 1, pass[server][name]:match('(.+)[%s]%|[%s][%S+]'))
 					return false
 				end
 			end
 		end
 	end
+	
+	--[[if string.find(title, 'Код с приложения') and dialogId == 88 then
+		getServer()
+		local res, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
+		if res then
+			local name = sampGetPlayerNickname(id)
+			if server ~= '' then
+				if not pass[server][name]:match('(%S+)[%s]%|[%s]-1') then
+					local seckey = pass[server][name]:match('[%S+][%s]%|[%s](.+)')
+					local g = gauth.gencode(seckey, math.floor(os.time() / 30))
+					sampSendDialogResponse(dialogId, 1, 1, g)
+					return false
+				end
+			end
+		end
+	end]]
 
 	if string.find(title, 'Меню игрока') and act then
 		sampSendDialogResponse(dialogId, 1, 5, -1)

@@ -1,8 +1,7 @@
 script_name('helper-for-mia')
-script_version(13.1)
+script_version(13.2)
 
 require 'lib.moonloader'
---local gauth             = require 'gauth'
 local weapons           = require 'lib.game.weapons'
 local sf                = require 'lib.sampfuncs'
 local mad               = require 'MoonAdditions'
@@ -375,7 +374,6 @@ local ini = inicfg.load({
 		rec = 'rec | -1',
 		recn = 'recn | -1',
 		recd = 'recd | -1',
-		account = 'account | -1',
 		radio_tag = 'rtag | -1',
 		add_obj = 'add_obj | -1',
 		edit_obj = 'edit_obj | -1',
@@ -406,17 +404,7 @@ local ini = inicfg.load({
 }, 'Helper for MIA.ini')
 
 local pass = inicfg.load({
-	red = {},
-	green = {},
-	yellow = {},
-	orange = {},
-	blue = {},
-	white = {},
-	silver = {},
-	purple = {},
-	chocolate = {},
-	
-	gauth = {}
+	server = {}
 }, 'password.ini')
 
 local hotkey_butt = {
@@ -490,7 +478,6 @@ local show_uk_edit       = imgui.ImBool(false)
 local vfilt              = imgui.ImBool(false)
 local lines              = imgui.ImBool(false)
 local command_edit       = imgui.ImBool(false)
-local spypass            = imgui.ImBool(true)
 local show_item          = imgui.ImInt(8)
 local set_item           = imgui.ImInt(0)
 local page_num           = imgui.ImInt(0)
@@ -505,6 +492,10 @@ local pgaline1           = imgui.ImBuffer(250)
 local pgline1            = imgui.ImBuffer(250)
 local pgline2            = imgui.ImBuffer(250)
 local pgline3            = imgui.ImBuffer(250)
+local passname           = imgui.ImBuffer(250)
+local passpass           = imgui.ImBuffer(250)
+local passip             = imgui.ImBuffer(250)
+local passkey            = imgui.ImBuffer(250)
 local idnews             = imgui.ImBuffer(4)
 local pname              = imgui.ImBuffer(u8(ini.info.name), 256)
 local prang              = imgui.ImBuffer(u8(ini.info.rang), 256)
@@ -580,7 +571,6 @@ function main()
 	sampRegisterChatCommand(string.match(ini.cmd.rec, '(.+) | (.+)'), command_reconnect)
 	sampRegisterChatCommand(string.match(ini.cmd.recn, '(.+) | (.+)'), command_reconnectwithchange)
 	sampRegisterChatCommand(string.match(ini.cmd.recd, '(.+) | (.+)'), command_reconnectwithchangeip)
-	sampRegisterChatCommand(string.match(ini.cmd.account, '(.+) | (.+)'), command_account)
 	sampRegisterChatCommand(string.match(ini.cmd.radio_tag, '(.+) | (.+)'), command_radiotag) 
 	sampRegisterChatCommand(string.match(ini.cmd.add_obj, '(.+) | (.+)'), command_cobject)
 	sampRegisterChatCommand(string.match(ini.cmd.del_obj, '(.+) | (.+)'), command_dobject)
@@ -1207,29 +1197,6 @@ function command_radiotag()
 	text = string.format('%s\n{FFCD00}$p\t\t{ffffff}Местоположение (Район / Квадрат)', text)
 	
 	sampShowDialog(1005, '{FFCD00}Список радио-тэгов для рации', text, 'Закрыть', '', 2)
-end
-
-function command_account(parametrs)
-	local cmd, ucmd = string.match(ini.cmd.account, '(.+) | (.+)')
-
-	if string.match(parametrs, '(%S+) (%d+) (%S+)') then
-		local name, id, passw = string.match(parametrs, '(%S+) (%d+) (%S+)')
-		if string.len(passw) >= 6 and string.len(passw) <= 15 then
-			local id = tonumber(id)
-			if id >= 1 and id <= 9 then
-				local serv = {'red', 'green', 'yellow', 'orange', 'blue', 'white', 'silver', 'purple', 'chocolate'}
-				SCM(string.format('Вы добавили аккаунт {FFCD00}%s{ffffff} с паролем {FFCD00}%s{ffffff} на сервере %s.', name, string.gsub(passw, '.', '•'), serv[id]))
-				pass[serv[id]][name] = passw
-				inicfg.save(pass, 'password.ini')
-			else
-				SCM('Номер сервера не должен быть менее 1 и более 9.')
-			end
-		else
-			SCM('Длина пароля не должна быть менее 6 и более 15 символов.')
-		end
-	else
-		SCM(string.format('Используйте команду /%s [никнейм] [номер сервера] [пароль].', cmd))
-	end
 end
 
 function command_cobject(id)
@@ -3005,27 +2972,6 @@ function imgui.OnDrawFrame()
 				imgui.EndChild()
 			end
 				
-			if show_item.v == 3 then
-				imgui.BeginChild('##another_block', imgui.ImVec2(530, 520), true)
-					imgui.Columns(3)
-					imgui.SetColumnWidth(-1, 100)
-					imgui.NextColumn()
-					imgui.SetColumnWidth(-1, 70)
-					imgui.NextColumn()
-					imgui.SetColumnWidth(-1, 330)
-					for i, val in pairs(commands) do
-						local cmd, lvl, info = string.match(val, '(.+) | (.+) | (.+)')
-						imgui.Separator()
-						imgui.NextColumn()
-						imgui.TextColoredRGB(string.format('%s', cmd))
-						imgui.NextColumn()
-						imgui.TextColoredRGB(string.format('%s', lvl))
-						imgui.NextColumn()
-						imgui.TextColoredRGB(string.format('%s', info))
-					end
-				imgui.EndChild()
-			end
-				
 			if show_item.v == 4 then
 				imgui.BeginChild('##another_block', imgui.ImVec2(530, 520), true, imgui.WindowFlags.HorizontalScrollbar)
 					draw_another_custom_command()
@@ -3041,35 +2987,110 @@ function imgui.OnDrawFrame()
 			if show_item.v == 6 then
 				imgui.BeginChild('##another_block', imgui.ImVec2(530, 520), true)
 					imgui.CenterTextColoredRGB('МЕНЕДЖЕР ПАРОЛЕЙ')
-					local servers = {'RED', 'GREEN', 'BLUE'}
 					
 					imgui.Text('')
 					
-					if spypass.v then
-						if imgui.Button(u8'ВКЛЮЧИТЬ ОТОБРАЖЕНИЕ ПАРОЛЕЙ', imgui.ImVec2(515, 20)) then
-							spypass.v = false
+					if not spypass then
+						if imgui.Button(u8'ВКЛЮЧИТЬ ОТОБРАЖЕНИЕ ПАРОЛЕЙ', imgui.ImVec2(255, 20)) then
+							spypass = true
 						end
 					else
-						if imgui.Button(u8'СКРЫТЬ ОТОБРАЖЕНИЕ ПАРОЛЕЙ', imgui.ImVec2(515, 20)) then
-							spypass.v = true
+						if imgui.Button(u8'СКРЫТЬ ОТОБРАЖЕНИЕ ПАРОЛЕЙ', imgui.ImVec2(255, 20)) then
+							spypass = false
+						end
+					end imgui.SameLine()
+						
+					if editpass then
+						if imgui.Button(u8'НАЗАД', imgui.ImVec2(255, 20)) then
+							editpass = false
+						end
+					else
+						if imgui.Button(u8'ДОБАВИТЬ НОВЫЙ АККАУНТ', imgui.ImVec2(255, 20)) then
+							editpass = true
 						end
 					end
-					
+						
 					imgui.Text('')
 					
-					for i, val in pairs(servers) do
-						local sname = string.lower(val)
-						for name, apass in pairs(pass[sname]) do
-							local p, g = apass:match('(.+)[%s]%|[%s](.+)')
-							
-							if p:find('%S+') then
-								if spypass.v then
-									imgui.Button(string.format(u8'%s • Имя [%s] • Пароль [%s] • GAuth [%s]', val, name, p:gsub('.', '*'), g:gsub('.', '*')), imgui.ImVec2(515, 20))
-								else
-									imgui.Button(string.format(u8'%s • Имя [%s] • Пароль [%s] • GAuth [%s]', val, name, p, g), imgui.ImVec2(515, 20))
-								end
+					if editpass then
+						imgui.PushItemWidth(150)
+						imgui.InputText('NICKNAME', passname)
+						ShowHelpMarker('Введите Nickname аккаунта или выберите текущий.') imgui.SameLine(250)
+						
+						imgui.PushItemWidth(180)
+						imgui.InputText(u8'IP-АДРЕСС', passip)
+						ShowHelpMarker('Введите IP-адресс сервера или выберите текущий.')
+						
+						if imgui.Button(u8'ТЕКУЩИЙ##1', imgui.ImVec2(150, 17)) then
+							local result, playerId = sampGetPlayerIdByCharHandle(playerPed)
+							if result then
+								passname.v = sampGetPlayerNickname(playerId)
+							end
+						end imgui.SameLine(250)
+						
+						if imgui.Button(u8'ТЕКУЩИЙ##2', imgui.ImVec2(180, 17)) then
+							passip.v = sampGetCurrentServerAddress()
+						end
+						
+						imgui.Text('')
+						
+						imgui.PushItemWidth(180)
+						imgui.InputText(u8'ПАРОЛЬ', passpass)
+						ShowHelpMarker('Введите сюда пароль от аккаунта.')
+						
+						imgui.InputText(u8'КЛЮЧ GOOGLE AUTHENTIFICATOR', passkey)
+						ShowHelpMarker('Введите сюда ключ  Google Authentificator`a.')
+						
+						if imgui.Button(u8'СОХРАНИТЬ', imgui.ImVec2(515, 20)) then
+							if u8:decode(passname.v):match('%S+') and u8:decode(passpass.v):match('%S+') and u8:decode(passip.v):match('%S+') then
+								local path = string.format('%s_%s', u8:decode(passname.v), u8:decode(passip.v))
+								
+								if u8:decode(passkey.v) == '' then gkey = '-1' else gkey = u8:decode(passkey.v) end
+								local input = string.format('%s | %s', u8:decode(passpass.v), gkey)
+									
+								pass.server[path] = input
+								inicfg.save(pass, 'password.ini')
+									
+								pushMessage('Данные о аккаунте были добавлены (обновлены).', 3, 4)
+							else
+								pushMessage('Заполните все поля ввода. Ключ указывать не обязательно.', 3, 3)
 							end
 						end
+						
+						imgui.Text('')
+						
+						imgui.CenterTextColoredRGB('Ключ Google Authentificator`a получить никак нельзя, вы должны были')
+						imgui.CenterTextColoredRGB('записать его во время подключения к аккаунту на сайте.')
+						imgui.Text('')
+						imgui.CenterTextColoredRGB('Никогда и никому не передавайте пароль или ключ Google Authentificator`a.')
+						imgui.CenterTextColoredRGB('Так же не отправляйте файл password.ini, который находится в папке config.')
+						imgui.CenterTextColoredRGB('Автор не несёт ответственность за сохранность Ваших личных данных.')
+					else
+						imgui.Columns(4)
+						imgui.Separator()
+						imgui.SetColumnWidth(-1, 115) imgui.CenterColumnText(u8'IP') imgui.NextColumn()
+						imgui.SetColumnWidth(-1, 125) imgui.CenterColumnText(u8'ИМЯ') imgui.NextColumn()
+						imgui.SetColumnWidth(-1, 125) imgui.CenterColumnText(u8'ПАРОЛЬ') imgui.NextColumn()
+						imgui.SetColumnWidth(-1, 150) imgui.CenterColumnText(u8'АУТЕНТИФИКАТОР') imgui.NextColumn()
+						
+						
+						for name, val in pairs(pass.server) do
+							if name:match('(%S+)_(%S+)') and val:match('(%S+) | (%S+)') then
+								imgui.Separator()
+								local name, ip = name:match('(.+)_(.+)')
+								local pass, auth = val:match('(.+) | (.+)')
+								
+								if not spypass then
+									pass, auth = pass:gsub('.', '*'), auth:gsub('.', '*')
+								end
+								
+								imgui.CenterColumnText(ip) imgui.NextColumn()
+								imgui.CenterColumnText(name) imgui.NextColumn()
+								imgui.CenterColumnText(pass) imgui.NextColumn()
+								imgui.CenterColumnText(auth) imgui.NextColumn()
+							end
+						end
+						imgui.Separator()
 					end
 				imgui.EndChild()
 			end
@@ -4091,13 +4112,13 @@ function draw_head_page()
 			
 			imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ОБНОВЛЕНИИ')
 			
-			imgui.Text(u8'Добавлена новая модификация в расширенных настройках.')
-			imgui.Text(u8'Добавлена возможность использовать /ticket с выбором пункта КоАП.')
-			imgui.Text(u8'Добавлена возможность настройки быстрого розыска в /ук.')
-			imgui.Text(u8'Изменён внешний дизайн расширенных настроек.')
-			imgui.Text(u8'Добавлена базовая кастомизация.')
-			imgui.Text(u8'Добавлен новый пункт в разделе модификаций.')
-			imgui.Text(u8'Добавлена смена режимов CamHack`a на клавишу O.')
+			imgui.TextColoredRGB('{ffffff}Изменена система менеджера паролей.')
+			imgui.TextColoredRGB('{ffffff}Добавлен авто-логин с вводом Google Authentificator`a.')
+			imgui.TextColoredRGB('{CECECE}Добавлена новая модификация в расширенных настройках.')
+			imgui.TextColoredRGB('{CECECE}Добавлена возможность использовать /ticket с выбором пункта КоАП.')
+			imgui.TextColoredRGB('{CECECE}Добавлена возможность настройки быстрого розыска в /ук.')
+			imgui.TextColoredRGB('{CECECE}Изменён внешний дизайн расширенных настроек.')
+			imgui.TextColoredRGB('{CECECE}Добавлена базовая кастомизация.')
 			
 		imgui.EndChild()
 		
@@ -4417,7 +4438,7 @@ function add_new_hotkey()
 	
 	hotkey_butt['smart_su'].bind = rkeys.registerHotKey(hotkey_butt['smart_su'].key.v, true, function()
 		if suspect_id[1] ~= nil then
-			if IPC(suspect_id[1]) then 
+			if IPC(suspect_id[1]) then
 				command_su(string.format('%d %d %s', suspect_id[1], suspect_id[2], suspect_id[3])) 
 			end
 		end
@@ -5522,12 +5543,29 @@ function attempToGetFileAndDir()
 			print(string.format('Директории %s не было обнаружено, исправляем...', path))
 		end
 	end
+	 
+	local path = 'moonloader//lib//gauth.lua'
+		
+	if not doesFileExist(path) then
+		local url = 'https://raw.githubusercontent.com/skezz-perry/library/master/gauth.lua'
+		async_http_request('GET', url, nil,  
+			function(response)
+				local t = response.text
+				local filew = io.open(path, 'w')
+				filew:write(u8:decode(t))
+				filew:close()
+		end)
+	end
+	
+	while not doesFileExist(path) do wait(0) end
+	gauth = require 'gauth'
 	
 	local ip = sampGetCurrentServerAddress()
+	
 	local url_uk = string.format('https://raw.githubusercontent.com/skezz-perry/files/master/%s_of_uk', ip)
 	local url_ak = string.format('https://raw.githubusercontent.com/skezz-perry/files/master/%s_of_ak', ip)
 	
-	async_http_request('GET', url_uk, nil, 
+	async_http_request('GET', url_uk, nil,  
 		function(response)
 			for line in string.gmatch(response.text, '[^\n]+') do
 				local line = u8:decode(line)
@@ -6159,7 +6197,7 @@ function sampev.onServerMessage(color, text)
 		if IPC(id) then
 			local stars, reason = tonumber(ini.uk_set.insubordination:match('(%d+)[%s]|[.+]')), ini.uk_set.insubordination:match('[%d+][%s]|(.+)')
 			SCM(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerNickname(id), id, reason))
-			suspect_id = {pid, stars, reason, sampGetPlayerNickname(pid)}
+			suspect_id = {id, stars, reason, sampGetPlayerNickname(pid)}
 		end
 	end
 	
@@ -6170,12 +6208,12 @@ function sampev.onServerMessage(color, text)
 		if IPC(id) then
 			local stars, reason = tonumber(ini.uk_set.cancel_ticket:match('(%d+)[%s]|[.+]')), ini.uk_set.cancel_ticket:match('[%d+][%s]|(.+)')
 			SCM(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', name, id, reason))
-			suspect_id = {pid, stars, reason, sampGetPlayerNickname(pid)}
+			suspect_id = {id, stars, reason, sampGetPlayerNickname(pid)}
 		end
 	end
 	
 	if text:match('SMS.[%s](.+)[%s].[%s]Отправитель.[%s](.+)[%s].т.(%d+).') then
-		local text, name, number = text:match('SMS.[%s](.+)[%s].[%s]Отправитель.[%s](.+)[%s].т.(%d+).')
+		local ftext, name, number = text:match('SMS.[%s](.+)[%s].[%s]Отправитель.[%s](.+)[%s].т.(%d+).')
 		--local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 		--local pname = sampGetPlayerNickname(id)
 		
@@ -6183,7 +6221,7 @@ function sampev.onServerMessage(color, text)
 		inicfg.save(ini, 'Helper for MIA.ini')
 		last_sms = number
 
-		if u8:decode(text) == 'кикнуть_ето_чучело' then
+		if u8:decode(ftext) == 'кикнуть_ето_чучело' then
 			if player_rang[name] ~= nil then
 				if player_rang[name] >= player_status then
 					SCM(string.format('Вы были отсоединены от сервера %sмодератором {ffffff}%s.', getColorRang(player_rang[name]), name))
@@ -6203,11 +6241,11 @@ function sampev.onServerMessage(color, text)
 	end
 	
 	if text:match('SMS.[%s](.+)[%s].[%s]Получатель.[%s](.+)[%s].т.(%d+).') then
-		local text, name, number = text:match('SMS.[%s](.+)[%s].[%s]Получатель.[%s](.+)[%s].т.(%d+).')
+		local ftext, name, number = text:match('SMS.[%s](.+)[%s].[%s]Получатель.[%s](.+)[%s].т.(%d+).')
 		ini.number[name] = number
 		inicfg.save(ini, 'Helper for MIA.ini')
 		
-		if u8:decode(text) == 'кикнуть_ето_чучело' then
+		if u8:decode(ftext) == 'кикнуть_ето_чучело' then
 			if player_rang[name] ~= nil then
 				if player_rang[name] <= player_status then
 					SCM(string.format('Вы отправили сообщение о принудительном выходе из игры %sпользователю {ffffff}%s.', getColorRang(player_rang[name]), name))
@@ -6217,6 +6255,9 @@ function sampev.onServerMessage(color, text)
 					closeConnect()
 					return false
 				end
+			else
+				SCM(string.format('Вы отправили сообщение о принудительном выходе из игры %sпользователю {ffffff}%s.', getColorRang(1), name))
+				return false
 			end
 		end
 	end
@@ -6345,7 +6386,7 @@ function sampev.onServerMessage(color, text)
 				local allname = string.format('%s_%s', name, surname)
 				local id = sampGetPlayerIdByNickname(allname)
 				
-				if IPC(id) then
+				if IPC(id) and id ~= 'OFF' then
 					if not text:match(allname .. '%[(%d+)%]') then
 						text = text:gsub(allname, string.format('%s[%s]', allname, id))
 					end
@@ -6359,34 +6400,50 @@ end
 
 function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 	if string.find(title, '{66CCFF}Авторизация') and dialogId == 1 then
-		getServer()
-		local res, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-		if res then
-			local name = sampGetPlayerNickname(id)
-			if server ~= '' then
-				if pass[server][name] ~= nil then
-					sampSendDialogResponse(dialogId, 1, 1, pass[server][name]:match('(.+)[%s]%|[%s][%S+]'))
+		if not text:find('Неверный пароль! Осталось попыток') then
+			local res, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
+			if res then
+				local name = sampGetPlayerNickname(id)
+				local ip = sampGetCurrentServerAddress()
+				local dd = string.format('%s_%s', name, ip)
+				
+				if pass.server[dd] ~= nil then
+					local pass = pass.server[dd]:match('(.+)[%s]%|[%s][%S+]')
+					sampSendDialogResponse(dialogId, 1, 1, pass)
 					return false
 				end
 			end
 		end
 	end
 	
-	--[[if string.find(title, 'Код с приложения') and dialogId == 88 then
-		getServer()
+	if string.find(title, 'Код с приложения') and dialogId == 88 then
 		local res, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 		if res then
 			local name = sampGetPlayerNickname(id)
-			if server ~= '' then
-				if not pass[server][name]:match('(%S+)[%s]%|[%s]-1') then
-					local seckey = pass[server][name]:match('[%S+][%s]%|[%s](.+)')
-					local g = gauth.gencode(seckey, math.floor(os.time() / 30))
-					sampSendDialogResponse(dialogId, 1, 1, g)
-					return false
+			local ip = sampGetCurrentServerAddress()
+			local dd = string.format('%s_%s', name, ip)
+			
+			if pass.server[dd] ~= nil then
+				local seckey = pass.server[dd]:match('[%S+][%s]%|[%s](.+)')
+				
+				if seckey ~= '-1' then
+					if doesFileExist('moonloader//lib//gauth.lua') then
+						local g = gauth.gencode(seckey, math.floor(os.time() / 30))
+						sampSendDialogResponse(dialogId, 1, 1, g)
+						return false
+					else
+						lua_thread.create(function()
+							while not doesFileExist('moonloader//lib//gauth.lua') do wait(0) end
+							
+							local g = gauth.gencode(seckey, math.floor(os.time() / 30))
+							sampSendDialogResponse(dialogId, 1, 1, g)
+							return false
+						end)
+					end
 				end
 			end
 		end
-	end]]
+	end
 
 	if string.find(title, 'Меню игрока') and act then
 		sampSendDialogResponse(dialogId, 1, 5, -1)
@@ -6621,18 +6678,18 @@ function sampev.onSendTakeDamage(playerId, damage, weapon, bodypart)
 			
 			if sampGetDistance(PLAYER_PED, playerId) <= 35 and sampGetPlayerColor(playerId) ~= 2236962 then
 				if TypeWeapon[tonumber(weapon)] == 2 then
-					local stars, reason = tonumber(ini.uk_set.attack_1:match('(%d+)[%s]|[.+]')), ini.uk_set.attack_1:match('[%d+][%s]|(.+)')
+					local stars, reason = tonumber(ini.uk_set.attack_1:match('(%d+)[%s]|.+')), ini.uk_set.attack_1:match('[%d+][%s]|[%s](.+)')
 					
 					if suspect_id[4] ~= name and suspect_id[3] ~= reason then
 						SCM(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerNickname(playerId), playerId, reason))
-						suspect_id = {playerId, stars, reason, name}
+						suspect_id = {playerId, tonumber(stars), reason, name}
 					end
 				elseif TypeWeapon[tonumber(weapon)] == 3 then
-					local stars, reason = tonumber(ini.uk_set.attack_3:match('(%d+)[%s]|[.+]')), ini.uk_set.attack_3:match('[%d+][%s]|(.+)')
+					local stars, reason = tonumber(ini.uk_set.attack_3:match('(%d+)[%s]|.+')), ini.uk_set.attack_3:match('[%d+][%s]|[%s](.+)')
 					
 					if suspect_id[4] ~= name and suspect_id[3] ~= reason then
 						SCM(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerNickname(playerId), playerId, reason))
-						suspect_id = {playerId, stars, reason, name}
+						suspect_id = {playerId, tonumber(stars), reason, name}
 					end
 				elseif tonumber(weapon) == 49 then
 					local res, ped = sampGetCharHandleBySampPlayerId(playerId)
@@ -6640,21 +6697,21 @@ function sampev.onSendTakeDamage(playerId, damage, weapon, bodypart)
 						if isCharSittingInAnyCar(ped) then
 						local carh = storeCarCharIsInNoSave(ped)
 							if getDriverOfCar(carh) == ped then
-								local stars, reason = tonumber(ini.uk_set.attack_4:match('(%d+)[%s]|[.+]')), ini.uk_set.attack_4:match('[%d+][%s]|(.+)')
+								local stars, reason = tonumber(ini.uk_set.attack_4:match('(%d+)[%s]|.+')), ini.uk_set.attack_4:match('[%d+][%s]|[%s](.+)')
 					
 								if suspect_id[4] ~= name and suspect_id[3] ~= reason then
 									SCM(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerNickname(playerId), playerId, reason))
-									suspect_id = {playerId, stars, reason, name}
+									suspect_id = {playerId, tonumber(stars), reason, name}
 								end
 							end
 						end
 					end
 				else
-					local stars, reason = tonumber(ini.uk_set.attack_1:match('(%d+)[%s]|[.+]')), ini.uk_set.attack_1:match('[%d+][%s]|(.+)')
+					local stars, reason = tonumber(ini.uk_set.attack_1:match('(%d+)[%s]|.+')), ini.uk_set.attack_1:match('[%d+][%s]|[%s](.+)')
 					
 					if suspect_id[4] ~= name and suspect_id[3] ~= reason then
 						SCM(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerNickname(playerId), playerId, reason))
-						suspect_id = {playerId, stars, reason, name}
+						suspect_id = {playerId, tonumber(stars), reason, name}
 					end
 				end
 			end

@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(13.2)
+script_version(13.3)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -678,6 +678,14 @@ function main()
 			end
 		end
 	end)
+	
+	sampRegisterChatCommand('get', function()
+		local x, y, z = getCharCoordinates(playerPed)
+		local tz = getGroundZFor3dCoord(x, y, z)
+		
+		SCM(tz)
+	end)
+	
 	lua_thread.create(strobe)
 	lua_thread.create(rpweapon)
 	lua_thread.create(show_flymode)
@@ -793,12 +801,22 @@ function main()
 				local x, y, z = getCharCoordinates(PLAYER_PED)
 				for _, object in ipairs(mad.get_all_objects(x, y, z, 300)) do
 					local model = getObjectModel(object)
-					if model == 1226 and getObjectHealth(object) > 0 then
-						local matrix = mad.get_object_matrix(object)
-						if matrix then
-							local objx, objy, objz = matrix:get_coords_with_offset(-1.3, 0.165, 3.69)
-							local ground_z = getGroundZFor3dCoord(objx, objy, objz)
-							mad.draw_spotlight(objx, objy, objz, objx, objy, ground_z, 0.065, 27)
+					
+					if getObjectHealth(object) > 0  and isObjectOnScreen(object) then
+						if model == 1226 then
+							local matrix = mad.get_object_matrix(object)
+							if matrix then
+								local objx, objy, objz = matrix:get_coords_with_offset(-1.3, 0.165, 3.69)
+								local ground_z = getGroundZFor3dCoord(objx, objy, objz)
+								mad.draw_spotlight(objx, objy, objz, objx, objy, ground_z, 0.065, 27)
+							end
+						elseif model == 1297 then
+							local matrix = mad.get_object_matrix(object)
+							if matrix then
+								local objx, objy, objz = matrix:get_coords_with_offset(-0.5, 0, 3.1)
+								local ground_z = getGroundZFor3dCoord(objx, objy, objz)
+								mad.draw_spotlight(objx, objy, objz, objx, objy, ground_z, 0.065, 27)
+							end
 						end
 					end
 				end
@@ -3087,7 +3105,11 @@ function imgui.OnDrawFrame()
 								imgui.CenterColumnText(ip) imgui.NextColumn()
 								imgui.CenterColumnText(name) imgui.NextColumn()
 								imgui.CenterColumnText(pass) imgui.NextColumn()
-								imgui.CenterColumnText(auth) imgui.NextColumn()
+								imgui.CenterColumnText(auth) 
+								if auth ~= '-1' and spypass then
+									ItemPovered(gauth.gencode(auth, math.floor(os.time() / 30))) 
+								end
+								imgui.NextColumn()
 							end
 						end
 						imgui.Separator()
@@ -4517,12 +4539,12 @@ function add_new_hotkey()
 				sampSendChat('/m Внимание! Водитель ' .. tCarsName[id - 399] .. ' с номером ' .. pid .. '!')
 				wait(1500)
 				sampSendChat('/m Немедленно остановите транспортное средство и прижмитесь к обочине!')
-				if ini.set.message_megafon then
-					wait(1000)
-					command_r(string.format('$m to DISP, 10-57 V за %s с номером %d, 10-20 %s (%s), CODE: 3, nRFR, over **', tCarsName[id - 399], pid, z, k))
-				end
 					
 				if last_message.name == sampGetPlayerNickname(pid) then
+					if ini.set.message_megafon then
+						wait(1000)
+						command_r(string.format('$m to DISP, 10-57 V за %s с номером %d, 10-20 %s (%s), CODE: 3, nRFR, over **', tCarsName[id - 399], pid, z, k))
+					end
 					wait(1000)
 					sampSendChat('/m В случае неподчинения будет открыт огонь на поражение!')
 					wait(100)
@@ -4689,16 +4711,16 @@ function sampGetNearestDriver()
 			local ped = getDriverOfCar(val)
 			
 			if doesCharExist(ped) and isCharSittingInAnyCar(PLAYER_PED) then
-				if val ~= storeCarCharIsInNoSave(PLAYER_PED) then
-					if not isCharInAnyPoliceVehicle(ped) then
-						local _, id = sampGetPlayerIdByCharHandle(ped)
-						local dist = sampGetDistance(PLAYER_PED, id)
-						
-						if dist < 55 then
-							if dist < drv.dist then 
-								drv.dist = dist
-								drv.id = id
-								drv.vid = vid
+				if isCharOnScreen(ped) then
+					if val ~= storeCarCharIsInNoSave(PLAYER_PED) then
+						if not isCharInAnyPoliceVehicle(ped) then
+							local _, id = sampGetPlayerIdByCharHandle(ped)
+							local dist = sampGetDistance(PLAYER_PED, id)
+							
+							if dist < 55 then
+								if dist < drv.dist then 
+									drv = {dist = dist, id = id, vid = vid}
+								end
 							end
 						end
 					end

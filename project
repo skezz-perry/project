@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(13.3)
+script_version(13.4)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -18,7 +18,7 @@ local dlstatus          = require('moonloader').download_status
 local font_flag         = require('moonloader').font_flag
 local bNotf, notf       = pcall(import, "imgui_notf1.lua")
 lsampev, sampev         = pcall(require, 'lib.samp.events')
-imgui.HotKey            = require('imgui_addons').HotKey
+imgui.HotKey            = require('imgui_addons').HotKey  
 imgui.ToggleButton      = require('imgui_addons').ToggleButton
 encoding.default        = 'CP1251'
 u8                      = encoding.UTF8
@@ -1124,19 +1124,27 @@ function command_r(text)
 
 	if not string.match(text, '(.+)') then SCM(string.format('Используйте команду /%s [текст].', cmd))
 	else
-		local mark = sampGetMarkCharByVehicle(PLAYER_PED)
+		local mark = sampGetMarkCharByVehicle(playerPed)
 		
-		text = string.gsub(text, 'cod 11', '$m to DISP, занимаю маркировку $m, CODE: 1-1, RFR, over **')
-		text = string.gsub(text, 'cod 13', '$m to DISP, освобождаю маркировку $m, CODE: 1-3, nRFR, over **')
-		text = string.gsub(text, 'cod 14', '$m to DISP, доставляю подозреваемого в департамент, CODE: 1-4, nRFR, over **')
-		text = string.gsub(text, 'tf 55', '$m to DISP, Провожу 10-55, CODE: 4, 10-20 $p, nRFR, over **')
-		text = string.gsub(text, 'tf 66', '$m to DISP, Провожу 10-66, CODE: 3, 10-20 $p, nRFR, over **')
-		text = string.gsub(text, 'tf 9957v', '$m to DISP, 10-99 по 10-57 V, RFR, over **')
-		text = string.gsub(text, 'tf 9957f', '$m to DISP, 10-99 по 10-57 F, RFR, over **')
-		text = string.gsub(text, 'tf 995', '$m to DISP, 10-99 по 10-55, RFR, over **')
-		text = string.gsub(text, 'tf 996', '$m to DISP, 10-99 по 10-66, RFR, over **')
-		text = string.gsub(text, 'cod 0', '$m to DISP, CODE: 0, требуется срочная помощь!, 10-20 $p, nRFR, over **')
-		text = string.gsub(text, 'cod 1', '$m to DISP, CODE: 1, требуется помощь!, 10-20 $p, nRFR, over **')
+		local tab = {['cod 11'] = '$m to DISP, занимаю маркировку $m, CODE: 1-1, RFR, over **',
+			['cod 13'] = '$m to DISP, освобождаю маркировку $m, CODE: 1-3, nRFR, over **',
+			['cod 14'] = '$m to DISP, доставляю подозреваемого в департамент, CODE: 1-4, nRFR, over **',
+			['tf 55'] = '$m to DISP, провожу 10-55, CODE: 4, 10-20 $p, nRFR, over **', 
+			['tf 66'] = '$m to DISP, провожу 10-66, CODE: 3, 10-20 $p, nRFR, over **',
+			['tf 9957v'] = '$m to DISP, 10-99 по 10-57 V, RFR, over **',
+			['tf 9957f'] = '$m to DISP, 10-99 по 10-57 F, RFR, over **',
+			['tf 995'] = '$m to DISP, 10-99 по 10-55, RFR, over **',
+			['tf 996'] = '$m to DISP, 10-99 по 10-66, RFR, over **',
+			['cod 0'] = '$m to DISP, CODE: 0, требуется срочная помощь!, 10-20 $p, nRFR, over **',
+			['cod 1'] = '$m to DISP, CODE: 1, требуется помощь!, 10-20 $p, nRFR, over **',
+		}
+		
+		for name, value in pairs(tab) do
+			if text == name then
+				text = string.gsub(text, name, value)
+			end
+		end
+		
 		text = string.gsub(text, '%$m', mark)
 		text = string.gsub(text, '%$p', string.format('%s (%s)', calculateZone(), kvadrat()))
 		
@@ -1174,7 +1182,36 @@ function command_f(text)
 	if not string.match(text, '(.+)') then 
 		SCM(string.format('Используйте команду /%s [текст].', cmd))
 	else 
-		sampSendChat(string.format('/%s %s %s', ucmd, ini.info.fteg, text))
+		local mark = sampGetMarkCharByVehicle(playerPed)
+		
+		local tab = {['cod 11'] = '$m to DISP, занимаю маркировку $m, CODE: 1-1, RFR, over **',
+			['cod 13'] = '$m to DISP, освобождаю маркировку $m, CODE: 1-3, nRFR, over **',
+			['cod 14'] = '$m to DISP, доставляю подозреваемого в департамент, CODE: 1-4, nRFR, over **',
+			['tf 55'] = '$m to DISP, провожу 10-55, CODE: 4, 10-20 $p, nRFR, over **', 
+			['tf 66'] = '$m to DISP, провожу 10-66, CODE: 3, 10-20 $p, nRFR, over **',
+			['tf 9957v'] = '$m to DISP, 10-99 по 10-57 V, RFR, over **',
+			['tf 9957f'] = '$m to DISP, 10-99 по 10-57 F, RFR, over **',
+			['tf 995'] = '$m to DISP, 10-99 по 10-55, RFR, over **',
+			['tf 996'] = '$m to DISP, 10-99 по 10-66, RFR, over **',
+			['cod 0'] = '$m to DISP, CODE: 0, требуется срочная помощь!, 10-20 $p, nRFR, over **',
+			['cod 1'] = '$m to DISP, CODE: 1, требуется помощь!, 10-20 $p, nRFR, over **',
+		}
+		
+		for name, value in pairs(tab) do
+			if text == name then
+				text = string.gsub(text, name, value)
+			end
+		end
+		
+		text = string.gsub(text, '%$m', mark)
+		text = string.gsub(text, '%$p', string.format('%s (%s)', calculateZone(), kvadrat()))
+		
+		if string.len(text) > 77 then
+			sampSendChat(string.format('/%s %s %s ...', ucmd, ini.info.rteg, string.sub(text, 0, 77)))
+			sampSendChat(string.format('/%s ... %s', ucmd, string.sub(text, 78, string.len(text))))
+		else
+			sampSendChat(string.format('/%s %s %s', ucmd, ini.info.rteg, text))
+		end 
 		
 		if ini.lowrp.rpradio then
 		
@@ -4548,9 +4585,10 @@ function add_new_hotkey()
 					wait(1000)
 					sampSendChat('/m В случае неподчинения будет открыт огонь на поражение!')
 					wait(100)
-					SCM(string.format('Чтобы объявить %s[%d] в розыск по статье 8.1 УК нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerNickname(pid), pid))
 					
-					local stars, reason = tonumber(ini.uk_set.insubordination:match('(%d+)[%s]|[.+]')), ini.uk_set.insubordination:match('[%d+][%s]|(.+)')
+					local stars, reason = tonumber(ini.uk_set.insubordination:match('(%d+)[%s]|.+')), ini.uk_set.insubordination:match('[%d+][%s]|[%s](.+)')
+					
+					SCM(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerNickname(pid), pid, reason))
 					suspect_id = {pid, stars, reason, sampGetPlayerNickname(pid)}
 				end
 					
@@ -4642,32 +4680,35 @@ function sampGetMarkCharByVehicle(ped)
 	if isCharSittingInAnyCar(ped) then
 		if isCharInAnyCar(ped) or isCharOnAnyBike(ped) then
 			local vehicle = storeCarCharIsInNoSave(ped)
-			local model = getCarModel(vehicle)
 			
-			if model >= 596 and model <= 599 then
-				local maxp = getMaximumNumberOfPassengers(vehicle)
-				local res, int = getNumberOfPassengers(vehicle)
-			
-				if res and int > 0 then
-					for i = 0, maxp do
-						if not isCarPassengerSeatFree(vehicle, i) then
-							local ped = getCharInCarPassengerSeat(vehicle, i)
-							if doesCharExist(ped) then
-								if sampIsPoliceOfficerById(ped) then
-									return string.format('A-%s', uid) 
+			if doesVehicleExist(vehicle) then
+				local model = getCarModel(vehicle)
+				
+				if model >= 596 and model <= 599 then
+					local maxp = getMaximumNumberOfPassengers(vehicle)
+					local res, int = getNumberOfPassengers(vehicle)
+				
+					--[[if res and int > 0 then
+						for i = 1, maxp do
+							if not isCarPassengerSeatFree(vehicle, i) then
+								local ped = getCharInCarPassengerSeat(vehicle, i)
+								if doesCharExist(ped) then
+									if sampIsPoliceOfficerById(ped) then
+										return string.format('A-%s', uid)
+									end
 								end
 							end
 						end
-					end
+					end]]
+					
+					return string.format('L-%d', uid) 
+				elseif model == 601 or model == 427 or model == 528 then
+					return string.format('C-%d', uid) 
+				elseif model == 415 then
+					return string.format('H-%d', uid) 
+				elseif model == 523 then
+					return string.format('M-%d', uid)
 				end
-				
-				return string.format('L-%d', uid) 
-			elseif model == 601 or model == 427 or model == 528 then
-				return string.format('C-%d', uid) 
-			elseif model == 415 then
-				return string.format('H-%d', uid) 
-			elseif model == 523 then
-				return string.format('M-%d', uid) 
 			end
 		end
 	end
@@ -6217,7 +6258,7 @@ function sampev.onServerMessage(color, text)
 	if text:match('(.+)[^%d](%d+)[^%d] был обнаружен в районе') then
 		local name, id = string.match(text, '(.+)[^%d](%d+)[^%d] был обнаружен в районе')
 		if IPC(id) then
-			local stars, reason = tonumber(ini.uk_set.insubordination:match('(%d+)[%s]|[.+]')), ini.uk_set.insubordination:match('[%d+][%s]|(.+)')
+			local stars, reason = tonumber(ini.uk_set.insubordination:match('(%d+)[%s]|.+')), ini.uk_set.insubordination:match('[%d+][%s]|[%s](.+)')
 			SCM(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerNickname(id), id, reason))
 			suspect_id = {id, stars, reason, sampGetPlayerNickname(pid)}
 		end
@@ -6228,7 +6269,7 @@ function sampev.onServerMessage(color, text)
 		local id = sampGetPlayerIdByNickname(name)
 		
 		if IPC(id) then
-			local stars, reason = tonumber(ini.uk_set.cancel_ticket:match('(%d+)[%s]|[.+]')), ini.uk_set.cancel_ticket:match('[%d+][%s]|(.+)')
+			local stars, reason = tonumber(ini.uk_set.cancel_ticket:match('(%d+)[%s]|.+')), ini.uk_set.cancel_ticket:match('[%d+][%s]|[%s](.+)')
 			SCM(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', name, id, reason))
 			suspect_id = {id, stars, reason, sampGetPlayerNickname(pid)}
 		end

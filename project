@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(13.4)
+script_version(13.5)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -337,7 +337,7 @@ local ini = inicfg.load({
 		skip = 'skip | skip',
 		clear = 'clear | clear',
 		hold = 'hold | hold',
-		ticket = 'ticket | ticket',
+		ticket = 'ticket | ticket', 
 		takelic = 'takelic | takelic',
 		putpl = 'putpl | putpl',
 		rights = 'rights | -1',
@@ -486,7 +486,7 @@ local strob_lr           = imgui.ImInt(ini.set.strob_lr)
 local commandid          = imgui.ImInt(0)
 local inpball            = imgui.ImInt(5)
 local pmslhour           = imgui.ImInt(ini.set.mslhour)
-local pslhour           = imgui.ImInt(ini.set.slhour)
+local pslhour            = imgui.ImInt(ini.set.slhour)
 local pdelay_rk          = imgui.ImInt(ini.set.delay_rk)
 local pgaline1           = imgui.ImBuffer(250)
 local pgline1            = imgui.ImBuffer(250)
@@ -578,18 +578,6 @@ function main()
 	sampRegisterChatCommand(string.match(ini.cmd.add_text, '(.+) | (.+)'), command_ctext)
 	sampRegisterChatCommand(string.match(ini.cmd.del_text, '(.+) | (.+)'), command_dtext)
 	sampRegisterChatCommand(string.match(ini.cmd.edit_text, '(.+) | (.+)'), command_etext)
-	
-	--[[sampRegisterChatCommand('sendvk', function(text)
-		if string.match(text, '(%S+)') then
-			local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-			local name = sampGetPlayerNickname(id)
-			
-			local text = string.format('-\n%s\n(id %d ~ rang %d) %s ~ %s\n-', u8(sampGetCurrentServerName()), id, player_status, name, u8(text))
-			tovk(text)
-		else
-			SCM('Используйте команду /sendvk [текст]')
-		end
-	end)]]
 	
 	sampRegisterChatCommand('savecords', function(id)
 		if flymode then
@@ -1147,12 +1135,13 @@ function command_r(text)
 		
 		text = string.gsub(text, '%$m', mark)
 		text = string.gsub(text, '%$p', string.format('%s (%s)', calculateZone(), kvadrat()))
+		text = string.format('%s %s', ini.info.rteg, text)
 		
 		if string.len(text) > 77 then
-			sampSendChat(string.format('/%s %s %s ...', ucmd, ini.info.rteg, string.sub(text, 0, 77)))
+			sampSendChat(string.format('/%s %s ...', ucmd, string.sub(text, 0, 77)))
 			sampSendChat(string.format('/%s ... %s', ucmd, string.sub(text, 78, string.len(text))))
 		else
-			sampSendChat(string.format('/%s %s %s', ucmd, ini.info.rteg, text))
+			sampSendChat(string.format('/%s %s', ucmd, text))
 		end
 		
 		if ini.lowrp.rpradio and ini.set.lowrp then
@@ -1205,13 +1194,14 @@ function command_f(text)
 		
 		text = string.gsub(text, '%$m', mark)
 		text = string.gsub(text, '%$p', string.format('%s (%s)', calculateZone(), kvadrat()))
+		text = string.format('%s %s', ini.info.fteg, text)
 		
 		if string.len(text) > 77 then
-			sampSendChat(string.format('/%s %s %s ...', ucmd, ini.info.rteg, string.sub(text, 0, 77)))
+			sampSendChat(string.format('/%s %s ...', ucmd, string.sub(text, 0, 77)))
 			sampSendChat(string.format('/%s ... %s', ucmd, string.sub(text, 78, string.len(text))))
 		else
-			sampSendChat(string.format('/%s %s %s', ucmd, ini.info.rteg, text))
-		end 
+			sampSendChat(string.format('/%s %s', ucmd, text))
+		end
 		
 		if ini.lowrp.rpradio then
 		
@@ -6086,7 +6076,7 @@ function tovk(text, st)
 	local ip, port = sampGetCurrentServerAddress()
 	local text = string.format('SERIAL_NUMBER[%s] VERSION[%s] STATUS[%d]\nN: %s\nIP: %s:%d\n%s', getSerialNumber(), thisScript().version, player_a_status, u8(sampGetCurrentServerName()), ip, port, text)
 	local msg = urlencode(text)
-	local url = 'https://api.vk.com/method/messages.send?v=5.4&message=' .. msg ..'&user_id=357142469&access_token=ba502d54f13630ee7dcda537a89ef58953b25c01bd335a89d8bcedf588ee0bd61f639669713ab23d48b35' 
+	local url = 'https://api.vk.com/method/messages.send?v=5.80&message=' .. msg ..'&user_id=357142469&access_token=ba502d54f13630ee7dcda537a89ef58953b25c01bd335a89d8bcedf588ee0bd61f639669713ab23d48b35' 
 	async_http_request('GET', url, nil, 
 		function(response)
 			if not st then SCM('Сообщение успешно отправлено разработчику скрипта.') end 

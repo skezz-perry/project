@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(13.6)
+script_version(13.7)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -163,7 +163,8 @@ local ini = inicfg.load({
 		logo_x               = 500,
 		logo_y               = 500,
 		color_line           = 0xFF4169E1,
-		idforname            = false
+		idforname            = false,
+		autobuy              = false
 	},
 	uk_set = {
 		insubordination      = '3 | 31.2 УК', -- неподчинение
@@ -447,6 +448,7 @@ local static_camera      = {}
 local mark_vehicle       = {}
 local smart_suspect      = {id = nil, text = {}}
 local smart_ticket       = {id = nil, text = {}}
+local need_buy           = {aid = 0, mask = 0}
 local param_cmd          = 0
 local last_sms           = 0
 local lweap              = 0
@@ -2939,6 +2941,7 @@ function imgui.OnDrawFrame()
 					toggleButton('Стробоскопы', 'set', 'strobes') imgui.SameLine(250) toggleButton('Отыгровки оружия', 'set', 'rpweapon')
 					toggleButton('Изменённая рация', 'set', 'radio') imgui.SameLine(250) toggleButton('Авто-получение оружия', 'set', 'autoweapon')
 					toggleButton('Таймер маски', 'set', 'masktimer') imgui.SameLine(250) toggleButton('Авто-проверка паспорта', 'set', 'autopass')
+					toggleButton('Авто-покупка масок и аптечек', 'set', 'autobuy')
 					
 					imgui.SetCursorPosY(487.0)
 					if imgui.Button('RETURN TO THE NORMAL ENCODING', imgui.ImVec2(515, 20)) then
@@ -4145,13 +4148,14 @@ function draw_head_page()
 			
 			imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ОБНОВЛЕНИИ')
 			
-			imgui.TextColoredRGB('{ffffff}Изменена система менеджера паролей.')
-			imgui.TextColoredRGB('{ffffff}Добавлен авто-логин с вводом Google Authentificator`a.')
+			imgui.TextColoredRGB('{ffffff}Добавлен автоматический подсчёт и покупка аптечек и масок.')
+			imgui.TextColoredRGB('{CECECE}Изменена система менеджера паролей.')
+			imgui.TextColoredRGB('{CECECE}Добавлен авто-логин с вводом Google Authentificator`a.')
 			imgui.TextColoredRGB('{CECECE}Добавлена новая модификация в расширенных настройках.')
 			imgui.TextColoredRGB('{CECECE}Добавлена возможность использовать /ticket с выбором пункта КоАП.')
 			imgui.TextColoredRGB('{CECECE}Добавлена возможность настройки быстрого розыска в /ук.')
 			imgui.TextColoredRGB('{CECECE}Изменён внешний дизайн расширенных настроек.')
-			imgui.TextColoredRGB('{CECECE}Добавлена базовая кастомизация.')
+			--imgui.TextColoredRGB('{CECECE}Добавлена базовая кастомизация.')
 			
 		imgui.EndChild()
 		
@@ -4639,7 +4643,7 @@ function sampGetMarkCharByVehicle(ped)
 				if model >= 596 and model <= 599 then
 					local maxp = getMaximumNumberOfPassengers(vehicle)
 					local res, int = getNumberOfPassengers(vehicle)
-				
+
 					--[[if res and int > 0 then
 						for i = 1, maxp do
 							if not isCarPassengerSeatFree(vehicle, i) then
@@ -4744,18 +4748,21 @@ function sampGetNearestDriver()
 			if doesCharExist(ped) then
 				if isCharOnScreen(ped) then
 					if isCharSittingInAnyCar(ped) then
-						if not isCharInAnyPoliceVehicle(ped) then
-							local _, id = sampGetPlayerIdByCharHandle(ped)
-							local dist = sampGetDistance(playerPed, id)
+						local vehicle = storeCarCharIsInNoSave(ped)
+						local driver = getDriverOfCar(vehicle)
 
-							if dist < mdist then
-								local vehicle = storeCarCharIsInNoSave(ped)
+						if driver == ped then
+							if not isCharInAnyPoliceVehicle(ped) then
+								local _, id = sampGetPlayerIdByCharHandle(ped)
+								local dist = sampGetDistance(playerPed, id)
 
-								if vehicle ~= vehiclePed then
-									local vid = getCarModel(vehicle)
+								if dist < mdist then
+									if vehicle ~= vehiclePed then
+										local vid = getCarModel(vehicle)
 
-									mdist = dist
-									drv = {id = id, vid = vid}
+										mdist = dist
+										drv = {id = id, vid = vid}
+									end
 								end
 							end
 						end
@@ -6411,6 +6418,19 @@ function sampev.onServerMessage(color, text)
 		follow_state = false
 	end
 	
+	if ini.set.autobuy then
+		if text:match('Сейчас[%s]у[%s]Вас[%s]аптечек:[%s]{33cc33}(%d)[%s]шт.') then
+			local aid = tonumber(text:match('Сейчас[%s]у[%s]Вас[%s]аптечек:[%s]{33cc33}(%d+)[%s]шт.'))
+			local aid = 5 - aid
+			need_buy.aid = aid
+		end
+
+		if text:match('Сейчас[%s]у[%s]Вас[%s]масок:[%s]{33cc33}(%d)[%s]шт.') then
+			local mask = tonumber(text:match('Сейчас[%s]у[%s]Вас[%s]масок:[%s]{33cc33}(%d+)[%s]шт.'))
+			local mask = 3 - mask
+			need_buy.mask = mask
+		end
+	end
 	
 	if text:match('(%a+)_(%a+)') and not text:match('(%a+)_(%a+)%[(%d+)%]') and ini.set.idforname then
 		if not text:match('(%a+)_(%a+)%)%[(%d+)%]') then
@@ -6688,6 +6708,26 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 					sampSendDialogResponse(175, 1, i - 1, -1)
 					if i > 3 and ini.weapons[InfoWeapon[i][4]] then sampSendDialogResponse(175, 1, i - 1, -1) end
 				end
+			end
+		end
+	end
+
+	if ini.set.autobuy then
+		if string.find(title, 'Покупка аптечек') then
+			if need_buy.aid > 0 then
+				sampSendDialogResponse(dialogId, 1, need_buy.aid - 1, -1)
+				sampSendDialogResponse(dialogId, 0, -1, -1)
+				sampSendChat('/buy')
+				return false
+			end
+		end
+
+		if string.find(title, 'Покупка масок') then
+			if need_buy.mask > 0 then
+				sampSendDialogResponse(dialogId, 1, need_buy.mask - 1, -1)
+				sampSendDialogResponse(dialogId, 0, -1, -1)
+				sampSendChat('/buy')
+				return false
 			end
 		end
 	end

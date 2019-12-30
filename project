@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(13.7)
+script_version(13.8)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -1855,6 +1855,23 @@ function search_file(file, text, bool)
 	end
 end
 
+function search_law(table, text)
+	if table ~= nil and text ~= nil then
+		for _, val in pairs(table) do
+			for i, item in ipairs(val.st) do
+				if string.match(item, '(.+) | (.+) | (.+)') then
+					local stars, reason, info = string.match(item, '(.+) | (.+) | (.+)')
+
+					if info:find(text) then
+						SCM(string.format('%s,  %d | %s', reason, stars, info))
+						break
+					end
+				end
+			end
+		end
+	end
+end
+
 function command_ustav(text)
 	local cmd, ucmd = string.match(ini.cmd.ustav, '(.+) | (.+)')
 
@@ -1867,18 +1884,18 @@ end
 function command_uk(text)
 	local cmd, ucmd = string.match(ini.cmd.uk, '(.+) | (.+)')
 
-	if not string.match(text, '(.+)') then show_uk_list.v = not show_uk_list.v
+	if not string.match(text, '(%S+)') then show_uk_list.v = not show_uk_list.v
 	else
-		search_file('uk', text)
+		--search_law(smart_suspect.text, text)
 	end
 end
 
 function command_ak(text)
 	local cmd, ucmd = string.match(ini.cmd.ak, '(.+) | (.+)')
 
-	if not string.match(text, '(.+)') then show_ak_list.v = not show_ak_list.v
+	if not string.match(text, '(%S+)') then show_ak_list.v = not show_ak_list.v
 	else
-		search_file('ak', text)
+		--search_file('ak', text)
 	end
 end
 
@@ -1888,13 +1905,6 @@ function command_code(text)
 	if not string.match(text, '(.+)') then SCM(string.format('Используйте команду /%s [часть или номер кода]', cmd))
 	else
 		search_file('code', text)
-	end
-end
-
-function command_pdd(text)
-	if not string.match(text, '(.+)') then SCM('Используйте команду /пдд [часть или номер статьи]')
-	else
-		search_file('pdd', text)
 	end
 end
 
@@ -4044,25 +4054,27 @@ function draw_hotkey_settings()
 	imgui.Text('')
 	
 	for name in pairs(ini.hkey) do
-		if imgui.HotKey('##' .. name, hotkey_butt[name].key, hotkey_butt[name].last, 100) then
-			if not rkeys.isHotKeyDefined(hotkey_butt[name].key.v) then
-				rkeys.changeHotKey(hotkey_butt[name].bind, hotkey_butt[name].key.v)
+		if ini.hkey[name] then
+			if imgui.HotKey('##' .. name, hotkey_butt[name].key, hotkey_butt[name].last, 100) then
+				if not rkeys.isHotKeyDefined(hotkey_butt[name].key.v) then
+					rkeys.changeHotKey(hotkey_butt[name].bind, hotkey_butt[name].key.v)
 				
-				local key = ' '
-				for _, val in pairs(hotkey_butt[name].key.v) do
-					key = string.format('%s, %s', key, val)
+					local key = ' '
+					for _, val in pairs(hotkey_butt[name].key.v) do
+						key = string.format('%s, %s', key, val)
+					end
+				
+					ini.hkey[name] = string.gsub(key, '%s,%s', '')
+					inicfg.save(ini, 'Helper for MIA.ini')
+					pushMessage('Для этой команды установленно новое сочетание клавиш.', 3, 4)
+				else
+					hotkey_butt[name].key = hotkey_butt[name].last
+					pushMessage('Данное сочетание клавиш уже используется.', 3, 3)
 				end
-				
-				ini.hkey[name] = string.gsub(key, '%s,%s', '')
-				inicfg.save(ini, 'Helper for MIA.ini')
-				pushMessage('Для этой команды установленно новое сочетание клавиш.', 3, 4)
-			else
-				hotkey_butt[name].key = hotkey_butt[name].last
-				pushMessage('Данное сочетание клавиш уже используется.', 3, 3)
 			end
+			imgui.SameLine()
+			imgui.Text(u8(hotkey_butt[name].name))
 		end
-		imgui.SameLine()
-		imgui.Text(u8(hotkey_butt[name].name))
 	end
 end
 
@@ -4415,7 +4427,7 @@ function draw_customization()
 		imgui.Text(u8'элемента, то воспользуйтесь расширенной кастомизацией.')
 		imgui.Text('')
 		if imgui.ColorEdit3('##ЕТО_ШЕДЕВР', color_low_custom) then
-			local color = color_low_custom
+			local color = color_low_custom 
 			local color_tab = {['TitleBgActive'] = 255, ['CloseButton'] = 255, ['SliderGrabActive'] = 255, ['ScrollbarGrab'] = 90, ['ResizeGrip'] = 90, ['ScrollbarGrabActive'] = 255, ['ButtonHovered'] = 155, ['FrameBg'] = 90, ['ScrollbarBg'] = 90, ['FrameBgHovered'] = 155, ['ButtonActive'] = 255, ['FrameBgActive'] = 255, ['SliderGrab'] = 90, ['ResizeGripHovered'] = 90, ['Button'] = 90}
 			
 			for obj, val in pairs(color_tab) do
@@ -4995,8 +5007,9 @@ function kvadrat(X, Y, Z)
         [23] = "Ш",
         [24] = "Я",
     }
-	
-	if X == nil then
+
+	if X == nil or Y  == nil or Z == nil then
+		X, Y, Z = 1.0, 1.0, 1.0
 		X, Y, Z = getCharCoordinates(playerPed)
 	end
 	
@@ -5004,16 +5017,16 @@ function kvadrat(X, Y, Z)
 		X = math.ceil((X + 3000) / 250)
 		Y = math.ceil((Y * - 1 + 3000) / 250)
 		Y = KV[Y]
-		local KVX = (Y.."-"..X)
+		if Y ~= nil then
+			local KVX = (Y.."-"..X)
 		
-		if KVX ~= nil then
-			return KVX
-		else
-			return ''
+			if KVX ~= nil then
+				return KVX
+			end
 		end
-	else
-		return ''
 	end
+
+	return ''
 end
 
 function sampGetVehicleInfo(vehicle)

@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(13.8)
+script_version(13.9)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -295,35 +295,35 @@ local ini = inicfg.load({
 		unmask               = false
 	},
 	custom = {
-		ScrollbarGrab = 1525125412,
-		CloseButtonHovered = 1525125412,
-		ComboBg = 1525125412,
-		ResizeGrip = 1522877218,
-		ScrollbarGrabActive = 1525125412,
-		HeaderHovered = 1525125412,
-		ButtonHovered = 2529510178,
-		FrameBgHovered = 1522877218,
-		FrameBgActive = 2529510178,
-		FrameBg = 1522877218,
-		ScrollbarBg = 1525125412,
-		ButtonActive = 1522877218,
-		ResizeGripHovered = 2191869489,
-		ResizeGripActive = 2529510178,
-		CheckMark = 1525125412,
+		ScrollbarGrab        = 1525125412,
+		CloseButtonHovered   = 1525125412,
+		ComboBg              = 1525125412,
+		ResizeGrip           = 1522877218,
+		ScrollbarGrabActive  = 1525125412,
+		HeaderHovered        = 1525125412,
+		ButtonHovered        = 2529510178,
+		FrameBgHovered       = 1522877218,
+		FrameBgActive        = 2529510178,
+		FrameBg              = 1522877218,
+		ScrollbarBg          = 1525125412,
+		ButtonActive         = 1522877218,
+		ResizeGripHovered    = 2191869489,
+		ResizeGripActive     = 2529510178,
+		CheckMark            = 1525125412,
 		ScrollbarGrabHovered = 1522877218,
-		SliderGrabActive = 1525125412,
-		HeaderActive = 1525125412,
-		Button = 1522877218,
-		CloseButtonActive = 1525125412,
-		TitleBgActive = 4039459618,
-		CloseButton = 2529510178,
-		WindowBg = 4028175123,
-		TextSelectedBg = 1525125412,
-		SliderGrab = 1522877218,
-		Header = 1525125412,
-		TitleBgCollapsed = 851788578,
-		TitleBg = 24124124,
-		Text = 4294967295
+		SliderGrabActive     = 1525125412,
+		HeaderActive         = 1525125412,
+		Button               = 1522877218,
+		CloseButtonActive    = 1525125412,
+		TitleBgActive        = 4039459618,
+		CloseButton          = 2529510178,
+		WindowBg             = 4028175123,
+		TextSelectedBg       = 1525125412,
+		SliderGrab           = 1522877218,
+		Header               = 1525125412,
+		TitleBgCollapsed     = 851788578,
+		TitleBg              = 24124124,
+		Text                 = 4294967295
 	},
 	cmd = {
 		r = 'r | r',
@@ -677,6 +677,7 @@ function main()
 	lua_thread.create(rpweapon)
 	lua_thread.create(show_flymode)
 	lua_thread.create(logotyp)
+	lua_thread.create(speedometr)
 	
 	apply_custom_style()
 	register_custom_hotkey()
@@ -1074,6 +1075,34 @@ function main()
 				SCM('Вы закончили редактирование 3D текста с ID {FFCD00}' .. text_id .. '{ffffff}.')
 				text_id = nil
 			end 
+		end
+	end
+end
+
+function speedometr()
+	while true do
+		wait(0)
+
+		if isCharSittingInAnyCar(playerPed) then
+			if speedometr_id == nil or not sampTextdrawIsExists(speedometr_id) then
+				for number = 0, 3000 do
+					if sampTextdrawIsExists(number) then
+						if sampTextdrawGetString(number):find('Fuel') then
+							speedometr_id = number
+							break
+						end
+					end
+				end
+			else
+				if sampTextdrawIsExists(speedometr_id) then
+					local vehicle       = storeCarCharIsInNoSave(playerPed)
+					local vehicle_speed = math.ceil(getCarSpeed(vehicle) * 2.02)
+					local vehicle_text  = sampTextdrawGetString(speedometr_id)
+					local vehicle_text  = vehicle_text:gsub('%d+_km/h', string.format('%d_km/h', vehicle_speed))
+
+ 					sampTextdrawSetString(speedometr_id, vehicle_text)
+				end
+			end
 		end
 	end
 end
@@ -1672,7 +1701,7 @@ function send_gnews(id)
 			end
 		end)
 	else
-		SCM('Не найдено новости с данным ID.')
+		SCM('Не найдена новость с данным ID.')
 	end
 end
 
@@ -1820,9 +1849,9 @@ function command_search(id)
 			if sampGetDistance(PLAYER_PED, id) < 5 then
 				lua_thread.create(function()
 					if not ini.info.male then
-						sampSendChat('/me из внутреннего кармана достал белые, латекстные перчатки и одел их на руки')
+						sampSendChat('/me из внутреннего кармана достал белые, латекстные перчатки и надел их на руки')
 					else
-						sampSendChat('/me из внутреннего кармана достала белые, латекстные перчатки и одела их на руки')
+						sampSendChat('/me из внутреннего кармана достала белые, латекстные перчатки и надела их на руки')
 					end
 					wait(1500); sampSendChat('/me осмотривает все карманы, возможные места хранение запрещённых веществ и предметов')
 					wait(1000); sampSendChat(string.format('/%s %d', ucmd, id))
@@ -2025,13 +2054,13 @@ function command_follow()
 				wait(1500); sampSendChat('/me ввёл необходимые параметры для подключенния к внутреннему радио-каналу')
 				wait(1500); sampSendChat('/me достал наушники, параллельно заполнив нужную форму получения радио-сигналов')
 				wait(1000); sampSendChat(string.format('/%s', cmd))
-				wait(1500); sampSendChat('/me одел наушники, проверил звук, потушил экран планшета и убрал его')
+				wait(1500); sampSendChat('/me надел наушники, проверил звук, потушил экран планшета и убрал его')
 			else
 				sampSendChat('/me достала планшет, перешла в базу данных МВД и выбрала пункт с настройкой радио-канала')
 				wait(1500); sampSendChat('/me ввела необходимые параметры для подключенния к внутреннему радио-каналу')
 				wait(1500); sampSendChat('/me достала наушники, параллельно заполнив нужную форму получения радио-сигналов')
 				wait(1000); sampSendChat(string.format('/%s', cmd))
-				wait(1500); sampSendChat('/me одела наушники, проверила звук, потушила экран планшета и убрала его')
+				wait(1500); sampSendChat('/me надела наушники, проверила звук, потушила экран планшета и убрала его')
 			end
 		end
 	end)
@@ -2909,32 +2938,26 @@ function imgui.OnDrawFrame()
 						ini.info.name = u8:decode(pname.v)
 						inicfg.save(ini, 'Helper for MIA.ini')
 					end
-					ShowHelpMarker(string.format('Текущее значение: %s', ini.info.name))
 					if imgui.InputText(u8'Должность', prang) then
 						ini.info.rang = u8:decode(prang.v)
 						inicfg.save(ini, 'Helper for MIA.ini')
 					end
-					ShowHelpMarker(string.format('Текущее значение: %s', ini.info.rang))
 					if imgui.InputText(u8'Подразделение', pfrac) then
 						ini.info.frac = u8:decode(pfrac.v)
 						inicfg.save(ini, 'Helper for MIA.ini')
 					end
-					ShowHelpMarker(string.format('Текущее значение: %s', ini.info.frac))
 					if imgui.InputText(u8'Личный номер', pnumber) then
 						ini.info.number = u8:decode(pnumber.v)
 						inicfg.save(ini, 'Helper for MIA.ini')
 					end
-					ShowHelpMarker(string.format('Текущее значение: %s', ini.info.number))
 					if imgui.InputText(u8'Префикс в основную рацию', rteg) then
 						ini.info.rteg = u8:decode(rteg.v)
 						inicfg.save(ini, 'Helper for MIA.ini')
 					end
-					ShowHelpMarker(string.format('Текущее значение: %s', ini.info.rteg))
 					if imgui.InputText(u8'Префикс в общую волну', fteg) then
 						ini.info.fteg = u8:decode(fteg.v)
 						inicfg.save(ini, 'Helper for MIA.ini')
 					end
-					ShowHelpMarker(string.format('Текущее значение: %s', ini.info.fteg))
 					
 					imgui.Text('')
 					
@@ -3202,7 +3225,7 @@ function imgui.OnDrawFrame()
 					
 					imgui.SameLine()
 					
-					if imgui.Button(u8'СОЗДАТЬ', imgui.ImVec2(120, 20)) then
+					if imgui.Button(u8'СОЗДАТЬ', imgui.ImVec2(115, 20)) then
 						if string.match(idnews.v, '(%d+)') then
 							if not doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
 								pushMessage('Новость создана и открыта для настройки', 3, 4)
@@ -3245,9 +3268,9 @@ function imgui.OnDrawFrame()
 					ItemPovered('С помощь этой кнопки вы можете сохранить созданую гос. новость.')
 					
 					if lines.v then
-						if imgui.Button(u8'Изменить на 1 строку', imgui.ImVec2(515, 20)) then lines.v = not lines.v end
+						if imgui.Button(u8'Изменить на 1 строку', imgui.ImVec2(510, 20)) then lines.v = not lines.v end
 					else
-						if imgui.Button(u8'Изменить на 3 строки', imgui.ImVec2(515, 20)) then lines.v = not lines.v end
+						if imgui.Button(u8'Изменить на 3 строки', imgui.ImVec2(510, 20)) then lines.v = not lines.v end
 					end
 					ItemPovered('С помощью этой кнопки вы сможете выбрать сколько строк будет в гос. новости.')
 					
@@ -4160,13 +4183,14 @@ function draw_head_page()
 			
 			imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ОБНОВЛЕНИИ')
 			
-			imgui.TextColoredRGB('{ffffff}Добавлен автоматический подсчёт и покупка аптечек и масок.')
+			imgui.TextColoredRGB('{ffffff}Исправлена скорость обновления скорости на спидометре.')
+			imgui.TextColoredRGB('{CECECE}Добавлен автоматический подсчёт и покупка аптечек и масок.')
 			imgui.TextColoredRGB('{CECECE}Изменена система менеджера паролей.')
 			imgui.TextColoredRGB('{CECECE}Добавлен авто-логин с вводом Google Authentificator`a.')
 			imgui.TextColoredRGB('{CECECE}Добавлена новая модификация в расширенных настройках.')
 			imgui.TextColoredRGB('{CECECE}Добавлена возможность использовать /ticket с выбором пункта КоАП.')
 			imgui.TextColoredRGB('{CECECE}Добавлена возможность настройки быстрого розыска в /ук.')
-			imgui.TextColoredRGB('{CECECE}Изменён внешний дизайн расширенных настроек.')
+			--imgui.TextColoredRGB('{CECECE}Изменён внешний дизайн расширенных настроек.')
 			--imgui.TextColoredRGB('{CECECE}Добавлена базовая кастомизация.')
 			
 		imgui.EndChild()
@@ -6416,9 +6440,9 @@ function sampev.onServerMessage(color, text)
 			wait(150)
 			
 			if not ini.info.male then
-				sampSendChat('/me достал шприц с морфием и вколол его себе в бедро')
+				sampSendChat('/me достал шприц с трамадолом и вколол его себе в бедро')
 			else
-				sampSendChat('/me достала шприц с морфием и вколола его себе в бедро')
+				sampSendChat('/me достала шприц с трамадолом и вколола его себе в бедро')
 			end
 		end)
 	end
@@ -7067,9 +7091,9 @@ function sampev.onSetPlayerColor(playerId, color)
 				
 				if ini.set.lowrp and ini.lowrp.rpmask then
 					if not ini.info.male then
-						sampSendChat('/me достал маску из кармана, после чего одел её на себя')
+						sampSendChat('/me достал маску из кармана, после чего надел её на себя')
 					else
-						sampSendChat('/me достала маску из кармана, после чего одела её на себя')
+						sampSendChat('/me достала маску из кармана, после чего надела её на себя')
 					end
 				end
 			end

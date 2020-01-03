@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(13.9)
+script_version(14.1)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -437,7 +437,8 @@ local logchat            = {}
 local logdmg             = {}
 local dreason            = {}
 local gnews              = {}
-local suspect_id         = {}
+local suspect_id         = {0, 0, ''}
+local target_id          = 0
 local last_message       = {name = '', id = -1}
 local player_rang        = {}
 local object             = {}
@@ -759,6 +760,15 @@ function main()
 			end
 		end
 		
+		if isKeyDown(VK_RBUTTON) then
+			local id = sampGetPlayerIdByTarget()
+			if id then
+				if target_id ~= id then
+					target_id = id
+				end
+			end
+		end
+
 		if wasKeyPressed(KEY.VK_OEM_6) then
 			if isKeyCheckAvailable() then
 				sampSetChatInputEnabled(true)
@@ -844,7 +854,7 @@ function main()
 			end
 
 		end
-		
+
 		if flymode and not sampIsChatInputActive() and not isSampfuncsConsoleActive() then
 			for key = 49, 58 do
 				if wasKeyPressed(key) and isKeyCheckAvailable() then
@@ -2218,7 +2228,7 @@ function command_skip(id)
 	end
 end
 
-function command_open()
+function command_upopen()
 	local cmd, ucmd = string.match(ini.cmd.open, '(.+) | (.+)')
 
 	lua_thread.create(function()
@@ -3315,40 +3325,42 @@ function imgui.OnDrawFrame()
 		imgui.End()
 		
 		if show_help.v then
-			local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-			local info_function = {'ФУНКЦИИ | ОПИСАНИЕ / ПРИМЕР | РЕЗУЛЬТАТ',
-				'{name} | Имя и фамилия | ' .. ini.info.name,
-				'{rang} | Должность | ' .. ini.info.rang,
-				'{frac} | Подразделение | ' .. ini.info.frac,
-				'{number} | Личный номер | №000' .. ini.info.number,
-				'{rteg} | Префикс в рацию | ' .. ini.info.rteg,
-				'{fteg} | Префикс в общую волну | ' .. ini.info.fteg,
-				'{mark} | Маркировка юнита | ' .. sampGetMarkCharByVehicle(PLAYER_PED),
-				'{myid} | Ваш ID | ' .. id,
-				'{hello} | Приветствие | ' .. sampGetHelloByTime(),
-				'{area} | Район | '.. calculateZone(),
-				'{kvadrat} | Квадрат на карте | ' .. kvadrat(),
-				'{time} | Текущее время | ' .. os.date('%X'),
-				'{date} | Текущая дата | ' .. os.date('%x'),
+			local info_function = {'ФУНКЦИИ | ОПИСАНИЕ',
+				'{name} | Имя и фамилия, указанная в настройках',
+				'{rang} | Должность, указанная в настройках',
+				'{frac} | Подразделение, указанное в настройках',
+				'{number} | Личный номер, указанный в настройках',
+				'{rteg} | Префикс в рацию, указанный в настройках',
+				'{fteg} | Префикс в общую волну, указанный в настройках',
+				'{mark} | Маркировка юнита (автомобиля или самого игрока)',
+				'{hello} | Приветствие',
+				'{area} | Район в котором вы находитесь',
+				'{kvadrat} | Квадрат на карте в котором вы находитесь',
+				'{time} | Текущее время',
+				'{date} | Текущая дата',
+				'{myid} | Ваш ID',
+				'{param*число*} | Получить значение параметра. {param1} {param2} и тд',
+				'{suspect} | ID игрока, который был предложен для быстрого розыска',
+				'{target} | ID игрока, в которого вы целитесь (целились)',
 
-				'getPlayerName_{param} | getPlayerName_{param2} | <Имя игрока>',
-				'getPlayerFraction_{param} | getPlayerFraction_{param2} | <Организация игрока>',
-				'getPlayerColor_{param} | getPlayerColor_{param2} | <Цвет клиста игрока>',
-				'getPlayerPing_{param} | getPlayerPing_{param2} | <Пинг игрока>',
-				'getPlayerScore_{param} | getPlayerScore_{param2} | <Уровень игрока>',
+				'getPlayerName_{ID} | Имя игрока по ID. getPlayerName_{param2}',
+				'getPlayerFraction_{ID} | Организация игрока по ID. getPlayerFraction_{suspect}',
+				'getPlayerColor_{ID} | Цвет клиста игрока по ID. getPlayerColor_{param1}',
+				'getPlayerPing_{ID} | Пинг игрока по ID. getPlayerPing_{target}',
+				'getPlayerScore_{ID} | Уровень игрока по ID. getPlayerScore_{target}',
 				
-				'sendChat(text) | Сообщение в обычный чат | <Сообщение>',
-				'setChatInput(text) | Сообщение в чат без отправки | <Сообщение>',
-				'addChat(text) | Серв. сообщение | <Сообщение>',
-				'wait(delay) | Задержка | <Задержка>',
-				'setKeyDown(key[, bool]) | Нажатие клавиши KEY | <Нажатие клавиши>'
+				'sendChat(text) | Сообщение в обычный чат (с отправкой на сервер)',
+				'setChatInput(text) | Ввод в чат без отправки на сервер',
+				'addChat(text) | Сообщение в обычный чат (без отправки на сервер)',
+				'wait(delay) | Задержка между действиями',
+				'setKeyDown(key[, bool]) | Симуляция нажатия клавиши KEY',
 			}
 			
 			imgui.SetNextWindowSize(imgui.ImVec2(550, 430))
 			imgui.Begin(u8'ФУНКЦИИ | HELPER FOR MIA', show_help, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 				for i, val in pairs(info_function) do
-					local f, i, r = string.match(val, '(.+) | (.+) | (.+)')
-					if f ~= nil and i ~= nil and r ~= nil then
+					local f, i = string.match(val, '(.+) | (.+)')
+					if f ~= nil and i ~= nil then
 						imgui.Separator()
 						if f ~= 'ФУНКЦИИ' then 
 							if imgui.Button(u8(f), imgui.ImVec2(170, 20)) then
@@ -3358,10 +3370,8 @@ function imgui.OnDrawFrame()
 						else
 							imgui.Text(string.format('%s', u8(f)))
 						end
-						imgui.SameLine(200)
+						imgui.SameLine(190)
 						imgui.Text(string.format('%s', u8(i)))
-						imgui.SameLine(390)
-						imgui.Text(string.format('%s', u8(r)))
 					end
 				end
 			imgui.End()
@@ -4183,13 +4193,16 @@ function draw_head_page()
 			
 			imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ОБНОВЛЕНИИ')
 			
-			imgui.TextColoredRGB('{ffffff}Исправлена скорость обновления скорости на спидометре.')
+			imgui.TextColoredRGB('{ffffff}Изменена система дополнительных возможностей.')
+			imgui.TextColoredRGB('{ffffff}Добавлена возможность использовать в доп. возможностях серверные команды.')
+			imgui.TextColoredRGB('{ffffff}Добавлены новые переменные для дополнительных возможностей.')
+			imgui.TextColoredRGB('{CECECE}Исправлена скорость обновления скорости на спидометре.')
 			imgui.TextColoredRGB('{CECECE}Добавлен автоматический подсчёт и покупка аптечек и масок.')
 			imgui.TextColoredRGB('{CECECE}Изменена система менеджера паролей.')
 			imgui.TextColoredRGB('{CECECE}Добавлен авто-логин с вводом Google Authentificator`a.')
-			imgui.TextColoredRGB('{CECECE}Добавлена новая модификация в расширенных настройках.')
-			imgui.TextColoredRGB('{CECECE}Добавлена возможность использовать /ticket с выбором пункта КоАП.')
-			imgui.TextColoredRGB('{CECECE}Добавлена возможность настройки быстрого розыска в /ук.')
+			--imgui.TextColoredRGB('{CECECE}Добавлена новая модификация в расширенных настройках.')
+			--imgui.TextColoredRGB('{CECECE}Добавлена возможность использовать /ticket с выбором пункта КоАП.')
+			--imgui.TextColoredRGB('{CECECE}Добавлена возможность настройки быстрого розыска в /ук.')
 			--imgui.TextColoredRGB('{CECECE}Изменён внешний дизайн расширенных настроек.')
 			--imgui.TextColoredRGB('{CECECE}Добавлена базовая кастомизация.')
 			
@@ -4230,25 +4243,7 @@ function draw_head_page()
 	end
 end
 
-function getStateCommand(name)
-	if name_cmd.v ~= nil and name_cmd.v ~= '' then
-		local path = string.format('moonloader//helper//commands//%s.txt', name)
-		
-		if doesFileExist(path) then
-			if command_open ~= nil and command_open == path then
-				return '{32CD32} (доступна для редактирования)'
-			else 
-				return '{FFD700} (доступна для редактирования)'
-			end
-		else
-			return '{CD5C5C} (недоступна для редактирования)'
-		end
-	else
-		return '{FFD700} (ожидание ввода)'
-	end
-end
-
-function draw_another_custom_command()
+--[[function draw_another_custom_command()
 	imgui.CenterTextColoredRGB('ДОПОЛНИТЕЛЬНЫЕ ВОЗМОЖНОСТИ')
 	
 	imgui.Text('')
@@ -4355,17 +4350,173 @@ function draw_another_custom_command()
 	else
 		imgui.Text(text_cmd.v)
 	end
+end]]
+
+function getStateCommand(name)
+	if name_cmd.v ~= nil and name_cmd.v ~= '' then
+		local path = string.format('moonloader//helper//commands//%s.txt', name)
+		
+		if doesFileExist(path) then
+			if command_open ~= nil and command_open == path then
+				return 'КОМАНДА ОТКРЫТА', 3 -- {32CD32}
+			else 
+				return 'КОМАНДА НАЙДЕНА', 2 -- {FFD700}
+			end
+		else
+			return 'КОМАНДА НЕ НАЙДЕНА', 1 -- {CD5C5C}
+		end
+	else
+		return 'ОЖИДАНИЕ ВВОДА КОМАНДЫ', false -- {FFD700}
+	end
+end
+
+function draw_another_custom_command()
+	imgui.CenterTextColoredRGB('ДОПОЛНИТЕЛЬНЫЕ ВОЗМОЖНОСТИ')
+	
+	imgui.Text('')
+
+	imgui.Text(u8' Название команды') 
+	imgui.SameLine(147) imgui.Text(u8'Клавиши активации')
+	imgui.SameLine(365) imgui.Text(u8'Состояние')
+
+	imgui.PushItemWidth(120)
+	if imgui.InputText('', name_cmd) then
+		local path = string.format('moonloader//helper//commands//%s.txt', u8:decode(name_cmd.v))
+		if command_open ~= path then command_open = '' end
+	end ItemPovered('Здесь вы можете ввести название команды, которую хотите открыть или создать.') imgui.SameLine(144)
+
+	draw_new_custom_hotkey() ItemPovered('Здесь вы можете добавить или изменить клавиши, которыми активируется данная команда.') imgui.SameLine(285)
+
+	local name_result, result = getStateCommand(name_cmd.v)
+
+	imgui.Button(u8(name_result), imgui.ImVec2(235, 20)) ItemPovered('Здесь указывается текущее состояние команды. Найдена или не найдена команда, открыта для редактирования она или нет.')
+
+	if result and result < 3 then
+		if imgui.Button(u8'ОТКРЫТЬ ИЛИ СОЗДАТЬ', imgui.ImVec2(510, 20)) then
+			if name_cmd.v ~= nil and name_cmd.v ~= '' then
+				if not sampIsChatCommandDefined(u8:decode(name_cmd.v)) then
+					local path = string.format('moonloader//helper//commands//%s.txt', u8:decode(name_cmd.v))
+				
+					if doesFileExist(path) then
+						local cmd_text = ''
+						for line in io.lines(path) do
+							if string.match(line, '{param = (%d+)}') then
+								param_cmd = tonumber(string.match(line, '{param = (%d+)}'))
+							else 
+								cmd_text = string.format('%s%s\n', cmd_text, u8(line))
+							end
+						end
+						text_cmd.v = cmd_text
+						command_open = path
+					
+						pushMessage('Команда найдена и открыта для настройки', 3, 4)
+					elseif not doesFileExist(path) then
+						local filew = io.open(path, 'w')
+						filew:write('')
+						filew:close()
+					
+						param_cmd = 0
+						text_cmd.v = u8'Новая команда'
+						command_open = path
+					
+						pushMessage('Была создана новая команда.', 3, 4)
+					end
+				else
+					pushMessage('Данная команда уже используется скриптом.', 3, 3)
+				end
+			else
+				pushMessage('Не введено название команды.', 3, 3)
+			end
+		end ItemPovered('С помощью данной клавиши, если команда не найдена, вы сможете создать новую команду, или же открыть уже созданную.')
+	elseif result == 3 then
+		imgui.Text('')
+
+		if imgui.Button(u8'ДОБАВИТЬ ПАРАМЕТР', imgui.ImVec2(163, 20)) then if param_cmd < 3 then param_cmd = param_cmd + 1 end end
+		ItemPovered('С помощью данной клавиши вы можете добавить один параметр для вашей команды.')
+		imgui.SameLine()
+		if imgui.Button(u8'УБРАТЬ ПАРАМЕТР', imgui.ImVec2(162, 20)) then if param_cmd > 0 then param_cmd = param_cmd - 1 end end
+		imgui.SameLine()
+		ItemPovered('С помощью данной клавиши вы можете убрать один параметр для вашей команды.')
+		if imgui.Button(u8'ОЧИСТИТЬ', imgui.ImVec2(175, 20)) then
+			param_cmd, text_cmd.v, name_cmd.v, command_open = 0, '', '', ''
+		end
+		ItemPovered('С помощью данной клавиши вы можете очистить название команды, количество параметров и поле редактора команды.')
+
+		if imgui.Button(u8'СОХРАНИТЬ', imgui.ImVec2(123, 20)) then
+			if name_cmd.v ~= nil and name_cmd.v ~= '' then
+				if not sampIsChatCommandDefined(u8:decode(name_cmd.v)) then
+					local path = string.format('moonloader//helper//commands//%s.txt', u8:decode(name_cmd.v))
+				
+					if doesFileExist(path) and command_open == path then
+						local filew = io.open(path, 'w')
+						local save_text = string.format('{param = %d}\n%s', param_cmd, text_cmd.v)
+						filew:write(u8:decode(save_text))
+						filew:close()
+					
+						pushMessage('Команда успешно сохранена.', 3, 4)
+					else
+						pushMessage('Для начала нужно найти или создать команду.', 3, 3)
+					end
+				else
+					pushMessage('Данная команда уже используется скриптом.', 3, 3)
+				end	
+			else
+				pushMessage('Не введено название команды.', 3, 3)
+			end
+		end ItemPovered('С помощью данной клавиши вы можете сохранить изменения в команде.')
+
+		imgui.SameLine()
+
+		if imgui.Button(u8'УДАЛИТЬ', imgui.ImVec2(122, 20)) then
+			if name_cmd.v ~= nil and name_cmd.v ~= '' then
+				if not sampIsChatCommandDefined(u8:decode(name_cmd.v)) then
+					local path = string.format('moonloader//helper//commands//%s.txt', u8:decode(name_cmd.v))
+				
+					if doesFileExist(path) and command_open == path then
+						os.remove(path)
+					else
+						pushMessage('Для начала нужно найти или создать команду.', 3, 3)	
+					end
+				else
+					pushMessage('Невозможно удалить данную команду.', 3, 3)
+				end
+			else
+				pushMessage('Не введено название команды.', 3, 3)
+			end
+		end ItemPovered('С помощью данной клавиши вы можете удалить команду.')
+
+		imgui.SameLine()
+		if imgui.Button(u8'ПЕРЕМЕННЫЕ И ФУНКЦИИ', imgui.ImVec2(253, 20)) then
+			show_help.v = not show_help.v
+		end ItemPovered('С помощью данной клавиши вы можете открыть список доступных переменных и функций.')
+
+		imgui.Text('')
+		if not edit_command_text then command_name_text = 'РЕДАКТИРОВАНИЕ' else command_name_text = 'РЕЗУЛЬТАТ' end
+		if imgui.Button(u8(command_name_text), imgui.ImVec2(510, 20)) then
+			edit_command_text = not edit_command_text
+		end
+	
+		if not edit_command_text then
+			imgui.PushItemWidth(510)
+			imgui.InputTextMultiline('##TextForCmd', text_cmd, imgui.ImVec2(-1, imgui.GetTextLineHeight() * 22))
+		else
+			imgui.Text(text_cmd.v)
+		end
+	else
+		imgui.Text('')
+		imgui.CenterTextColoredRGB('Для начала редактирования откройте любую команду.')
+	end
 end
 
 function draw_new_custom_hotkey()
-	imgui.Text(u8'Клавиша(-и) активации: ') imgui.SameLine()
-
 	if name_cmd.v ~= nil and name_cmd.v ~= '' then
+		local path = string.format('moonloader//helper//commands//%s.txt', u8:decode(name_cmd.v))
+
 		if ini.custom_hkey[u8:decode(name_cmd.v)] ~= nil then
 			for id, val in pairs(hotkey_cust_butt) do
 				if u8:decode(name_cmd.v) == val.name then
 					if val.key.v ~= nil then
-						if imgui.HotKey('##' .. val.name, hotkey_cust_butt[id].key, hotkey_cust_butt[id].last, 100) then
+						if imgui.HotKey('##' .. val.name, hotkey_cust_butt[id].key, hotkey_cust_butt[id].last, 124) then
 							if not rkeys.isHotKeyDefined(hotkey_cust_butt[id].key.v) then
 								rkeys.changeHotKey(hotkey_cust_butt[id].bind, hotkey_cust_butt[id].key.v)
 			
@@ -4387,8 +4538,8 @@ function draw_new_custom_hotkey()
 					end
 				end
 			end
-		else
-			if imgui.Button(u8'добавить активацию клавишами') then
+		elseif doesFileExist(path) then
+			if imgui.Button(u8'ДОБАВИТЬ', imgui.ImVec2(124, 20)) then
 				if not name_cmd.v:find('йцукенгшщзхъфывапролджэячсмитьбюЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮ') then
 					ini.custom_hkey[name_cmd.v] = -1
 					table.insert(hotkey_cust_butt, {key = {v = {-1}}, last = {}, bind = -1, name = name_cmd.v})
@@ -4404,9 +4555,11 @@ function draw_new_custom_hotkey()
 					pushMessage('Команда не должна быть на русском языке.', 3, 3)
 				end
 			end
+		else
+			imgui.Button(u8'НЕДОСТУПНО', imgui.ImVec2(124, 20))
 		end
 	else
-		imgui.TextColoredRGB('{CD5C5C}недоступно для настройки')
+		imgui.Button(u8'НЕДОСТУПНО', imgui.ImVec2(124, 20))
 	end
 end
 
@@ -4507,7 +4660,7 @@ function add_new_hotkey()
 	
 	hotkey_butt['open'].bind = rkeys.registerHotKey(hotkey_butt['open'].key.v, true, function()
 		if isKeyCheckAvailable() then
-			command_open()
+			command_upopen()
 		end
 	end)
 	
@@ -4538,8 +4691,8 @@ function add_new_hotkey()
 	
 	hotkey_butt['fast_menu'].bind = rkeys.registerHotKey(hotkey_butt['fast_menu'].key.v, true, function()
 		if isKeyCheckAvailable() then
-			local res, ped = getCharPlayerIsTargeting(PLAYER_HANDLE)
-			if res then
+			local result, ped = getCharPlayerIsTargeting(playerHandle)
+			if result then
 				_, targetid = sampGetPlayerIdByCharHandle(ped)
 				piemenu.v = not piemenu.v
 			elseif piemenu.v then
@@ -4650,6 +4803,17 @@ function isPlayerCar(ped)
 	else
 		return 0
 	end
+end
+
+function sampGetPlayerIdByTarget()
+	local result, ped = getCharPlayerIsTargeting(playerHandle)
+
+	if result then
+		local iresult, id = sampGetPlayerIdByCharHandle(ped)
+		if iresult then return id end
+	end
+
+	return false
 end
 
 function imgui.CenterColumnText(text)
@@ -6836,8 +7000,18 @@ end
 
 function sampev.onSendCommand(param)
 	if string.match(param, '(%S+)[%s](%S+)') then file, val = string.match(param, '(%S+)[%s](.+)') else file, val = param, nil end
-	
-	process_command(file, val)
+
+	if not sampIsChatCommandDefined(file) then
+		local namefile = string.format('moonloader//helper/commands//%s.txt', file)
+
+		if doesFileExist(namefile) then
+			if last_command ~= file then
+				last_command = file
+				process_command(file, val)
+				return false
+			end
+		end
+	end
 end
 
 function onGetTableCommand(p)
@@ -6847,12 +7021,6 @@ function onGetTableCommand(p)
 		if string.find(val, '(%d+)') then
 			tab[#tab + 1] = tonumber(val)
 		else
-			--[[if type(tab[#tab]) == ('string') then
-				tab[#tab] = string.format('%s %s', tab[#tab], val)
-			else
-				tab[#tab + 1] = val
-			end]]
-			
 			tab[#tab + 1] = val
 		end
 	end
@@ -6910,13 +7078,6 @@ function process_command(file, input)
 						setVirtualKeyDown(KEY[string.match(val, 'setKeyDown%((%S+)%)')], true)
 						wait(35)
 						setVirtualKeyDown(KEY[string.match(val, 'setKeyDown%((%S+)%)')], false)
-					elseif string.match(val, 'searchFile%((%S+), (%S+), (%d+)%)') then
-						local file, text, sbool = string.match(val, 'searchFile%((%S+), (%S+), (%d+)%)')
-						if sbool == 1 then bool = true else bool = false end
-						search_file(file, text, bool)
-					elseif string.match(val, 'searchFile%((%S+), (%S+)%)') then
-						local file, text = string.match(val, 'searchFile%((%S+), (%S+)%)')
-						search_file(file, text)
 					elseif string.match(val, 'setChatInput%((.+)%)') then
 						sampSetChatInputEnabled(true)
 						sampSetChatInputText(string.match(val, 'setChatInput%((.+)%)'))
@@ -6926,6 +7087,8 @@ function process_command(file, input)
 					
 					linen = linen + 1
 				end
+
+				last_command = nil
 			end)
 		end
 	end
@@ -6946,82 +7109,67 @@ function func_to_text(line, tab)
 	line = line:gsub('{date}', os.date('%x'))
 	line = line:gsub('{myid}', pid)
 	line = line:gsub('{mark}', sampGetMarkCharByVehicle(PLAYER_PED))
-	
-	if string.find(line, 'getPlayerName_{param(%d)}') then
-		for val in string.gmatch(line, 'getPlayerName_{param(%d)}') do
-			local tab_number = tonumber(val)
-			
-			if tab[tab_number] ~= nil then
-				if IPC(tab[tab_number]) then
-					line = line:gsub(string.format('getPlayerName_{param%d}', tab_number), string.gsub(sampGetPlayerNickname(tab[tab_number]),'_',' '))
-				else
-					line = line:gsub(string.format('getPlayerName_{param%d}', tab_number), 'name')
-				end
-			end
-		end
-	end
-	
-	if string.find(line, 'getPlayerColor_{param(%d)}') then
-		for val in string.gmatch(line, 'getPlayerColor_{param(%d)}') do
-			local tab_number = tonumber(val)
-			
-			if tab[tab_number] ~= nil then
-				if IPC(tab[tab_number]) then
-					line = line:gsub(string.format('getPlayerColor_{param%d}', tab_number), '{' .. sampGetColor(tab[tab_number]) .. '}')
-				else
-					line = line:gsub(string.format('getPlayerColor_{param%d}', tab_number), '{ffffff}')
-				end
-			end
-		end
-	end
-	
-	if string.find(line, 'getPlayerPing_{param(%d)}') then
-		for val in string.gmatch(line, 'getPlayerPing_{param(%d)}') do
-			local tab_number = tonumber(val)
-			
-			if tab[tab_number] ~= nil then
-				if IPC(tab[tab_number]) then
-					line = line:gsub(string.format('getPlayerPing_{param%d}', tab_number), sampGetPlayerPing(tab[tab_number]))
-				else
-					line = line:gsub(string.format('getPlayerPing_{param%d}', tab_number), 'ping')
-				end
-			end
-		end
-	end
-	
-	if string.find(line, 'getPlayerScore_{param(%d)}') then
-		for val in string.gmatch(line, 'getPlayerScore_{param(%d)}') do
-			local tab_number = tonumber(val)
-			
-			if tab[tab_number] ~= nil then
-				if IPC(tab[tab_number]) then
-					line = line:gsub(string.format('getPlayerScore_{param%d}', tab_number), sampGetPlayerScore(tab[tab_number]))
-				else
-					line = line:gsub(string.format('getPlayerScore_{param%d}', tab_number), 'score')
-				end
-			end
-		end
-	end
-	
-	if string.find(line, 'getPlayerFraction_{param(%d)}') then
-		for val in string.gmatch(line, 'getPlayerFraction_{param(%d)}') do
-			local tab_number = tonumber(val)
-			
-			if tab[tab_number] ~= nil then
-				if IPC(tab[tab_number]) then
-					line = line:gsub(string.format('getPlayerFraction_{param%d}', tab_number), sampGetPlayerFractionByid(tab[tab_number]))
-				else
-					line = line:gsub(string.format('getPlayerFraction_{param%d}', tab_number), 'fraction')
-				end
-			end
-		end
-	end
-	
+	line = line:gsub('{suspect}', suspect_id[1])
+	line = line:gsub('{target}', target_id)
+
 	for val in string.gmatch(line, '{param(%d)}') do
 		local tab_number = tonumber(val)
 		
 		if tab[tab_number] ~= nil then
 			line = line:gsub(string.format('{param(%d)}', tab_number), tab[tab_number])
+		end
+	end
+	
+	if string.find(line, 'getPlayerName_(%d+)') then
+		for value in string.gmatch(line, 'getPlayerName_(%d+)') do
+			if IPC(value) then
+				line = line:gsub(string.format('getPlayerName_%d', value), string.gsub(sampGetPlayerNickname(value),'_',' '))
+			else
+				line = line:gsub(string.format('getPlayerName_%d', value), 'name')
+			end
+		end
+	end
+	
+	if string.find(line, 'getPlayerColor_(%d+)') then
+		for value in string.gmatch(line, 'getPlayerColor_(%d+)') do
+			
+			if tab[tab_number] ~= nil then
+				if IPC(tab[tab_number]) then
+					line = line:gsub(string.format('getPlayerColor_%d', tab_number), '{' .. sampGetColor(tab[tab_number]) .. '}')
+				else
+					line = line:gsub(string.format('getPlayerColor_%d', tab_number), '{ffffff}')
+				end
+			end
+		end
+	end
+	
+	if string.find(line, 'getPlayerPing_(%d+)') then
+		for value in string.gmatch(line, 'getPlayerPing_(%d+)') do
+			if IPC(value) then
+				line = line:gsub(string.format('getPlayerPing_%d', value), sampGetPlayerPing(value))
+			else
+				line = line:gsub(string.format('getPlayerPing_%d', value), 'ping')
+			end
+		end
+	end
+	
+	if string.find(line, 'getPlayerScore_(%d+)') then
+		for value in string.gmatch(line, 'getPlayerScore_(%d+)') do
+			if IPC(value) then
+				line = line:gsub(string.format('getPlayerScore_%d', value), sampGetPlayerScore(value))
+			else
+				line = line:gsub(string.format('getPlayerScore_%d', value), 'score')
+			end
+		end
+	end
+	
+	if string.find(line, 'getPlayerFraction_(%d+)') then
+		for value in string.gmatch(line, 'getPlayerFraction_(%d+)') do
+			if IPC(value) then
+				line = line:gsub(string.format('getPlayerFraction_%d', value), sampGetPlayerFractionByid(value))
+			else
+				line = line:gsub(string.format('getPlayerFraction_%d', value), 'fraction')
+			end
 		end
 	end
 	

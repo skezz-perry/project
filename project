@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(14.1)
+script_version(14.2)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -325,64 +325,6 @@ local ini = inicfg.load({
 		TitleBg              = 24124124,
 		Text                 = 4294967295
 	},
-	cmd = {
-		r = 'r | r',
-		rn = 'rn | -1',
-		f = 'f | f',
-		fn = 'fn | -1',
-		cuff = 'cuff | cuff',
-		uncuff = 'uncuff | uncuff',
-		arrest = 'arrest | arrest',
-		pull = 'pull | pull',
-		su = 'su | su',
-		skip = 'skip | skip',
-		clear = 'clear | clear',
-		hold = 'hold | hold',
-		ticket = 'ticket | ticket', 
-		takelic = 'takelic | takelic',
-		putpl = 'putpl | putpl',
-		rights = 'rights | -1',
-		search = 'search | search',
-		follow = 'follow | follow',
-		hack = 'hack | hack',
-		invite = 'invite | invite',
-		uninvite = 'uninvite | uninvite',
-		rang = 'rang | rang',
-		changeskin = 'changeskin | changeskin',
-		ud = 'ud | -1',
-		pas = 'pas | -1',
-		rep = 'rep | -1',
-		uk = 'ук | -1',
-		ak = 'ак | -1',
-		kod = 'код | -1',
-		ustav = 'устав | -1',
-		sw = 'sw | -1',
-		st = 'st | -1',
-		skin = 'skin | -1',
-		history = 'hist | history',
-		asms = 'asms | sms',
-		gov = 'gov | -1',
-		addbl = 'addbl | -1',
-		delbl = 'delbl | -1',
-		pay = 'pay | pay',
-		users = 'users | -1',
-		rkinfo = 'rkinfo | -1',
-		sms = 'sms | sms',
-		open = 'open | open',
-		bl_hist = 'bl_hist | -1',
-		bl_name = 'bl_name | -1',
-		akick = 'akick | -1',
-		rec = 'rec | -1',
-		recn = 'recn | -1',
-		recd = 'recd | -1',
-		radio_tag = 'rtag | -1',
-		add_obj = 'add_obj | -1',
-		edit_obj = 'edit_obj | -1',
-		del_obj = 'del_obj | -1',
-		add_text = 'add_text | -1',
-		del_text = 'del_text | -1',
-		edit_text = 'edit_text | -1',
-	},
 	hkey = {
 		eat = '2, 49',
 		open = '2, 50',
@@ -424,32 +366,19 @@ local hotkey_butt = {
 
 local hotkey_cust_butt = {}
 
-local color_red          = '{CD5C5C}'
-local color_orange       = '{F4A460}'
-local color_green        = '{00CD66}'
-local show_player        = ''
 local users              = ''
-local server             = ''
-local skin_table         = {}
 local lgov               = {}
-local info_scene         = {}
-local logchat            = {}
-local logdmg             = {}
 local dreason            = {}
 local gnews              = {}
 local suspect_id         = {0, 0, ''}
 local target_id          = 0
 local last_message       = {name = '', id = -1}
 local player_rang        = {}
-local object             = {}
-local weapon             = {}
-local sus_table          = {}
-local command_t          = {}
 local static_camera      = {}
-local mark_vehicle       = {}
 local smart_suspect      = {id = nil, text = {}}
 local smart_ticket       = {id = nil, text = {}}
 local need_buy           = {aid = 0, mask = 0}
+local maskTimer			 = {state = false, clock = 0}
 local param_cmd          = 0
 local last_sms           = 0
 local lweap              = 0
@@ -457,28 +386,21 @@ local gov_delay          = 0
 local rpweaponid         = 1
 local speed              = 0.3
 local flymode            = false
-local showtimer          = false
 local autopass           = false
-local cActive            = false
 local follow_state       = false
 local timerActive        = false
-local skillplus          = false
 local openbar            = false
 local successful_login   = false
 local player_status      = 0
 local player_a_status    = 0
 local show_menu          = imgui.ImBool(false)
-local piemenu            = imgui.ImBool(false)
+local fastMenu            = imgui.ImBool(false)
 local show_help          = imgui.ImBool(false)
-local show_info          = imgui.ImBool(false)
 local show_suspect       = imgui.ImBool(false)
 local show_ticket        = imgui.ImBool(false)
 local show_uk_list       = imgui.ImBool(false)
 local show_ak_list       = imgui.ImBool(false)
 local show_uk_edit       = imgui.ImBool(false)
-local vfilt              = imgui.ImBool(false)
-local lines              = imgui.ImBool(false)
-local command_edit       = imgui.ImBool(false)
 local show_item          = imgui.ImInt(8)
 local set_item           = imgui.ImInt(0)
 local page_num           = imgui.ImInt(0)
@@ -488,10 +410,14 @@ local inpball            = imgui.ImInt(5)
 local pmslhour           = imgui.ImInt(ini.set.mslhour)
 local pslhour            = imgui.ImInt(ini.set.slhour)
 local pdelay_rk          = imgui.ImInt(ini.set.delay_rk)
-local pgaline1           = imgui.ImBuffer(250)
-local pgline1            = imgui.ImBuffer(250)
-local pgline2            = imgui.ImBuffer(250)
-local pgline3            = imgui.ImBuffer(250)
+
+local govermentNews = {
+	lineOne = imgui.ImBuffer(250),
+	lineTwo = imgui.ImBuffer(250),
+	lineThree = imgui.ImBuffer(250),
+	lineAlone = imgui.ImBuffer(250)
+}
+
 local passname           = imgui.ImBuffer(250)
 local passpass           = imgui.ImBuffer(250)
 local passip             = imgui.ImBuffer(250)
@@ -519,142 +445,87 @@ function main()
 	while not isSampAvailable() do wait(100) end
 	
 	autoupdate('https://raw.githubusercontent.com/skezz-perry/project/master/version', 'https://raw.githubusercontent.com/skezz-perry/project/master/project')
+	--autoupdate('https://raw.githubusercontent.com/skezz-perry/project/master/version_luac', 'https://raw.githubusercontent.com/skezz-perry/project/master/project_luac')
 
 	attempToGetFileAndDir()
 	
-	sampRegisterChatCommand(string.match(ini.cmd.r, '(.+) | (.+)'), command_r)
-	sampRegisterChatCommand(string.match(ini.cmd.rn, '(.+) | (.+)'), command_rn)
-	sampRegisterChatCommand(string.match(ini.cmd.f, '(.+) | (.+)'), command_f)
-	sampRegisterChatCommand(string.match(ini.cmd.fn, '(.+) | (.+)'), command_fn)
-	sampRegisterChatCommand(string.match(ini.cmd.cuff, '(.+) | (.+)'), command_cuff)
-	sampRegisterChatCommand(string.match(ini.cmd.uncuff, '(.+) | (.+)'), command_uncuff)
-	sampRegisterChatCommand(string.match(ini.cmd.arrest, '(.+) | (.+)'), command_arrest)
-	sampRegisterChatCommand(string.match(ini.cmd.pull, '(.+) | (.+)'), command_pull)
-	sampRegisterChatCommand(string.match(ini.cmd.su, '(.+) | (.+)'), command_su)
-	sampRegisterChatCommand(string.match(ini.cmd.skip, '(.+) | (.+)'), command_skip)
-	sampRegisterChatCommand(string.match(ini.cmd.clear, '(.+) | (.+)'), command_clear)
-	sampRegisterChatCommand(string.match(ini.cmd.hold, '(.+) | (.+)'), command_hold)
-	sampRegisterChatCommand(string.match(ini.cmd.ticket, '(.+) | (.+)'), command_ticket)
-	sampRegisterChatCommand(string.match(ini.cmd.takelic, '(.+) | (.+)'), command_takelic)
-	sampRegisterChatCommand(string.match(ini.cmd.putpl, '(.+) | (.+)'), command_putpl)
-	sampRegisterChatCommand(string.match(ini.cmd.rights, '(.+) | (.+)'), command_rights)
-	sampRegisterChatCommand(string.match(ini.cmd.search, '(.+) | (.+)'), command_search)
-	sampRegisterChatCommand(string.match(ini.cmd.follow, '(.+) | (.+)'), command_follow)
-	sampRegisterChatCommand(string.match(ini.cmd.hack, '(.+) | (.+)'), command_hack)
-	sampRegisterChatCommand(string.match(ini.cmd.invite, '(.+) | (.+)'), command_invite)
-	sampRegisterChatCommand(string.match(ini.cmd.uninvite, '(.+) | (.+)'), command_uninvite)
-	sampRegisterChatCommand(string.match(ini.cmd.rang, '(.+) | (.+)'), command_rang)
-	sampRegisterChatCommand(string.match(ini.cmd.changeskin, '(.+) | (.+)'), command_changeskin)
-	sampRegisterChatCommand(string.match(ini.cmd.ud, '(.+) | (.+)'), command_ud)
-	sampRegisterChatCommand(string.match(ini.cmd.pas, '(.+) | (.+)'), command_pas)
-	sampRegisterChatCommand(string.match(ini.cmd.rep, '(.+) | (.+)'), command_report)
-	sampRegisterChatCommand(string.match(ini.cmd.uk, '(.+) | (.+)'), command_uk)
-	sampRegisterChatCommand(string.match(ini.cmd.ak, '(.+) | (.+)'), command_ak)
-	sampRegisterChatCommand(string.match(ini.cmd.kod, '(.+) | (.+)'), command_code)
-	sampRegisterChatCommand(string.match(ini.cmd.ustav, '(.+) | (.+)'), command_ustav)
-	sampRegisterChatCommand(string.match(ini.cmd.sw, '(.+) | (.+)'), command_setweather)
-	sampRegisterChatCommand(string.match(ini.cmd.st, '(.+) | (.+)'), command_settime)
-	sampRegisterChatCommand(string.match(ini.cmd.skin, '(.+) | (.+)'), command_setskin)
-	sampRegisterChatCommand(string.match(ini.cmd.history, '(.+) | (.+)'), command_history) 
-	sampRegisterChatCommand(string.match(ini.cmd.asms, '(.+) | (.+)'), command_asms)
-	sampRegisterChatCommand(string.match(ini.cmd.gov, '(.+) | (.+)'), command_gov)
-	sampRegisterChatCommand(string.match(ini.cmd.addbl, '(.+) | (.+)'), command_addbl)
-	sampRegisterChatCommand(string.match(ini.cmd.delbl, '(.+) | (.+)'), command_delbl)
-	sampRegisterChatCommand(string.match(ini.cmd.pay, '(.+) | (.+)'), command_apay)
-	sampRegisterChatCommand(string.match(ini.cmd.users, '(.+) | (.+)'), command_users)
-	sampRegisterChatCommand(string.match(ini.cmd.rkinfo, '(.+) | (.+)'), command_rkinfo)
-	sampRegisterChatCommand(string.match(ini.cmd.sms, '(.+) | (.+)'), command_sms)
-	sampRegisterChatCommand(string.match(ini.cmd.open, '(.+) | (.+)'), command_open)
-	sampRegisterChatCommand(string.match(ini.cmd.bl_hist, '(.+) | (.+)'), command_bl)
-	sampRegisterChatCommand(string.match(ini.cmd.bl_name, '(.+) | (.+)'), command_namebl)
-	sampRegisterChatCommand(string.match(ini.cmd.akick, '(.+) | (.+)'), command_rofl)
-	sampRegisterChatCommand(string.match(ini.cmd.rec, '(.+) | (.+)'), command_reconnect)
-	sampRegisterChatCommand(string.match(ini.cmd.recn, '(.+) | (.+)'), command_reconnectwithchange)
-	sampRegisterChatCommand(string.match(ini.cmd.recd, '(.+) | (.+)'), command_reconnectwithchangeip)
-	sampRegisterChatCommand(string.match(ini.cmd.radio_tag, '(.+) | (.+)'), command_radiotag) 
-	sampRegisterChatCommand(string.match(ini.cmd.add_obj, '(.+) | (.+)'), command_cobject)
-	sampRegisterChatCommand(string.match(ini.cmd.del_obj, '(.+) | (.+)'), command_dobject)
-	sampRegisterChatCommand(string.match(ini.cmd.edit_obj, '(.+) | (.+)'), command_eobject)
-	sampRegisterChatCommand(string.match(ini.cmd.add_text, '(.+) | (.+)'), command_ctext)
-	sampRegisterChatCommand(string.match(ini.cmd.del_text, '(.+) | (.+)'), command_dtext)
-	sampRegisterChatCommand(string.match(ini.cmd.edit_text, '(.+) | (.+)'), command_etext)
-	
+	sampRegisterChatCommand('r', command_r)
+	sampRegisterChatCommand('rn', command_rn)
+	sampRegisterChatCommand('f', command_f)
+	sampRegisterChatCommand('fn', command_fn)
+	sampRegisterChatCommand('cuff', command_cuff)
+	sampRegisterChatCommand('uncuff', command_uncuff)
+	sampRegisterChatCommand('arrest', command_arrest)
+	sampRegisterChatCommand('pull', command_pull)
+	sampRegisterChatCommand('su', command_su)
+	sampRegisterChatCommand('skip', command_skip)
+	sampRegisterChatCommand('clear', command_clear)
+	sampRegisterChatCommand('hold', command_hold)
+	sampRegisterChatCommand('ticket', command_ticket)
+	sampRegisterChatCommand('takelic', command_takelic)
+	sampRegisterChatCommand('putpl', command_putpl)
+	sampRegisterChatCommand('rights', command_rights)
+	sampRegisterChatCommand('search', command_search)
+	sampRegisterChatCommand('follow', command_follow)
+	sampRegisterChatCommand('hack', command_hack)
+	sampRegisterChatCommand('invite', command_invite)
+	sampRegisterChatCommand('uninvite', command_uninvite)
+	sampRegisterChatCommand('rang', command_rang)
+	sampRegisterChatCommand('changeskin', command_changeskin)
+	sampRegisterChatCommand('ud', command_ud)
+	sampRegisterChatCommand('pas', command_pas)
+	sampRegisterChatCommand('rep', command_report)
+	sampRegisterChatCommand('ук', command_uk)
+	sampRegisterChatCommand('ак', command_ak)
+	sampRegisterChatCommand('код', command_code)
+	sampRegisterChatCommand('устав', command_ustav)
+	sampRegisterChatCommand('sw', command_setweather)
+	sampRegisterChatCommand('st', command_settime)
+	sampRegisterChatCommand('sskin', command_setskin)
+	sampRegisterChatCommand('history', command_history) 
+	sampRegisterChatCommand('asms', command_asms)
+	sampRegisterChatCommand('gov', command_gov)
+	sampRegisterChatCommand('addbl', command_addbl)
+	sampRegisterChatCommand('delbl', command_delbl)
+	sampRegisterChatCommand('pay', command_apay)
+	sampRegisterChatCommand('users', command_users)
+	sampRegisterChatCommand('rkinfo', command_rkinfo)
+	sampRegisterChatCommand('sms', command_sms)
+	sampRegisterChatCommand('open', command_open)
+	sampRegisterChatCommand('bl', command_bl)
+	sampRegisterChatCommand('blname', command_namebl)
+	sampRegisterChatCommand('amake', command_rofl)
+	sampRegisterChatCommand('rec', command_reconnect)
+	sampRegisterChatCommand('recn', command_reconnectwithchange)
+	sampRegisterChatCommand('recd', command_reconnectwithchangeip)
+	sampRegisterChatCommand('rtag', command_radiotag) 
+
 	sampRegisterChatCommand('savecords', function(id)
 		if flymode then
 			if string.match(id, '(%d+)') then
 				if static_camera[tonumber(id)] ~= nil then
 					table.insert(static_camera, tonumber(id), {posX = posX, posY = posY, posZ = posZ, poiX = poiX, poiY = poiY, poiZ = poiZ, angZ = angZ})
-					SCM(string.format('Изменено и сохранено расположение камеры {FFCD00}#%d{ffffff} в текущих координатах.', id))
+					addChat(string.format('Изменено и сохранено расположение камеры {FFCD00}#%d{ffffff} в текущих координатах.', id))
 				else
-					SCM('Невозможно сохранить расположение камеры в не индексированном месте.')
+					addChat('Невозможно сохранить расположение камеры в не индексированном месте.')
 				end
 			else
 				if #static_camera < 9 then
 					table.insert(static_camera, {posX = posX, posY = posY, posZ = posZ, poiX = poiX, poiY = poiY, poiZ = poiZ, angZ = angZ})
-					SCM(string.format('Сохранено расположение камеры {FFCD00}#%d{ffffff} в текущих координатах.', #static_camera))
+					addChat(string.format('Сохранено расположение камеры {FFCD00}#%d{ffffff} в текущих координатах.', #static_camera))
 				else
-					SCM('Использовано максимально возможное количество слотов сохранения камеры.')
+					addChat('Использовано максимально возможное количество слотов сохранения камеры.')
 				end
 			end
 		else
-			SCM('Для использование функции сохранения позиции камеры вы должны включить CamHack.')
+			addChat('Для использование функции сохранения позиции камеры вы должны включить CamHack.')
 		end
 	end)
-	
-	sampRegisterChatCommand('nhold', function(param)
-		if not param:match('(%d+)') then SCM('Используйте команду /nhold [ид игрока]') else sampSendChat('/hold '..param) end
-	end)
-	sampRegisterChatCommand('nfollow', function() 
-		sampSendChat('/follow')
-	end)
-	sampRegisterChatCommand('ncuff', function(param) 
-		if not param:match('(%d+)') then SCM('Используйте команду /ncuff [ид игрока]') else sampSendChat('/cuff '..param) end 
-	end)
-	sampRegisterChatCommand('nuncuff', function(param) 
-		if not param:match('(%d+)') then SCM('Используйте команду /nuncuff [ид игрока]') else sampSendChat('/uncuff '..param) end 
-	end)
-	sampRegisterChatCommand('nputpl', function(param) 
-		if not param:match('(%d+)') then SCM('Используйте команду /nputpl [ид игрока]') else sampSendChat('/putpl '..param) end 
-	end)
-	sampRegisterChatCommand('narrest', function(param) 
-		if not param:match('(%d+)') then SCM('Используйте команду /narrest [ид игрока]') else sampSendChat('/arrest '..param) end 
-	end)
-	sampRegisterChatCommand('nsearch', function(param) 
-		if not param:match('(%d+)') then SCM('Используйте команду /nsearch [ид игрока]') else sampSendChat('/search '..param) end 
-	end)
-	sampRegisterChatCommand('nskip', function(param) 
-		if not param:match('(%d+)') then SCM('Используйте команду /nskip [ид игрока]') else sampSendChat('/skip '..param) end 
-	end)
-	sampRegisterChatCommand('ninvite', function(param) 
-		if not param:match('(%d+)') then SCM('Используйте команду /ninvite [ид игрока]') else sampSendChat('/invite '..param) end 
-	end)
-	sampRegisterChatCommand('nuninvite', function(param) 
-		if not param:match('(%d+) (%S+)') then SCM('Используйте команду /nuninvite [ид игрока] [причина]') else sampSendChat('/uninvite '..param) end 
-	end)
-	sampRegisterChatCommand('nsu', function(param) 
-		if not param:match('(%d+) (%d+) (%S+)') then SCM('Используйте команду /nsu [ид игрока] [кол-во звёзд] [причина]') else sampSendChat('/su '..param) end 
-	end)
-	sampRegisterChatCommand('nticket', function(param) 
-		if not param:match('(%d+) (%d+) (%S+)') then SCM('Используйте команду /nticket [ид игрока] [сумма] [причина]') else sampSendChat('/ticket '..param) 	end 
-	end)
-	sampRegisterChatCommand('ntakelic', function(param) 
-		if not param:match('(%d+) (%S+)') then SCM('Используйте команду /ntakelic [ид игрока] [причина]') else sampSendChat('/takelic '..param) end 
-	end)
-	sampRegisterChatCommand('nclear', function(param) 
-		if not param:match('(%d+)') then SCM('Используйте команду /nclear [ид игрока]') else sampSendChat('/clear '..param) end 
-	end)
-	sampRegisterChatCommand('nrang', function(param) 
-		if not param:match('(%d+) [+?-]') then SCM('Используйте команду /nrang [ид игрока] [+ / -]') else sampSendChat('/rang '..param) end 
-	end)
-	sampRegisterChatCommand('nchangeskin', function(param) 
-		if not param:match('(%d+)') then SCM('Используйте команду /nchangeskin [ид игрока]') else sampSendChat('/changeskin '..param) end 
-	end)
-	sampRegisterChatCommand('ainfo', function()
-		show_info.v = not show_info.v
-	end)
+
 	sampRegisterChatCommand('mh', function()
 		show_menu.v = not show_menu.v
 	end)
+
 	sampRegisterChatCommand('strobes', function()
 		if isCharInAnyCar(PLAYER_PED) and ini.set.strobes  then
 			local car = storeCarCharIsInNoSave(PLAYER_PED)
@@ -667,13 +538,6 @@ function main()
 		end
 	end)
 	
-	sampRegisterChatCommand('get', function()
-		local x, y, z = getCharCoordinates(playerPed)
-		local tz = getGroundZFor3dCoord(x, y, z)
-		
-		SCM(tz)
-	end)
-	
 	lua_thread.create(strobe)
 	lua_thread.create(rpweapon)
 	lua_thread.create(show_flymode)
@@ -683,17 +547,6 @@ function main()
 	apply_custom_style()
 	register_custom_hotkey()
 	add_new_hotkey()
-	
-	local sX, sY = getScreenResolution()
-	clock_textdraw = mad.textdraw.new('', sX - 70, sY - 40)
-	clock_textdraw.style = mad.font_style.PRICEDOWN
-	clock_textdraw.width = 0.75
-	clock_textdraw.height = 1.5
-	clock_textdraw.outline = 0
-	clock_textdraw.shadow = 1
-	clock_textdraw.wrap = 175
-	clock_textdraw:set_text_color(245, 245, 245, 250)
-	clock_textdraw:set_shadow_color(30, 30, 30, 250)
 	
 	while true do
 		wait(0)
@@ -769,25 +622,23 @@ function main()
 			end
 		end
 
-		if wasKeyPressed(KEY.VK_OEM_6) then
-			if isKeyCheckAvailable() then
-				sampSetChatInputEnabled(true)
-			else
-				lua_thread.create(function()
-					local timer = os.clock()
-				
-					while isKeyDown(VK_OEM_6) do
-						wait(0)
-						
-						if os.clock() - timer >= 0.3 then
-							sampSetChatInputEnabled(false)
-						end
-					end
-				end)
-			end
+		if maskTimer.state then
+			local sx, sy = getScreenResolution()
+			local alltime = 600 - math.floor(os.clock() - maskTimer.clock)
+
+			local minute = math.floor(alltime / 60)
+			local secund = math.fmod(alltime, 60)
+
+			local text = string.format('%d minutes %d seconds', minute, secund)
+
+			renderFontDrawText(font_logo, text, sx - 200, sy - 30, 0xFFFFFFFF)
+		end
+
+		if set_time then
+			setTimeOfDay(set_time[1], set_time[2])
 		end
 		
-		if show_menu.v or piemenu.v or show_info.v or show_suspect.v or show_uk_list.v or show_ticket.v or show_ak_list.v then
+		if show_menu.v or fastMenu.v or show_suspect.v or show_uk_list.v or show_ticket.v or show_ak_list.v then
 			imgui.Process = true
 		else
 			imgui.Process = false
@@ -823,9 +674,9 @@ function main()
 		
 		if successful_login and sampGetCurrentServerName() ~= 'SA-MP' then
 			local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-			local name = sampGetPlayerNickname(id)
+			local name = sampGetPlayerName(id)
 			local text = string.format('-\n(id %d ~ rang %d) %s successfully logged in as a user.\n-', id, player_status, name)
-			tovk(text, true)
+			sendGroup(text, true)
 			successful_login = false
 		end
 		
@@ -1012,80 +863,6 @@ function main()
 				if speed < 0.001 then speed = 0.001 end
 			end   
 		end
-		
-		if edit_obj ~= nil and not sampIsChatInputActive() and not sampIsDialogActive() and text_id == nil then
-			-- вращение
-			if isKeyDown(VK_NUMPAD8) and isKeyDown(VK_CONTROL) then
-				obj_qx = obj_qx + obj_srotate
-				setObjectRotation(edit_obj, obj_qx, obj_qy, obj_qz)
-			elseif isKeyDown(VK_NUMPAD2) and isKeyDown(VK_CONTROL) then
-				obj_qx = obj_qx - obj_srotate
-				setObjectRotation(edit_obj, obj_qx, obj_qy, obj_qz)
-			elseif isKeyDown(VK_NUMPAD4) and isKeyDown(VK_CONTROL) then
-				obj_qy = obj_qy + obj_srotate
-				setObjectRotation(edit_obj, obj_qx, obj_qy, obj_qz)
-			elseif isKeyDown(VK_NUMPAD6) and isKeyDown(VK_CONTROL) then
-				obj_qy = obj_qy - obj_srotate
-				setObjectRotation(edit_obj, obj_qx, obj_qy, obj_qz)
-			elseif isKeyDown(VK_NUMPAD7) and isKeyDown(VK_CONTROL) then
-				obj_qz = obj_qz + obj_srotate
-				setObjectRotation(edit_obj, obj_qx, obj_qy, obj_qz)
-			elseif isKeyDown(VK_NUMPAD9) and isKeyDown(VK_CONTROL) then
-				obj_qz = obj_qz - obj_srotate
-				setObjectRotation(edit_obj, obj_qx, obj_qy, obj_qz)
-			-- движение (в стороны)
-			elseif isKeyDown(VK_NUMPAD8) then
-				obj_y = obj_y + obj_smove
-				setObjectCoordinates(edit_obj, obj_x, obj_y, obj_z)
-			elseif isKeyDown(VK_NUMPAD2) then
-				obj_y = obj_y - obj_smove
-				setObjectCoordinates(edit_obj, obj_x, obj_y, obj_z)
-			elseif isKeyDown(VK_NUMPAD4) then
-				obj_x = obj_x - obj_smove
-				setObjectCoordinates(edit_obj, obj_x, obj_y, obj_z)
-			elseif isKeyDown(VK_NUMPAD6) then
-				obj_x = obj_x + obj_smove
-				setObjectCoordinates(edit_obj, obj_x, obj_y, obj_z)
-			-- движение (верх вниз)
-			elseif isKeyDown(VK_SPACE) then
-				obj_z = obj_z + obj_smove
-				setObjectCoordinates(edit_obj, obj_x, obj_y, obj_z)
-			elseif isKeyDown(VK_MENU) then
-				obj_z = obj_z - obj_smove
-				setObjectCoordinates(edit_obj, obj_x, obj_y, obj_z)
-			-- сохранение
-			elseif isKeyDown(VK_RETURN) then
-				SCM('Вы закончили редактирование объекта с хендлом {FFCD00}' .. edit_obj .. '{ffffff}.')
-				edit_obj = nil
-			end
-		end
-		
-		if text_id ~= nil and not sampIsChatInputActive() and not sampIsDialogActive() and edit_obj == nil then
-			-- движение
-			if isKeyDown(VK_NUMPAD8) then
-				text_y = text_y + 0.04
-				sampCreate3dTextEx(text_id, text_text, text_color, text_x, text_y, text_z, text_distance, false, -1, -1)
-			elseif isKeyDown(VK_NUMPAD2) then
-				text_y = text_y - 0.04
-				sampCreate3dTextEx(text_id, text_text, text_color, text_x, text_y, text_z, text_distance, false, -1, -1)
-			elseif isKeyDown(VK_NUMPAD4) then
-				text_x = text_x - 0.04
-				sampCreate3dTextEx(text_id, text_text, text_color, text_x, text_y, text_z, text_distance, false, -1, -1)
-			elseif isKeyDown(VK_NUMPAD6) then
-				text_x = text_x + 0.04
-				sampCreate3dTextEx(text_id, text_text, text_color, text_x, text_y, text_z, text_distance, false, -1, -1)
-			elseif isKeyDown(VK_SPACE) then
-				text_z = text_z + 0.04
-				sampCreate3dTextEx(text_id, text_text, text_color, text_x, text_y, text_z, text_distance, false, -1, -1)
-			elseif isKeyDown(VK_MENU) then
-				text_z = text_z - 0.04
-				sampCreate3dTextEx(text_id, text_text, text_color, text_x, text_y, text_z, text_distance, false, -1, -1)
-			-- сохранение
-			elseif isKeyDown(VK_RETURN) then
-				SCM('Вы закончили редактирование 3D текста с ID {FFCD00}' .. text_id .. '{ffffff}.')
-				text_id = nil
-			end 
-		end
 	end
 end
 
@@ -1146,9 +923,7 @@ function logotyp()
 end
 
 function command_r(text)
-	local cmd, ucmd = string.match(ini.cmd.r, '(.+) | (.+)')
-
-	if not string.match(text, '(.+)') then SCM(string.format('Используйте команду /%s [текст].', cmd))
+	if not string.match(text, '(.+)') then addChat('Используйте команду /r [текст].')
 	else
 		local mark = sampGetMarkCharByVehicle(playerPed)
 		
@@ -1176,10 +951,10 @@ function command_r(text)
 		text = string.format('%s %s', ini.info.rteg, text)
 		
 		if string.len(text) > 77 then
-			sampSendChat(string.format('/%s %s ...', ucmd, string.sub(text, 0, 77)))
-			sampSendChat(string.format('/%s ... %s', ucmd, string.sub(text, 78, string.len(text))))
+			sampSendChat(string.format('/r %s ...', string.sub(text, 0, 77)))
+			sampSendChat(string.format('/r ... %s', string.sub(text, 78, string.len(text))))
 		else
-			sampSendChat(string.format('/%s %s', ucmd, text))
+			sampSendChat(string.format('/r %s', text))
 		end
 		
 		if ini.lowrp.rpradio and ini.set.lowrp then
@@ -1197,17 +972,12 @@ function command_r(text)
 end
 
 function command_rn(text) 
-	local cmd = string.match(ini.cmd.rn, '(.+) | (.+)')
-	local _, ucmd = string.match(ini.cmd.r, '(.+) | (.+)')
-	
-	if not string.match(text, '(.+)') then SCM(string.format('Используйте команду /%s [текст].', cmd)) else sampSendChat(string.format('/%s (( %s ))', ucmd, text)) end
+	if not string.match(text, '(%S+)') then addChat('Используйте команду /rn [текст].') else sampSendChat(string.format('/r (( %s ))', text)) end
 end
 
 function command_f(text)
-	local cmd, ucmd = string.match(ini.cmd.f, '(.+) | (.+)')
-
-	if not string.match(text, '(.+)') then 
-		SCM(string.format('Используйте команду /%s [текст].', cmd))
+	if not string.match(text, '(%S+)') then 
+		addChat('Используйте команду /f [текст].')
 	else 
 		local mark = sampGetMarkCharByVehicle(playerPed)
 		
@@ -1235,10 +1005,10 @@ function command_f(text)
 		text = string.format('%s %s', ini.info.fteg, text)
 		
 		if string.len(text) > 77 then
-			sampSendChat(string.format('/%s %s ...', ucmd, string.sub(text, 0, 77)))
-			sampSendChat(string.format('/%s ... %s', ucmd, string.sub(text, 78, string.len(text))))
+			sampSendChat(string.format('/f %s ...', string.sub(text, 0, 77)))
+			sampSendChat(string.format('/f ... %s', string.sub(text, 78, string.len(text))))
 		else
-			sampSendChat(string.format('/%s %s', ucmd, text))
+			sampSendChat(string.format('/f %s', text))
 		end
 		
 		if ini.lowrp.rpradio then
@@ -1257,10 +1027,7 @@ function command_f(text)
 end
 
 function command_fn(text)
-	local cmd = string.match(ini.cmd.fn, '(.+) | (.+)')
-	local _, ucmd = string.match(ini.cmd.f, '(.+) | (.+)')
-	
-	if not string.match(text, '(.+)') then SCM(string.format('Используйте команду /%s [текст].', cmd)) else sampSendChat(string.format('/%s (( %s ))', ucmd, text)) end
+	if not string.match(text, '(%S+)') then addChat('Используйте команду /f [текст].') else sampSendChat(string.format('/f (( %s ))', text)) end
 end
 
 function command_radiotag()
@@ -1282,139 +1049,20 @@ function command_radiotag()
 	sampShowDialog(1005, '{FFCD00}Список радио-тэгов для рации', text, 'Закрыть', '', 2)
 end
 
-function command_cobject(id)
-	local cmd = string.match(ini.cmd.add_obj, '(.+) | (.+)')
-	
-	if string.match(id, '(%d+) (.+) (.+)') then
-		id, smove, srotate = string.match(id, '(%d+) (.+) (.+)')
-		x, y, z = getCharCoordinates(PLAYER_PED)
-		object = createObject(id, x, y, z)
-		if doesObjectExist(object) and edit_obj == nil then
-			setObjectCollision(object, false)
-			SCM('Был создан объект {FFCD00}' .. id .. '{ffffff} с хендлом {FFCD00}' .. object .. '{ffffff}.')
-			SCM('Для редактирование объекта используйте стрелки на NumPad, Space (поднять), Alt (опустить), Ctrl + стрелки NumPad (вращение).')
-			SCM('Чтобы сохранить нажмите {FFCD00}ENTER{ffffff}, для удаления используйте команду /del_obj [хендл объекта].')
-			obj_x = x; obj_y = y; obj_z = z
-			obj_qx = 0; obj_qy = 0; obj_qz = 0 
-			edit_obj = object
-			obj_smove = tonumber(smove); obj_srotate = tonumber(srotate)
-		else
-			SCM('Произошла ошибка при создании объекта.')
-		end
-	else
-		SCM(string.format('Используйте команду /%s [ид объекта] [шаг движения (рек. 0.04)] [шаг врашения (рек. 1.0)].', cmd))
-	end
-end
-
-function command_eobject(id)
-	local cmd = string.match(ini.cmd.edit_obj, '(.+) | (.+)')
-
-	if string.match(id, '(%d+) (.+) (.+)') then
-		id, smove, srotate = string.match(id, '(%d+) (.+) (.+)')
-		if doesObjectExist(id) and edit_obj == nil then
-			SCM('Вы начали редактировать объект с хендлом {FFCD00}' .. id .. '{ffffff}.')
-			SCM('Для редактирование объекта используйте стрелки на NumPad, Space (поднять), Alt (опустить), Ctrl + NumPad (вращение).')
-			SCM('Чтобы сохранить нажмите {FFCD00}ENTER{ffffff}, для удаления используйте команду /del_obj [хендл объекта].')
-			_, obj_x, obj_y, obj_z = getObjectCoordinates(id)
-			obj_qx = 0; obj_qy = 0; obj_qz = 0 
-			edit_obj = id
-			obj_smove = tonumber(smove); obj_srotate = tonumber(srotate)
-		else
-			SCM('Произошла ошибка при начале редактирования объекта.')
-		end
-	else
-		SCM(string.format('Используйте команду /%s [хендл объекта] [шаг движения] [шаг врашения].', cmd))
-	end
-end
-
-function command_dobject(id)
-	local cmd = string.match(ini.cmd.del_obj, '(.+) | (.+)')
-
-	if string.match(id, '(%d+)') then
-		if doesObjectExist(id) and edit_obj == nil then
-			deleteObject(id)
-			SCM('Вы успешно удалили объект с хендлом {FFCD00}' .. id .. '{ffffff}.')
-		else
-			SCM('Произошла ошибка при удалении объекта.')
-		end
-	else
-		SCM(string.format('Используйте команду /%s [хендл объекта].', cmd))
-	end
-end
-
-function command_ctext(param)
-	local cmd = string.match(ini.cmd.add_text, '(.+) | (.+)')
-
-	if string.match(param, '(%S+) (%d+) (.+)') then
-		local text, distance, color = string.match(param, '(.+) (%d+) (.+)')
-		x, y, z = getCharCoordinates(PLAYER_PED)
-		id = sampCreate3dText(text, color, x, y, z, distance, false, -1, -1)
-		if sampIs3dTextDefined(id) and text_id == nil then
-			SCM('Был создан 3D текст с ID {FFCD00}' ..id .. '{ffffff}.')
-			SCM('Для редактирование 3D текста используйте стрелки на NumPad, Space (поднять), Alt (опустить).')
-			SCM('Чтобы сохранить нажмите {FFCD00}ENTER{ffffff}, для удаления используйте команду /del_text [ид 3D текста].')
-			text_x = x; text_y = y; text_z = z; text_distance = distance; text_color = color; text_text = text
-			text_id = id
-		else
-			SCM('Произошла ошибка при создании 3D текста.')
-		end
-	else
-		SCM(string.format('Используйте команду /%s [текст] [дистанция] [цвет].', cmd))
-	end
-end
-
-function command_etext(id)
-	local cmd = string.match(ini.cmd.edit_text, '(.+) | (.+)')
-	
-	if string.match(id, '(%d+)') then
-		if sampIs3dTextDefined(id) and text_id == nil then
-			SCM('Вы начали редактировать #d текст с ID {FFCD00}' .. id .. '{ffffff}.')
-			SCM('Для редактирование 3D текста используйте стрелки на NumPad, Space (поднять), Alt (опустить).')
-			SCM('Чтобы сохранить нажмите {FFCD00}ENTER{ffffff}, для удаления используйте команду /del_text [ид 3D текста].')
-			text, color, x, y, z, distance, _1, _2, _3 = sampGet3dTextInfoById(id)
-			text_x = x; text_y = y; text_z = z; text_distance = distance; text_color = color; text_text = text
-			text_id = id
-		else
-			SCM('Произошла ошибка при создании 3D текста.')
-		end
-	else
-		SCM(string.format('Используйте команду /%s [ид 3D текста].', cmd))
-	end
-end
-
-function command_dtext(id)
-	local cmd = string.match(ini.cmd.del_text, '(.+) | (.+)')
-
-	if string.match(id, '(%d+)') then
-		if sampIs3dTextDefined(id) and text_id == nil then
-			sampDestroy3dText(id)
-			SCM('Вы успешно удалили 3D текст с ID {FFCD00}' .. id .. '{ffffff}.')
-		else
-			SCM('Произошла ошибка при удалении 3D текста.')
-		end
-	else
-		SCM(string.format('Используйте команду /%s [ид 3D текста].', cmd))
-	end
-end
-
 function command_reconnect(parametrs)
-	local cmd, ucmd = string.match(ini.cmd.rec, '(.+) | (.+)')
-
 	if string.match(parametrs, '(%d+)') then
 		local delay = tonumber(parametrs)
 		if delay > 0 and delay <= 60 then
 			reconnect(delay)
 		else
-			SCM('Задержка между переподключениями не должна быть менее 0 и более 60 секунд.')
+			addChat('Задержка между переподключениями не должна быть менее 0 и более 60 секунд.')
 		end
 	else
-		SCM(string.format('Используйте команду /%s [задержка].', cmd))
+		addChat('Используйте команду /rec [задержка].')
 	end
 end
 
 function command_reconnectwithchange(parametrs)
-	local cmd, ucmd = string.match(ini.cmd.recn, '(.+) | (.+)')
-
 	if string.match(parametrs, '(%d+) (%S+)') then
 		local delay, name = string.match(parametrs, '(%d+) (.+)')
 		local delay = tonumber(delay)
@@ -1422,16 +1070,14 @@ function command_reconnectwithchange(parametrs)
 			sampSetLocalPlayerName(name)
 			reconnect(delay)
 		else
-			SCM('Задержка между переподключениями не должна быть менее 0 и более 60 секунд.')
+			addChat('Задержка между переподключениями не должна быть менее 0 и более 60 секунд.')
 		end
 	else
-		SCM(string.format('Используйте команду /%s [задержка] [никнейм].', cmd))
+		addChat('Используйте команду /recn [задержка] [никнейм].')
 	end
 end
 
 function command_reconnectwithchangeip(parametrs)
-	local cmd, ucmd = string.match(ini.cmd.recd, '(.+) | (.+)')
-
 	if string.match(parametrs, '(%d+) (%S+)') then
 		local id, name = string.match(parametrs, '(%d+) (.+)')
 		local id = tonumber(id)
@@ -1439,17 +1085,17 @@ function command_reconnectwithchangeip(parametrs)
 			sampSetLocalPlayerName(name)
 			reconnect(1, string.format('5.254.104.13%d:7777', id))
 		else
-			SCM('Номер сервера не должен быть менее 1 и более 9.')
+			addChat('Номер сервера не должен быть менее 1 и более 9.')
 		end
 	elseif string.match(parametrs, '(%d+)') then
 		local id = tonumber(parametrs)
 		if id >= 1 and id <= 9 then
 			reconnect(1, string.format('5.254.104.13%d:7777', id))
 		else
-			SCM('Номер сервера не должен быть менее 1 и более 9.')
+			addChat('Номер сервера не должен быть менее 1 и более 9.')
 		end
 	else
-		SCM(string.format('Используйте команду /%s [номер сервера] [никнейм (необязательно)]', cmd))
+		addChat('Используйте команду /recd [номер сервера] [никнейм (необязательно)]')
 	end
 end
 
@@ -1478,23 +1124,21 @@ end
 function command_rkinfo()
 	if dreason[1] ~= nil then
 		local timed = getTimeByPeriod(tonumber(dreason[2]), tonumber(dreason[3]), tonumber(dreason[4]), ini.set.delay_rk)
-		SCM(string.format('Вы можете вернутся в район %s в %d ч. %d мин. %d сек.', dreason[1], timed[1], timed[2], timed[3]))
+		addChat(string.format('Вы можете вернутся в район %s в %d ч. %d мин. %d сек.', dreason[1], timed[1], timed[2], timed[3]))
 		if sampGetPassedTimeByPeriod(tonumber(dreason[2]), tonumber(dreason[3]), tonumber(dreason[4]), ini.set.delay_rk) then
-			SCM(string.format('Время вышло и вы уже {00cc99}можете{ffffff} вернутся в район %s.', dreason[1]))
+			addChat(string.format('Время вышло и вы уже {00cc99}можете{ffffff} вернутся в район %s.', dreason[1]))
 		else
-			SCM(string.format('В данный момент Вы {ff5c33}не можете{ffffff} вернутся в район %s.', dreason[1]))
+			addChat(string.format('В данный момент Вы {ff5c33}не можете{ffffff} вернутся в район %s.', dreason[1]))
 			if tostring(calculateZone()) == tostring(dreason[1]) then
-				SCM(string.format(' {ff5c33}[ПРЕДУПРЕЖДЕНИЕ] {ffffff}Вы находитесь в запрещённом для Вас районе %s.', dreason[1]))
+				addChat(string.format(' {ff5c33}[ПРЕДУПРЕЖДЕНИЕ] {ffffff}Вы находитесь в запрещённом для Вас районе %s.', dreason[1]))
 			end
 		end
 	else
-		SCM('Вы не умирали.')
+		addChat('Вы не умирали.')
 	end
 end
 
 function command_apay(param)
-	local cmd, ucmd = string.match(ini.cmd.pay, '(.+) | (.+)')
-
 	if string.match(param, '(%d+) (%d+)') then
 		local id, money = string.match(param, '(%d+) (%d+)')
 		if IPC(id) then
@@ -1513,39 +1157,16 @@ function command_apay(param)
 						end
 					end)
 				else
-					SCM('Невозможно передать более 200.000$.')
+					addChat('Невозможно передать более 200.000$.')
 				end
 			else
-				SCM('Данный игрок находится слишком далеко от Вас.')
+				addChat('Данный игрок находится слишком далеко от Вас.')
 			end
 		else
-			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+			addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 		end
 	else
-		SCM(string.format('Используйте команду /%s [ид игрока] [сумма]', cmd))
-	end
-end
-
-function command_easyevent(param)
-	if string.match(param, '(%d+) (%d+)') then
-		local id, money = string.match(param, '(%d+) (%d+)')
-		if IPC(id) then
-			SCM(string.format('%s слишком далеко, передача произойдёт сразу же, как будет возможность.', sampGetPlayerNickname(id)))
-			lua_thread.create(function()
-				while sampGetDistance(PLAYER_PED, id) > 2 do 
-					wait(0)
-
-					if not IPC(id) then
-						break
-					end
-				end
-				sampSendChat(string.format('/pay %d %d', id, money))
-			end)
-		else
-			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
-		end
-	else
-		SCM('Используйте команду /eevent [ид игрока] [сумма]')
+		addChat('Используйте команду /pay [ид игрока] [сумма]')
 	end
 end
 
@@ -1556,10 +1177,8 @@ function table_to_text(tab)
 end
 
 function command_report(text)
-	local cmd, ucmd = string.match(ini.cmd.rep, '(.+) | (.+)')
-
 	if not string.match(text, '(.+)') then
-		SCM(string.format('Используйте команду /%s [текст].', cmd))
+		addChat('Используйте команду /rep [текст].')
 	else
 		report = text
 		act = true
@@ -1568,38 +1187,34 @@ function command_report(text)
 end
 
 function command_sms(value)
-	local cmd, ucmd = string.match(ini.cmd.sms, '(.+) | (.+)')
-
 	if string.match(value, '(%d+) (%S+)') then 
 		local number, text = string.match(value, '(%d+) (.+)')
 		local found = false
 		
 		if IPC(number) then
-			local name = sampGetPlayerNickname(number)
+			local name = sampGetPlayerName(number)
 			if ini.number[name] ~= nil then
 				number = ini.number[name]
 			else
-				SCM('Номер не найден в базе данных.')
+				addChat('Номер не найден в базе данных.')
 				found = true
 			end
 		end
 		
 		if not found then
 			if string.len(text) > 60 then
-				sampSendChat(string.format('/%s %d %s ..', ucmd, number, string.sub(text, 0, 60)))
-				sampSendChat(string.format('/%s %d .. %s', ucmd, number, string.sub(text, 61, string.len(text))))
+				sampSendChat(string.format('/sms %d %s ..', number, string.sub(text, 0, 60)))
+				sampSendChat(string.format('/sms %d .. %s', number, string.sub(text, 61, string.len(text))))
 			else
-				sampSendChat(string.format('/%s %d %s', ucmd, number, string.sub(text, 0, 60)))
+				sampSendChat(string.format('/sms %d %s', number, string.sub(text, 0, 60)))
 			end
 		end
 	else
-		SCM(string.format('Используйте команду /%s [номер телефона] [сообщение]', cmd))
+		addChat('Используйте команду /sms [номер телефона] [сообщение]')
 	end
 end
 
 function command_addbl(name)
-	local cmd, ucmd = string.match(ini.cmd.addbl, '(.+) | (.+)')
-
 	if string.match(name, '(%S+)') then
 		local path = 'moonloader//helper//black-list.txt'
 		
@@ -1607,15 +1222,13 @@ function command_addbl(name)
 		filew:write(name)
 		filew:close()
 		
-		SCM(string.format('Игрок {FFCD00}%s{ffffff} был добавлен в чёрный список.', name))
+		addChat(string.format('Игрок {FFCD00}%s{ffffff} был добавлен в чёрный список.', name))
 	else
-		SCM(string.format('Используйте команду /%s [имя игрока]', cmd))
+		addChat('Используйте команду /addbl [имя игрока]')
 	end
 end
 
 function command_delbl(name)
-	local cmd, ucmd = string.match(ini.cmd.delbl, '(.+) | (.+)')
-
 	if string.match(name, '(%S+)') then
 		local path = 'moonloader//helper//black-list.txt'
 		
@@ -1629,32 +1242,28 @@ function command_delbl(name)
 			filew:write(text)
 			filew:close()
 			
-			SCM(string.format('Игрок {FFCD00}%s{ffffff} был удалён из чёрного списка.', name))
+			addChat(string.format('Игрок {FFCD00}%s{ffffff} был удалён из чёрного списка.', name))
 		else
-			SCM('Данного игрока нет в чёрном списке.')
+			addChat('Данного игрока нет в чёрном списке.')
 		end
 	else
-		SCM(string.format('Используйте команду /%s [имя игрока]', cmd))
+		addChat('Используйте команду /debl [имя игрока]')
 	end
 end
 
 function command_asms(text)
-	local cmd, ucmd = string.match(ini.cmd.sms, '(.+) | (.+)')
-
 	if string.match(text, '(%S+)') then
 		if last_sms ~= 0 then
-			command_sms(string.format('/%s %d %s', ucmd, last_sms, text))
+			command_sms(string.format('%d %s', last_sms, text))
 		else
-			SCM('Ранее вам никто не отправлял SMS-сообщения.')
+			addChat('Ранее вам никто не отправлял SMS-сообщения.')
 		end
 	else
-		SCM(string.format('Используйте команду /%s [текст].', cmd))
+		addChat('Используйте команду /asms [текст].')
 	end
 end
 
 function command_gov(id) 
-	local cmd, ucmd = string.match(ini.cmd.gov, '(.+) | (.+)')
-
 	if player_status > 0 then
 		if string.match(id, '(%d+)') then
 			if gnews[1] ~= nil then
@@ -1662,7 +1271,7 @@ function command_gov(id)
 				if sampGetPassedTimeByPeriod(tonumber(gnews[1]), tonumber(gnews[2]), tonumber(gnews[3]), 5) then
 					send_gnews(id)
 				else
-					SCM(string.format('В данный момент Вы {ff5c33}не можете{ffffff} отправить гос. новость.', gnews[1]))
+					addChat(string.format('В данный момент Вы {ff5c33}не можете{ffffff} отправить гос. новость.', gnews[1]))
 				end
 			else
 				send_gnews(id)
@@ -1671,17 +1280,17 @@ function command_gov(id)
 			if gnews[1] ~= nil then
 				local timed = getTimeByPeriod(tonumber(gnews[1]), tonumber(gnews[2]), tonumber(gnews[3]), 5)
 				if sampGetPassedTimeByPeriod(tonumber(gnews[1]), tonumber(gnews[2]), tonumber(gnews[3]), 5) then
-					SCM(string.format('Используйте команду /%s [ид новости]. Вы {00cc99}можете{ffffff} отправить гос. новость.', cmd))
+					addChat('Используйте команду /gov [ид новости]. Вы {00cc99}можете{ffffff} отправить гос. новость.')
 				else
-					SCM(string.format('Используйте команду /%s [ид новости]. Вы {ff5c33}не можете{ffffff} отправить гос. новость.', cmd))
-					SCM(string.format('Вы сможете отправить гос. новость в %d ч. %d мин. %d сек.', timed[1], timed[2], timed[3]))
+					addChat('Используйте команду /gov [ид новости]. Вы {ff5c33}не можете{ffffff} отправить гос. новость.')
+					addChat(string.format('Вы сможете отправить гос. новость в %d ч. %d мин. %d сек.', timed[1], timed[2], timed[3]))
 				end
 			else
-				SCM(string.format('Используйте команду /%s [ид новости]. Вы {00cc99}можете{ffffff} отправить гос. новость.', cmd))
+				addChat('Используйте команду /gov [ид новости]. Вы {00cc99}можете{ffffff} отправить гос. новость.')
 			end
 		end
 	else
-		SCM('Вы не можете использовать данную функцию, вы не лидер.')
+		addChat('Вы не можете использовать данную функцию, вы не лидер.')
 	end
 end
 
@@ -1711,7 +1320,7 @@ function send_gnews(id)
 			end
 		end)
 	else
-		SCM('Не найдена новость с данным ID.')
+		addChat('Не найдена новость с данным ID.')
 	end
 end
 
@@ -1740,8 +1349,6 @@ function command_rights()
 end
 
 function command_setskin(param)
-	local cmd, ucmd = string.match(ini.cmd.skin, '(.+) | (.+)')
-
 	if player_status > 1 then
 		if string.match(param, '(%d+) (%d+) (%d+)') then
 			local id, skin, state = string.match(param, '(%d+) (%d+) (%d+)')
@@ -1753,63 +1360,61 @@ function command_setskin(param)
 					raknetEmulRpcReceiveBitStream(153, BS)
 					raknetDeleteBitStream(BS)
 					
-					local name = string.gsub(sampGetPlayerNickname(id),'_',' ')
-					if tonumber(state) ~= 1 then SCM('Вы установили визуальный скин ({FFCD00}' .. skin .. '{ffffff}) для игрока ' .. name .. '[' .. id .. ']') end
+					local name = string.gsub(sampGetPlayerName(id),'_',' ')
+					if tonumber(state) ~= 1 then addChat('Вы установили визуальный скин ({FFCD00}' .. skin .. '{ffffff}) для игрока ' .. name .. '[' .. id .. ']') end
 				else
-					SCM('Данный игрок находится слишком далеко от Вас.')
+					addChat('Данный игрок находится слишком далеко от Вас.')
 				end
 			else
-				SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+				addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 			end
 		else
-			SCM(string.format('Используйте команду /%s [ид игрока] [ид скина] [0 или 1].', cmd))
+			addChat('Используйте команду /sskin [ид игрока] [ид скина] [0 или 1].')
 		end
 	end
 end
 
 function command_history(id)
-	local cmd, ucmd = string.match(ini.cmd.history, '(.+) | (.+)')
-
 	if string.match(id, '(%d+)') then
 		if IPC(id) then
-			sampSendChat(string.format('/%s %s', ucmd, sampGetPlayerNickname(id)))
+			sampSendChat(string.format('/history %s', sampGetPlayerName(id)))
 		else
-			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+			addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID или введите никнейм.')
 		end
+	elseif string.match(id, '(%S+)') then
+		sampSendChat(string.format('/history %s', id))
 	else
-		SCM(string.format('Используйте команду /%s [ид игрока].', cmd))
+		addChat('Используйте команду /history [никнейм или ид игрока].')
 	end
 end
 
 function command_setweather(id)
-	local cmd, ucmd = string.match(ini.cmd.sw, '(.+) | (.+)')
-
 	if string.match(id, '(%d+)') then 
 		if tonumber(id) > 0 and tonumber(id) <= 45 then
 			forceWeatherNow(id)
-			SCM('Вы установили ID погоды {FFCD00}' .. id)
+			addChat('Вы установили ID погоды {FFCD00}' .. id .. '.')
 		else
-			SCM('ID погоды не должен быть больше 45 и меньше 1.')
+			addChat('ID погоды не должен быть больше 45 и меньше 1.')
 		end
 	else
-		SCM(string.format('Используйте команду /%s [ид погоды].', cmd))
+		addChat('Используйте команду /sw [ид погоды].')
 	end
 end
 
 function command_settime(param)
-	local cmd, ucmd = string.match(ini.cmd.st, '(.+) | (.+)')
-
 	if string.match(param, '(%d+) (%d+)') then
 		local hour, min = string.match(param, '(%d+) (%d+)')
 		if tonumber(hour) >= 0 and tonumber(hour) <= 23 and tonumber(min) >= 0 and tonumber(min) < 60 then
 			patch_samp_time_set(true)
-			setTimeOfDay(hour, min)
-			SCM('Вы установили время {FFCD00}' .. hour .. '{ffffff} часов, {FFCD00}' .. min .. '{ffffff} минут')
+			set_time = {hour, min}
+			addChat('Вы установили время {FFCD00}' .. hour .. '{ffffff} часов, {FFCD00}' .. min .. '{ffffff} минут.')
 		else
-			SCM('Часы не должны быть больше 23 и меньше 0. Минуты не должны быть больше 59 и меньше 0.')
+			patch_samp_time_set(false)
+			set_time = nil
+			addChat('Часы не должны быть больше 23 и меньше 0. Минуты не должны быть больше 59 и меньше 0.')
 		end
 	else
-		SCM(string.format('Используйте команду /%s [часы] [минуты].', cmd))
+		addChat('Используйте команду /st [часы] [минуты].')
 	end
 end
 
@@ -1829,8 +1434,6 @@ function command_ud()
 end
 
 function command_pas(id)
-	local cmd, ucmd = string.match(ini.cmd.pas, '(.+) | (.+)')
-
 	if string.match(id, '(%d+)') then
 		if IPC(id) then
 			if sampGetDistance(PLAYER_PED, id) < 5 then
@@ -1841,19 +1444,17 @@ function command_pas(id)
 					if ini.set.autopass then autopass = true end
 				end)
 			else
-				SCM('Данный игрок находится слишком далеко от Вас.')
+				addChat('Данный игрок находится слишком далеко от Вас.')
 			end
 		else
-			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+			addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 		end
 	else
-		SCM(string.format('Используйте команду /%s [ид игрока].', cmd))
+		addChat('Используйте команду /pas [ид игрока].')
 	end
 end
 
 function command_search(id)
-	local cmd, ucmd = string.match(ini.cmd.search, '(.+) | (.+)')
-
 	if string.match(id, '(%d+)') then
 		if IPC(id) then
 			if sampGetDistance(PLAYER_PED, id) < 5 then
@@ -1864,17 +1465,17 @@ function command_search(id)
 						sampSendChat('/me из внутреннего кармана достала белые, латекстные перчатки и надела их на руки')
 					end
 					wait(1500); sampSendChat('/me осмотривает все карманы, возможные места хранение запрещённых веществ и предметов')
-					wait(1000); sampSendChat(string.format('/%s %d', ucmd, id))
+					wait(1000); sampSendChat(string.format('/search %d', id))
 					idsearch = id
 				end)
 			else
-				SCM('Данный игрок находится слишком далеко от Вас.')
+				addChat('Данный игрок находится слишком далеко от Вас.')
 			end
 		else
-			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+			addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 		end
 	else
-		SCM(string.format('Используйте команду /%s [ид игрока].', cmd))
+		addChat('Используйте команду /search [ид игрока].')
 	end
 end
 
@@ -1884,7 +1485,7 @@ function search_file(file, text, bool)
 			for line in io.lines(string.format('moonloader\\helper\\%s.txt', file)) do
 				if line:find(text) then 
 					for i = 0, string.len(line) / 115 do
-						SCM(string.sub(line, i * 115, i * 115 + 114))
+						addChat(string.sub(line, i * 115, i * 115 + 114))
 					end
 					
 					if not bool then break end
@@ -1902,7 +1503,7 @@ function search_law(table, text)
 					local stars, reason, info = string.match(item, '(.+) | (.+) | (.+)')
 
 					if info:find(text) then
-						SCM(string.format('%s,  %d | %s', reason, stars, info))
+						addChat(string.format('%s,  %d | %s', reason, stars, info))
 						break
 					end
 				end
@@ -1912,17 +1513,13 @@ function search_law(table, text)
 end
 
 function command_ustav(text)
-	local cmd, ucmd = string.match(ini.cmd.ustav, '(.+) | (.+)')
-
-	if not string.match(text, '(.+)') then SCM(string.format('Используйте команду /%s [часть или номер статьи]', cmd))
+	if not string.match(text, '(.+)') then addChat('Используйте команду /устав [часть или номер статьи]')
 	else
 		search_file('ustav', text)
 	end
 end
 
 function command_uk(text)
-	local cmd, ucmd = string.match(ini.cmd.uk, '(.+) | (.+)')
-
 	if not string.match(text, '(%S+)') then show_uk_list.v = not show_uk_list.v
 	else
 		--search_law(smart_suspect.text, text)
@@ -1930,8 +1527,6 @@ function command_uk(text)
 end
 
 function command_ak(text)
-	local cmd, ucmd = string.match(ini.cmd.ak, '(.+) | (.+)')
-
 	if not string.match(text, '(%S+)') then show_ak_list.v = not show_ak_list.v
 	else
 		--search_file('ak', text)
@@ -1939,17 +1534,13 @@ function command_ak(text)
 end
 
 function command_code(text)
-	local cmd, ucmd = string.match(ini.cmd.kod, '(.+) | (.+)')
-
-	if not string.match(text, '(.+)') then SCM(string.format('Используйте команду /%s [часть или номер кода]', cmd))
+	if not string.match(text, '(.+)') then addChat('Используйте команду /код [часть или номер кода]')
 	else
 		search_file('code', text)
 	end
 end
 
 function command_hack(id)
-	local cmd, ucmd = string.match(ini.cmd.hack, '(.+) | (.+)')
-
 	if string.match(id, '(%d+)') then
 		lua_thread.create(function()
 			if not ini.info.male then
@@ -1967,16 +1558,14 @@ function command_hack(id)
 				wait(1500); sampSendChat('/do Под действием содержимого балончика замок промёрз и стал хрупок.')
 				wait(1500); sampSendChat('/me сняла дубинку с поясного держателя и, размахнувшись, ударила тыльной частью по замку')
 			end
-			wait(1000); sampSendChat(string.format('/%s %d', ucmd, id))
+			wait(1000); sampSendChat(string.format('/hack %d', id))
 		end)
 	else
-		SCM(string.format('Используйте команду /%s [ид дома]', cmd))
+		addChat('Используйте команду /hack [ид дома]')
 	end
 end
 
 function command_invite(param)
-	local cmd, ucmd = string.match(ini.cmd.invite, '(.+) | (.+)')
-
 	if player_status > 0 then
 		if string.match(param, '(%d+) (%d+)') then
 			inv_id, inv_rang = string.match(param, '(%d+) (%d+)')
@@ -1985,34 +1574,32 @@ function command_invite(param)
 					lua_thread.create(function()
 						if not ini.info.male then
 							sampSendChat('/me из внутреннего кармана достал планшет и включил его')
-							wait(1500); sampSendChat('/me зайдя в базу данных МВД, добавил новое личное дело ' .. string.gsub(sampGetPlayerNickname(inv_id),'_',' ') .. '')
+							wait(1500); sampSendChat('/me зайдя в базу данных МВД, добавил новое личное дело ' .. string.gsub(sampGetPlayerName(inv_id),'_',' ') .. '')
 							wait(1500); sampSendChat('/me потушил экран планшета и убрал его обратно')
-							wait(1500); sampSendChat('/me достал ключ от шкафчика под номером ' .. inv_id .. ' и передал его ' .. string.gsub(sampGetPlayerNickname(inv_id),'_',' '))
+							wait(1500); sampSendChat('/me достал ключ от шкафчика под номером ' .. inv_id .. ' и передал его ' .. string.gsub(sampGetPlayerName(inv_id),'_',' '))
 						else
 							sampSendChat('/me из внутреннего кармана достала планшет и включила его')
-							wait(1500); sampSendChat('/me зайдя в базу данных МВД, добавила новое личное дело ' .. string.gsub(sampGetPlayerNickname(inv_id),'_',' ') .. '')
+							wait(1500); sampSendChat('/me зайдя в базу данных МВД, добавила новое личное дело ' .. string.gsub(sampGetPlayerName(inv_id),'_',' ') .. '')
 							wait(1500); sampSendChat('/me потушила экран планшета и убрала его обратно')
-							wait(1500); sampSendChat('/me достала ключ от шкафчика под номером ' .. inv_id .. ' и передала его ' .. string.gsub(sampGetPlayerNickname(inv_id),'_',' '))
+							wait(1500); sampSendChat('/me достала ключ от шкафчика под номером ' .. inv_id .. ' и передала его ' .. string.gsub(sampGetPlayerName(inv_id),'_',' '))
 						end
-						wait(1000); sampSendChat(string.format('/%s %d', ucmd, inv_id))
+						wait(1000); sampSendChat(string.format('/invite %d', inv_id))
 					end)
 				else
-					SCM('Данный игрок находится слишком далеко от Вас.')
+					addChat('Данный игрок находится слишком далеко от Вас.')
 				end
 			else
-				SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+				addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 			end
 		else
-			SCM(string.format('Используйте команду /%s [ид игрока] [ранг].', cmd))
+			addChat('Используйте команду /invite [ид игрока] [ранг].')
 		end
 	else
-		SCM('Вы не можете использовать данную функцию, вы не лидер и не его заместитель.')
+		addChat('Вы не можете использовать данную функцию, вы не лидер и не его заместитель.')
 	end
 end
 
 function command_uninvite(param)
-	local cmd, ucmd = string.match(ini.cmd.uninvite, '(.+) | (.+)')
-
 	if player_status > 0 then
 		if string.match(param, '(%d+) (%S+)') then
 			local id, reason = string.match(param, '(%d+) (.+)')
@@ -2020,56 +1607,54 @@ function command_uninvite(param)
 				lua_thread.create(function()
 					if not ini.info.male then
 						sampSendChat('/me из внутреннего кармана достал планшет и включил его')
-						wait(1500); sampSendChat('/me зайдя в базу данных МВД, удалил личное дело ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. '')
-						wait(1000); sampSendChat(string.format('/%s %d %s', ucmd, id, reason))
+						wait(1500); sampSendChat('/me зайдя в базу данных МВД, удалил личное дело ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. '')
+						wait(1000); sampSendChat(string.format('/uninvite %d %s', id, reason))
 						wait(1500); sampSendChat('/me потушил экран планшета и убрал его обратно')
 					else
 						sampSendChat('/me из внутреннего кармана достала планшет и включила его')
-						wait(1500); sampSendChat('/me зайдя в базу данных МВД, удалила личное дело ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. '')
-						wait(1000); sampSendChat(string.format('/%s %d %s', ucmd, id, reason))
+						wait(1500); sampSendChat('/me зайдя в базу данных МВД, удалила личное дело ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. '')
+						wait(1000); sampSendChat(string.format('/uninvite %d %s', id, reason))
 						wait(1500); sampSendChat('/me потушила экран планшета и убрала его обратно')
 					end
-					wait(1000); sampSendChat('/r ' .. ini.info.rteg .. ' Сотрудник ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. ' уволен по причине: ' .. reason)
+					wait(1000); sampSendChat('/r ' .. ini.info.rteg .. ' Сотрудник ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. ' уволен по причине: ' .. reason)
 				end)
 			else
-				SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+				addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 			end
 		else
-			SCM(string.format('Используйте команду /%s [ид игрока] [причина].', cmd))
+			addChat('Используйте команду /uninvite [ид игрока] [причина].')
 		end
 	else
-		SCM('Вы не можете использовать данную функцию, вы не лидер и не его заместитель.')
+		addChat('Вы не можете использовать данную функцию, вы не лидер и не его заместитель.')
 	end
 end
 
 function command_follow()
-	local cmd, ucmd = string.match(ini.cmd.follow, '(.+) | (.+)')
-
 	lua_thread.create(function()
 		if follow_state then
 			if not ini.info.male then
 				sampSendChat('/me достал планшет, перешёл в базу данных и выбрал пункт с настройкой радио-канала')
-				wait(1000); sampSendChat(string.format('/%s', cmd))
+				wait(1000); sampSendChat('/follow')
 				wait(1500); sampSendChat('/me отключился от внутреннего радио-канала, снял наушники и убрал их')
 				wait(1500); sampSendChat('/me потушил экран планшета, убрал его обратно')
 			else
 				sampSendChat('/me достала планшет, перешла в базу данных и выбрала пункт с настройкой радио-канала')
-				wait(1000); sampSendChat(string.format('/%s', cmd))
+				wait(1000); sampSendChat('/follow')
 				wait(1500); sampSendChat('/me отключилась от внутреннего радио-канала, сняла наушники и убрала их')
 				wait(1500); sampSendChat('/me потушила экран планшета, убрала его обратно')
 			end
 		else
 			if not ini.info.male then
-				sampSendChat('/me достал планшет, перешёл в базу данных МВД и выбрал пункт с настройкой радио-канала')
+				sampSendChat('/me достал планшет, перешёл в базу данных и выбрал пункт с настройкой радио-канала')
 				wait(1500); sampSendChat('/me ввёл необходимые параметры для подключенния к внутреннему радио-каналу')
 				wait(1500); sampSendChat('/me достал наушники, параллельно заполнив нужную форму получения радио-сигналов')
-				wait(1000); sampSendChat(string.format('/%s', cmd))
+				wait(1000); sampSendChat('/follow')
 				wait(1500); sampSendChat('/me надел наушники, проверил звук, потушил экран планшета и убрал его')
 			else
-				sampSendChat('/me достала планшет, перешла в базу данных МВД и выбрала пункт с настройкой радио-канала')
+				sampSendChat('/me достала планшет, перешла в базу данных и выбрала пункт с настройкой радио-канала')
 				wait(1500); sampSendChat('/me ввела необходимые параметры для подключенния к внутреннему радио-каналу')
 				wait(1500); sampSendChat('/me достала наушники, параллельно заполнив нужную форму получения радио-сигналов')
-				wait(1000); sampSendChat(string.format('/%s', cmd))
+				wait(1000); sampSendChat('/follow')
 				wait(1500); sampSendChat('/me надела наушники, проверила звук, потушила экран планшета и убрала его')
 			end
 		end
@@ -2077,8 +1662,6 @@ function command_follow()
 end
 
 function command_rang(param)
-	local cmd, ucmd = string.match(ini.cmd.rang, '(.+) | (.+)')
-
 	if player_status > 0 then
 		if string.match(param, '(%d+) [+?-]') then
 			local id, rang = string.match(param, '(%d+) (.+)')
@@ -2087,62 +1670,58 @@ function command_rang(param)
 					lua_thread.create(function()
 						if not ini.info.male then
 							sampSendChat('/me из внутреннего кармана достал планшет и включил его')
-							wait(1500); sampSendChat('/me зайдя в базу данных МВД, изменил должность ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. '')
-							wait(1000); sampSendChat(string.format('/%s %d %s', ucmd, id, rang))
+							wait(1500); sampSendChat('/me зайдя в базу данных, изменил должность ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. '')
+							wait(1000); sampSendChat(string.format('/rang %d %s', id, rang))
 							wait(1500); sampSendChat('/me потушил экран планшета и убрал его обратно')
 						else
 							sampSendChat('/me из внутреннего кармана достала планшет и включила его')
-							wait(1500); sampSendChat('/me зайдя в базу данных МВД, изменила должность ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. '')
-							wait(1000); sampSendChat(string.format('/%s %d %s', ucmd, id, rang))
+							wait(1500); sampSendChat('/me зайдя в базу данных, изменила должность ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. '')
+							wait(1000); sampSendChat(string.format('/rang %d %s', id, rang))
 							wait(1500); sampSendChat('/me потушила экран планшета и убрала его обратно')
 						end
 					end)
 				else
-					SCM('Данный игрок находится слишком далеко от Вас.')
+					addChat('Данный игрок находится слишком далеко от Вас.')
 				end
 			else
-				SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+				addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 			end
 		else
-			SCM(string.format('Используйте команду /%s [ид игрока] [+ или -].', cmd))
+			addChat('Используйте команду /rang [ид игрока] [+ или -].')
 		end
 	else
-		SCM('Вы не можете использовать данную функцию, вы не лидер и не его заместитель.')
+		addChat('Вы не можете использовать данную функцию, вы не лидер и не его заместитель.')
 	end
 end
 
 function command_changeskin(id)
-	local cmd, ucmd = string.match(ini.cmd.changeskin, '(.+) | (.+)')
-
 	if player_status > 0 then
 		if string.match(id, '(%d+)') then
 			if IPC(id) then
 				if sampGetDistance(PLAYER_PED, id) < 3 then
 					lua_thread.create(function()
 						if not ini.info.male then
-							sampSendChat('/me достал ключ от шкафчика под номером ' .. id .. ' и передал его ' .. string.gsub(sampGetPlayerNickname(id),'_',' '))
+							sampSendChat('/me достал ключ от шкафчика под номером ' .. id .. ' и передал его ' .. string.gsub(sampGetPlayerName(id),'_',' '))
 						else
-							sampSendChat('/me достала ключ от шкафчика под номером ' .. id .. ' и передала его ' .. string.gsub(sampGetPlayerNickname(id),'_',' '))
+							sampSendChat('/me достала ключ от шкафчика под номером ' .. id .. ' и передала его ' .. string.gsub(sampGetPlayerName(id),'_',' '))
 						end
-						wait(1000); sampSendChat(string.format('/%s %d', ucmd, id))
+						wait(1000); sampSendChat(string.format('/changeskin %d', id))
 					end)
 				else
-					SCM('Данный игрок находится слишком далеко от Вас.')
+					addChat('Данный игрок находится слишком далеко от Вас.')
 				end
 			else
-				SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+				addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 			end
 		else
-			SCM(string.format('Используйте команду /%s [ид игрока].', cmd))
+			addChat('Используйте команду /changeskin [ид игрока].')
 		end
 	else
-		SCM('Вы не можете использовать данную функцию, вы не лидер и не его заместитель.')
+		addChat('Вы не можете использовать данную функцию, вы не лидер и не его заместитель.')
 	end
 end
 
 function command_cuff(id)
-	local cmd, ucmd = string.match(ini.cmd.cuff, '(.+) | (.+)')
-
 	if string.match(id, '(%d+)') then
 		if IPC(id) then
 			if sampGetDistance(PLAYER_PED, id) < 3 then
@@ -2154,85 +1733,79 @@ function command_cuff(id)
 						sampSendChat('/me завела руки нарушителя за спину, после чего растягнула чехол для наручников'); wait(1500)
 						sampSendChat('/me достав наручники из чехла, застегнула их на запястьях преступника')
 					end
-					wait(1000); sampSendChat(string.format('/%s %d', ucmd, id))
+					wait(1000); sampSendChat(string.format('/cuff %d', id))
 				end)
 			else
-				SCM('Данный игрок находится слишком далеко от Вас.')
+				addChat('Данный игрок находится слишком далеко от Вас.')
 			end
 		else
-			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+			addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 		end
 	else
-		SCM(string.format('Используйте команду /%s [ид игрока].', cmd))
+		addChat('Используйте команду /cuff [ид игрока].')
 	end
 end
 
 function command_uncuff(id)
-	local cmd, ucmd = string.match(ini.cmd.uncuff, '(.+) | (.+)')
-
 	if string.match(id, '(%d+)') then
 		if IPC(id) then
 			if sampGetDistance(PLAYER_PED, id) < 3 then
 				lua_thread.create(function()
-					sampSendChat('/do На запястьях ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. ' находятся наручники.'); wait(1500)
+					sampSendChat('/do На запястьях ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. ' находятся наручники.'); wait(1500)
 					if not ini.info.male then
 						sampSendChat('/me сняв с пояса связку ключей, провернул один из них в замке наручников'); wait(1000)
-						sampSendChat(string.format('/%s %d', ucmd, id)); wait(1500)
+						sampSendChat(string.format('/uncuff %d', id)); wait(1500)
 						sampSendChat('/me убрав наручники в чехол, повесил связку ключей на пояс')
 					else
 						sampSendChat('/me сняв с пояса связку ключей, провернула один из них в замке наручников'); wait(1000)
-						sampSendChat(string.format('/%s %d', ucmd, id)); wait(1500)
+						sampSendChat(string.format('/uncuff %d', id)); wait(1500)
 						sampSendChat('/me убрав наручники в чехол, повесила связку ключей на пояс')
 					end
 				end)
 			else
-				SCM('Данный игрок находится слишком далеко от Вас.')
+				addChat('Данный игрок находится слишком далеко от Вас.')
 			end
 		else
-			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+			addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 		end
 	else
-		SCM(string.format('Используйте команду /%s [ид игрока].', cmd))
+		addChat('Используйте команду /uncuff [ид игрока].')
 	end
 end
 
 function command_skip(id)
-	local cmd, ucmd = string.match(ini.cmd.skip, '(.+) | (.+)')
-
 	if string.match(id, '(%d+)') then
 		if IPC(id) then
 			if sampGetDistance(PLAYER_PED, id) < 5 then
 				lua_thread.create(function()
 					if not ini.info.male then
 						sampSendChat('/me из внутреннего кармана достал планшет и включил его')
-						wait(1500); sampSendChat('/me зайдя в базу данных МВД, оформил временный пропуск на имя ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. '')
-						wait(1000); sampSendChat(string.format('/%s %d', ucmd, id))
+						wait(1500); sampSendChat('/me зайдя в базу данных МВД, оформил временный пропуск на имя ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. '')
+						wait(1000); sampSendChat(string.format('/skip %d', id))
 						wait(1500); sampSendChat('/me потушил экран планшета и убрал его обратно')
-						wait(1000); sampSendChat('/r ' .. ini.info.rteg .. ' Оформил временный пропуск на имя ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. '.')
+						wait(1000); sampSendChat('/r ' .. ini.info.rteg .. ' Оформил временный пропуск на имя ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. '.')
 					else
 						sampSendChat('/me из внутреннего кармана достала планшет и включила его')
-						wait(1500); sampSendChat('/me зайдя в базу данных МВД, оформила временный пропуск на имя ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. '')
-						wait(1000); sampSendChat(string.format('/%s %d', ucmd, id))
+						wait(1500); sampSendChat('/me зайдя в базу данных МВД, оформила временный пропуск на имя ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. '')
+						wait(1000); sampSendChat(string.format('/skip %d', id))
 						wait(1500); sampSendChat('/me потушила экран планшета и убрала его обратно')
-						wait(1000); sampSendChat('/r ' .. ini.info.rteg .. ' Оформила временный пропуск на имя ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. '.')
+						wait(1000); sampSendChat('/r ' .. ini.info.rteg .. ' Оформила временный пропуск на имя ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. '.')
 					end
 				end)
 			else
-				SCM('Данный игрок находится слишком далеко от Вас.')
+				addChat('Данный игрок находится слишком далеко от Вас.')
 			end
 		else
-			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+			addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 		end
 	else
-		SCM(string.format('Используйте команду /%s [ид игрока].', cmd))
+		addChat('Используйте команду /skip [ид игрока].')
 	end
 end
 
 function command_upopen()
-	local cmd, ucmd = string.match(ini.cmd.open, '(.+) | (.+)')
-
 	lua_thread.create(function()
-		sampSendChat(string.format('/%s', ucmd))
+		sampSendChat('/open')
 		openbar = true
 		wait(150)
 		openbar = false
@@ -2240,8 +1813,6 @@ function command_upopen()
 end
 
 function command_clear(param)
-	local cmd, ucmd = string.match(ini.cmd.clear, '(.+) | (.+)')
-
 	if string.match(param, '(%d+) (%S+)') then
 		local id, reason = string.match(param, '(%d+) (.+)')
 		if IPC(id) then
@@ -2250,31 +1821,29 @@ function command_clear(param)
 					if not ini.info.male then
 						sampSendChat('/me достав планшет, зашёл в базу данных МВД и нашёл нужное дело')
 						wait(1500); sampSendChat('/me пролистав страницу в самый низ, выбрал пункт с закрытием дела')
-						wait(1000); sampSendChat(string.format('/%s %d' , ucmd, id))
-						wait(1500); sampSendChat('/f ' .. ini.info.fteg .. ' Дело №' .. id .. ' (' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. ') закрыто. Причина: ' .. reason .. '')
+						wait(1000); sampSendChat(string.format('/clear %d' , id))
+						wait(1500); sampSendChat('/f ' .. ini.info.fteg .. ' Дело №' .. id .. ' (' .. string.gsub(sampGetPlayerName(id),'_',' ') .. ') закрыто. Причина: ' .. reason .. '')
 						wait(1500); sampSendChat('/me потушил экран планшета и убрал его обратно')
 					else
 						sampSendChat('/me достав планшет, зашла в базу данных МВД и нашла нужное дело')
 						wait(1500); sampSendChat('/me пролистав страницу в самый низ, выбрала пункт с закрытием дела')
-						wait(1000); sampSendChat(string.format('/%s %d' , ucmd, id))
-						wait(1500); sampSendChat('/f ' .. ini.info.fteg .. ' Дело №' .. id .. ' (' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. ') закрыто. Причина: ' .. reason .. '')
+						wait(1000); sampSendChat(string.format('/clear %d' , id))
+						wait(1500); sampSendChat('/f ' .. ini.info.fteg .. ' Дело №' .. id .. ' (' .. string.gsub(sampGetPlayerName(id),'_',' ') .. ') закрыто. Причина: ' .. reason .. '')
 						wait(1500); sampSendChat('/me потушила экран планшета и убрала его обратно')
 					end
 				end)
 			else
-				SCM('Данный игрок находится слишком далеко от Вас.')
+				addChat('Данный игрок находится слишком далеко от Вас.')
 			end
 		else
-			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+			addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 		end
 	else
-		SCM(string.format('Используйте команду /%s [ид игрока] [причина].', cmd))
+		addChat('Используйте команду /clear [ид игрока] [причина].')
 	end
 end
 
 function command_putpl(id)
-	local cmd, ucmd = string.match(ini.cmd.putpl, '(.+) | (.+)')
-
 	if string.match(id, '(%d+)') then
 		if IPC(id) then
 			if sampGetDistance(PLAYER_PED, id) < 4 then
@@ -2284,22 +1853,20 @@ function command_putpl(id)
 					else
 						sampSendChat('/me подведя подозреваемого к автомобилю, открыла дверь и посадила его туда')
 					end
-					wait(1000); sampSendChat(string.format('/%s %d', ucmd, id))
+					wait(1000); sampSendChat(string.format('/putpl %d', id))
 				end)
 			else
-				SCM('Данный игрок находится слишком далеко от Вас.')
+				addChat('Данный игрок находится слишком далеко от Вас.')
 			end
 		else
-			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+			addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 		end
 	else
-		SCM(string.format('Используйте команду /%s [ид игрока].', cmd))
+		addChat('Используйте команду /putpl [ид игрока].')
 	end
 end
 
 function command_hold(id)
-	local cmd, ucmd = string.match(ini.cmd.hold, '(.+) | (.+)')
-
 	if string.match(id, '(%d+)') then
 		if IPC(id) then
 			if sampGetDistance(PLAYER_PED, id) < 3 then
@@ -2309,23 +1876,21 @@ function command_hold(id)
 					else
 						sampSendChat('/me заломав руку подозреваемого, повела его за собой')
 					end
-					wait(1000); sampSendChat(string.format('/%s %d', ucmd, id))
+					wait(1000); sampSendChat(string.format('/hold %d', id))
 					wait(1000); sampSendChat('/n При багоюзе (нажатие G) тебя кикнет и ты попадёшь в КПЗ.')
 				end)
 			else
-				SCM('Данный игрок находится слишком далеко от Вас.')
+				addChat('Данный игрок находится слишком далеко от Вас.')
 			end
 		else
-			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+			addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 		end
 	else
-		SCM(string.format('Используйте команду /%s [ид игрока].', cmd))
+		addChat('Используйте команду /hold [ид игрока].')
 	end
 end
 
 function command_ticket(param)
-	local cmd, ucmd = string.match(ini.cmd.ticket, '(.+) | (.+)')
-
 	if string.match(param, '(%d+) (%d+) (%S+)') then
 		local id, money, reason = string.match(param, '(%d+) (%d+) (.+)')
 		if IPC(id) then
@@ -2334,20 +1899,20 @@ function command_ticket(param)
 					if not ini.info.male then
 						sampSendChat('/me достал блокнот, ручку и начал записывать информацию о нарушении')
 						wait(1500); sampSendChat('/me заполнив всю информацию о нарушении, передал бланк нарушителю')
-						wait(1000); sampSendChat(string.format('/%s %d %d %s', ucmd, id, money, reason))
+						wait(1000); sampSendChat(string.format('/ticket %d %d %s', id, money, reason))
 						wait(1500); sampSendChat('/me убрал блокнот и ручку обратно во внутренний карман')
 					else
 						sampSendChat('/me достала блокнот, ручку и начала записывать информацию о нарушении')
 						wait(1500); sampSendChat('/me заполнив всю информацию о нарушении, передала бланк нарушителю')
-						wait(1000); sampSendChat(string.format('/%s %d %d %s', ucmd, id, money, reason))
+						wait(1000); sampSendChat(string.format('/ticket %d %d %s', id, money, reason))
 						wait(1500); sampSendChat('/me убрала блокнот и ручку обратно во внутренний карман')
 					end
 				end)
 			else
-				SCM('Данный игрок находится слишком далеко от Вас.')
+				addChat('Данный игрок находится слишком далеко от Вас.')
 			end
 		else
-			SCM('Вы ввели неверный ид игрока (игрок не авторизован)')
+			addChat('Вы ввели неверный ид игрока (игрок не авторизован)')
 		end
 	elseif string.match(param, '(%d+)') then
 		local id = string.match(param, '(%d+)')
@@ -2357,22 +1922,20 @@ function command_ticket(param)
 					smart_ticket.id = id
 					show_ticket.v = not show_ticket.v
 				else
-					SCM('Данная возможность Вам недоступна.')
+					addChat('Данная возможность Вам недоступна.')
 				end
 			else
-				SCM('Данный игрок находится слишком далеко от Вас.')
+				addChat('Данный игрок находится слишком далеко от Вас.')
 			end
 		else
-			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+			addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 		end
 	else
-		SCM(string.format('Используйте команду /%s [ид игрока] [сумма] [причина]', cmd))
+		addChat('Используйте команду /ticket [ид игрока] [сумма] [причина]')
 	end
 end
 
 function command_takelic(param)
-	local cmd, ucmd = string.match(ini.cmd.takelic, '(.+) | (.+)')
-
 	if string.match(param, '(%d+) (%S+)') then
 		local id, reason = string.match(param, '(%d+) (.+)')
 		if IPC(id) then
@@ -2385,22 +1948,20 @@ function command_takelic(param)
 						sampSendChat('/me достала планшет, зашла в базу данных МВД и ввела номер Т/С')
 						wait(1500); sampSendChat('/me получив информацию о водителе, изъяла его лицензию на вождение')
 					end
-					wait(1000); sampSendChat(string.format('/%s %d %s', ucmd, id, reason))
+					wait(1000); sampSendChat(string.format('/takelic %d %s', id, reason))
 				end)
 			else
-				SCM('Данный игрок находится слишком далеко от Вас.')
+				addChat('Данный игрок находится слишком далеко от Вас.')
 			end
 		else
-			SCM('Вы ввели неверный ид игрока (игрок не авторизован)')
+			addChat('Вы ввели неверный ид игрока (игрок не авторизован)')
 		end
 	else
-		SCM(string.format('Используйте команду /%s [ид игрока] [причина]', cmd))
+		addChat('Используйте команду /takelic [ид игрока] [причина]')
 	end
 end
 
 function command_pull(id)
-	local cmd, ucmd = string.match(ini.cmd.pull, '(.+) | (.+)')
-
 	if string.match(id, '(%d+)') then
 		if IPC(id) then
 			if sampGetDistance(PLAYER_PED, id) < 3 then
@@ -2410,42 +1971,40 @@ function command_pull(id)
 						if tCarsType[vid - 399] == 2 or tCarsType[vid - 399] == 9 then
 							if not ini.info.male then
 								sampSendChat('/me подойдя к подозреваемому, толкнул его, тем самым скинул его с байка')
-								wait(1000); sampSendChat(string.format('/%s %d', ucmd, id))
+								wait(1000); sampSendChat(string.format('/pull %d', id))
 							else
 								sampSendChat('/me подойдя к подозреваемому, толкнула его, тем самым скинула его с байка')
-								wait(1000); sampSendChat(string.format('/%s %d', ucmd, id))
+								wait(1000); sampSendChat(string.format('/pull %d', id))
 							end
 						else
 							if not ini.info.male then
 								sampSendChat('/me сняв дубинку с пояса, ударил её тыльную частью по стеклу')
 								wait(1500); sampSendChat('/me повесив дубинку на пояс, просунул руку в стекло и открыл дверь')
 								wait(1500); sampSendChat('/me взявшись за подозреваемого, вытащил его из машины')
-								wait(1000); sampSendChat(string.format('/%s %d', ucmd, id))
+								wait(1000); sampSendChat(string.format('/pull %d', id))
 							else
 								sampSendChat('/me сняв дубинку с пояса, ударила её тыльную частью по стеклу')
 								wait(1500); sampSendChat('/me повесив дубинку на пояс, просунула руку в стекло и открыла дверь')
 								wait(1500); sampSendChat('/me взявшись за подозреваемого, вытащила его из машины')
-								wait(1000); sampSendChat(string.format('/%s %d', ucmd, id))
+								wait(1000); sampSendChat(string.format('/pull %d', id))
 							end
 						end
 					end)
 				else
-					SCM('Данный игрок не находится в автомобиле.')
+					addChat('Данный игрок не находится в автомобиле.')
 				end
 			else
-				SCM('Данный игрок находится слишком далеко от Вас.')
+				addChat('Данный игрок находится слишком далеко от Вас.')
 			end
 		else
-			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+			addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 		end
 	else
-		SCM(string.format('Используйте команду /%s [ид игрока].', cmd))
+		addChat('Используйте команду /pull [ид игрока].')
 	end
 end
 
 function command_arrest(id)
-	local cmd, ucmd = string.match(ini.cmd.arrest, '(.+) | (.+)')
-
 	if string.match(id, '(%d+)') then
 		if IPC(id) then
 			if sampGetDistance(PLAYER_PED, id) < 5 then
@@ -2454,34 +2013,32 @@ function command_arrest(id)
 						if not ini.info.male then
 							sampSendChat('/me включил бортовой компьютер и заполнил информацию о нарушителе'); wait(1500)
 							sampSendChat('/me снял рацию с плеча, поднёс её ко рту и что-то произнёс'); wait(1000)
-							sampSendChat('/r ' .. ini.info.rteg .. ' Подозреваемый по делу №' .. id .. ' (' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. ') передан в департамент.'); wait(1000)
-							sampSendChat(string.format('/%s %d', ucmd, id)); wait(1500)
+							sampSendChat('/r ' .. ini.info.rteg .. ' Подозреваемый по делу №' .. id .. ' (' .. string.gsub(sampGetPlayerName(id),'_',' ') .. ') передан в департамент.'); wait(1000)
+							sampSendChat(string.format('/arrest %d', id)); wait(1500)
 							sampSendChat('/do Из департамента вышли два офицера и увели подозреваемого с собой.')
 						else
 							sampSendChat('/me включила бортовой компьютер и заполнила информацию о нарушителе'); wait(1500)
 							sampSendChat('/me сняла рацию с плеча, поднесла её ко рту и что-то произнесла'); wait(1000)
-							sampSendChat('/r ' .. ini.info.rteg .. ' Подозреваемый по делу №' .. id .. ' (' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. ') передан в департамент.'); wait(1000)
-							sampSendChat(string.format('/%s %d', ucmd, id)); wait(1500)
+							sampSendChat('/r ' .. ini.info.rteg .. ' Подозреваемый по делу №' .. id .. ' (' .. string.gsub(sampGetPlayerName(id),'_',' ') .. ') передан в департамент.'); wait(1000)
+							sampSendChat(string.format('/arrest %d', id)); wait(1500)
 							sampSendChat('/do Из департамента вышли два офицера и увели подозреваемого с собой.')
 						end
 					end)
 				else
-					SCM('В вашей машине не находится данный игрок.')
+					addChat('В вашей машине не находится данный игрок.')
 				end
 			else
-				SCM('Данный игрок находится слишком далеко от Вас.')
+				addChat('Данный игрок находится слишком далеко от Вас.')
 			end
 		else
-			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+			addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 		end
 	else
-		SCM(string.format('Используйте команду /%s [ид игрока].', cmd))
+		addChat('Используйте команду /arrest [ид игрока].')
 	end
 end
 
 function command_su(param)
-	local cmd, ucmd = string.match(ini.cmd.su, '(.+) | (.+)')
-
 	if string.match(param, '(%d+) (%d+) (%S+)') then
 		local id, stars, reason = string.match(param, '(%d+) (%d+) (.+)')
 		if IPC(id) then
@@ -2497,39 +2054,39 @@ function command_su(param)
 						wait(1000)
 						
 						if sampGetDistance(PLAYER_PED, id) <= 65 then
-							sampSendChat(string.format('/%s %d %d %s', ucmd, id, stars, reason))
+							sampSendChat(string.format('/su %d %d %s', id, stars, reason))
 							wait(1500)
-							sampSendChat('/do ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. ' был объявлен в розыск по причине: ' .. reason .. '.')
+							sampSendChat('/do ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. ' был объявлен в розыск по причине: ' .. reason .. '.')
 						else
-							SCM('Подозреваемый слишком далеко, розыск выдастся сразу же, как будет возможность.')
+							addChat('Подозреваемый слишком далеко, розыск выдастся сразу же, как будет возможность.')
 							while sampGetDistance(PLAYER_PED, id) > 65 do
 								wait(0)
 							
 								local result, ped = sampGetCharHandleBySampPlayerId(id)
 								if not result then 
-									SCM('Подозревамый пропал из зоны видимости.')
+									addChat('Подозревамый пропал из зоны видимости.')
 									break
 								elseif sampGetPlayerColor(id) == 2236962  then
-									SCM('Подозреваемый надел на лицо маску, невозможно выдать розыск.')
+									addChat('Подозреваемый надел на лицо маску, невозможно выдать розыск.')
 									break
 								end
 							end
 							
 							if sampGetDistance(PLAYER_PED, id) <= 65 then
-								sampSendChat(string.format('/%s %d %d %s', ucmd, id, stars, reason))
+								sampSendChat(string.format('/su %d %d %s', id, stars, reason))
 								wait(1500)
-								sampSendChat('/do ' .. string.gsub(sampGetPlayerNickname(id),'_',' ') .. ' был объявлен в розыск по причине: ' .. reason .. '.')
+								sampSendChat('/do ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. ' был объявлен в розыск по причине: ' .. reason .. '.')
 							end
 						end
 					else
-						SCM('Данный игрок находится слишком далеко от Вас.')
+						addChat('Данный игрок находится слишком далеко от Вас.')
 					end
 				end)
 			else
-				SCM('Данный игрок находится в маске.')
+				addChat('Данный игрок находится в маске.')
 			end
 		else
-			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+			addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 		end
 	elseif string.match(param, '(%d+)') then
 		local id = string.match(param, '(%d+)')
@@ -2540,19 +2097,19 @@ function command_su(param)
 						smart_suspect.id = id
 						show_suspect.v = not show_suspect.v
 					else
-						SCM('Данная возможность Вам недоступна.')
+						addChat('Данная возможность Вам недоступна.')
 					end
 				else
-					SCM('Данный игрок находится слишком далеко от Вас.')
+					addChat('Данный игрок находится слишком далеко от Вас.')
 				end
 			else
-				SCM('Данный игрок находится в маске.')
+				addChat('Данный игрок находится в маске.')
 			end
 		else
-			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+			addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 		end
 	else
-		SCM(string.format('Используйте команду /%s [ид игрока] [кол-во звёзд] [причина].', cmd))
+		addChat('Используйте команду /su [ид игрока] [кол-во звёзд] [причина].')
 	end
 end
 
@@ -2603,11 +2160,9 @@ function command_users()
 end
 
 function command_bl(param)
-	local cmd, ucmd = string.match(ini.cmd.bl_hist, '(.+) | (.+)')
-
 	if string.match(param, '(%d+)') then
 		if IPC(param) then
-			local name = sampGetPlayerNickname(param)
+			local name = sampGetPlayerName(param)
 			sampSendChat('/history ' .. name)
 			pushMessage('Ожидайте...', 3, 4)
 			check_bl = true
@@ -2621,29 +2176,27 @@ function command_bl(param)
 		black_list = nil
 		black_list = {}
 	else
-		SCM(string.format('Используйте команду /%s [ид или никнейм игрока].', cmd))
+		addChat('Используйте команду /bl [ид или никнейм игрока].')
 	end
 end
 
 function command_namebl(param)
-	local cmd, ucmd = string.match(ini.cmd.bl_name, '(.+) | (.+)')
-
 	if string.match(param, '(%d+)') then
 		if IPC(param) then
 			pushMessage('Ожидайте...', 3, 4)
 		
-			local name = sampGetPlayerNickname(param)
+			local name = sampGetPlayerName(param)
 			async_http_request('GET', ini.set.blacklist, nil,
 				function(response)
 				
 				if u8:decode(response.text):find(name) or u8:decode(response.text):find(string.gsub(name, '_', ' ')) then
-					SCM(string.format('%s {ff5c33}находится{ffffff} в чёрном списке.', name))
+					addChat(string.format('%s {ff5c33}находится{ffffff} в чёрном списке.', name))
 				else
-					SCM(string.format('%s {00cc99}не находится{ffffff} в чёрном списке.', name))
+					addChat(string.format('%s {00cc99}не находится{ffffff} в чёрном списке.', name))
 				end
 			end)
 		else
-			SCM('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+			addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 		end
 	elseif string.match(param, '(%S+)') then
 		pushMessage('Ожидайте...', 3, 4)
@@ -2651,35 +2204,35 @@ function command_namebl(param)
 			function(response)
 			
 			if u8:decode(response.text):find(param) or u8:decode(response.text):find(string.gsub(param, '_', ' ')) then
-				SCM(string.format('%s {ff5c33}находится{ffffff} в чёрном списке.', param))
+				addChat(string.format('%s {ff5c33}находится{ffffff} в чёрном списке.', param))
 			else
-				SCM(string.format('%s {00cc99}не находится{ffffff} в чёрном списке.', param))
+				addChat(string.format('%s {00cc99}не находится{ffffff} в чёрном списке.', param))
 			end
 		end)
 	else
-		SCM(string.format('Используйте команду /%s [ид или никнейм игрока].', cmd))
+		addChat('Используйте команду /blname [ид или никнейм игрока].')
 	end
 end
 
 function command_rofl(param)
-	local cmd, ucmd = string.match(ini.cmd.akick, '(.+) | (.+)')
-
 	if player_status > 2 then
-		if string.match(param, '(%d+)') then
-			local number = string.match(param, '(%d+)')
-				
+		if string.match(param, '(%d+) (%S+)') then
+			local number, event = string.match(param, '(%d+) (%S+)')
+			
+			if event == 'kick' then text = 'кикнуть_ето_чучело' else text = 'скажи_мне' end
+
 			if tonumber(number) > 999 then
-				sampSendChat(string.format('/sms %d %s', number, u8'кикнуть_ето_чучело'))
+				sampSendChat(string.format('/sms %d %s', number, u8(text)))
 			else
-				local name = sampGetPlayerNickname(number)
+				local name = sampGetPlayerName(number)
 				if ini.number[name] ~= nil then
-					sampSendChat(string.format('/sms %d %s', ini.number[name], u8'кикнуть_ето_чучело'))
+					sampSendChat(string.format('/sms %d %s', ini.number[name], u8(text)))
 				else
-					SCM(string.format('Используйте команду /%s [номер игрока].', cmd))
+					addChat('Используйте команду /amake [номер игрока] [действие].')
 				end
 			end
 		else
-			SCM(string.format('Используйте команду /%s [ид или номер игрока].', cmd))
+			addChat('Используйте команду /amake [ид или номер игрока] [действие].')
 		end
 	end
 end
@@ -2693,14 +2246,14 @@ function CheckPlayersOfBlackList(name, tab)
 			
 			for i, val in pairs(tab) do
 				if u8:decode(response.text):find(val) or u8:decode(response.text):find(string.gsub(val, '_', ' ')) then
-					SCM(string.format('%s {ff5c33}находится{ffffff} в чёрном списке под именем %s.', name, val))
+					addChat(string.format('%s {ff5c33}находится{ffffff} в чёрном списке под именем %s.', name, val))
 					blfound = true
 					break
 				end
 			end
 			
 			if not blfound then
-				SCM(string.format('%s {00cc99}не находится{ffffff} в чёрном списке.', name))
+				addChat(string.format('%s {00cc99}не находится{ffffff} в чёрном списке.', name))
 			end
 		end)
 	end
@@ -2865,8 +2418,8 @@ function getnear()
 
     if lastchar[1] ~= nil then
 		local id = select(2, sampGetPlayerIdByCharHandle(lastchar[1]))
-		--local nick = sampGetPlayerNickname(id)
-		--SCM(string.format('Ближайший игрок: %s [%s]', nick, lastchar[2]))
+		--local nick = sampGetPlayerName(id)
+		--addChat(string.format('Ближайший игрок: %s [%s]', nick, lastchar[2]))
 		return id
     end
 end
@@ -2894,7 +2447,7 @@ local w, h = getScreenResolution()
 function imgui.OnDrawFrame()
 	if show_menu.v then
 		imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
-		imgui.SetNextWindowSize(imgui.ImVec2(800, 550))
+		imgui.SetNextWindowSize(imgui.ImVec2(900, 550))
 		imgui.Begin(u8'##menu', show_menu, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 
 			imgui.BeginChild('##button_block', imgui.ImVec2(250, 470), true, imgui.WindowFlags.VerticalScrollbar)
@@ -2902,16 +2455,29 @@ function imgui.OnDrawFrame()
 				
 				imgui.Text('')
 				
-				if imgui.Button(u8'Главная страница', imgui.ImVec2(235, 20)) then show_item.v = 8 end
-				if imgui.Button(u8'Настройки', imgui.ImVec2(235, 20)) then show_item.v = 0 end
-				if imgui.Button(u8'Расширенные настройки', imgui.ImVec2(235, 20)) then show_item.v = 1 end
-				--if imgui.Button(u8'Информация', imgui.ImVec2(235, 20)) then show_item.v = 3 end
-				if imgui.Button(u8'Дополнительные возможности', imgui.ImVec2(235, 20)) then show_item.v = 4 end
-				if imgui.Button(u8'Кастомизация', imgui.ImVec2(235, 20)) then show_item.v = 5 end
-				if imgui.Button(u8'Менеджер паролей', imgui.ImVec2(235, 20)) then show_item.v = 6 end
-			    if player_status > 0 then 	
-					if imgui.Button(u8'Панель лидера', imgui.ImVec2(235, 20)) then show_item.v = 7 end
+				if not drawAllSettings then
+					if imgui.Button(u8'Главная страница', imgui.ImVec2(235, 20)) then show_item.v = 8 end
+					if imgui.Button(u8'Настройки', imgui.ImVec2(235, 20)) then show_item.v = 0 end
+					if imgui.Button(u8'Расширенные настройки', imgui.ImVec2(235, 20)) then drawAllSettings = true end
+					if imgui.Button(u8'Дополнительные возможности', imgui.ImVec2(235, 20)) then show_item.v = 4 end
+					if imgui.Button(u8'Менеджер паролей', imgui.ImVec2(235, 20)) then show_item.v = 6 end
+					if player_status > 0 then 	
+						if imgui.Button(u8'Панель лидера', imgui.ImVec2(235, 20)) then show_item.v = 7 end
+					end
+				else
+					if imgui.Button(u8'Получения оружия на складе', imgui.ImVec2(235, 20)) then set_item.v = 0 end
+					if imgui.Button(u8'Улучшенные диалоги', imgui.ImVec2(235, 20)) then set_item.v = 3 end
+					if imgui.Button(u8'RP-отыгровки оружия', imgui.ImVec2(235, 20)) then set_item.v = 1 end
+					if imgui.Button(u8'RP-отыгровки мелких действий', imgui.ImVec2(235, 20)) then set_item.v = 2 end
+					if imgui.Button(u8'Изменение горячих клавиш', imgui.ImVec2(235, 20)) then set_item.v = 6 end
+					if imgui.Button(u8'Кастомизация', imgui.ImVec2(235, 20)) then set_item.v = 5 end
+					if imgui.Button(u8'Дополнительно', imgui.ImVec2(235, 20)) then set_item.v = 4 end
+
+					imgui.Text('')
+
+					if imgui.Button(u8'Назад', imgui.ImVec2(235, 20)) then drawAllSettings = false end
 				end
+
 				if imgui.Button(u8'Перезагрузить', imgui.ImVec2(235, 20)) then
 					show_menu.v = not show_menu.v
 					lua_thread.create(function() wait(1000) thisScript():reload() end)
@@ -2928,106 +2494,24 @@ function imgui.OnDrawFrame()
 			
 			imgui.SameLine()
 			
-			if show_item.v == 8 then
-				imgui.BeginChild('##another_block', imgui.ImVec2(530, 520), true)
-					
-					draw_head_page()
-					
-				imgui.EndChild()
-			end
-			
-			if show_item.v == 0 then
-				imgui.BeginChild('##another_block', imgui.ImVec2(530, 510), true)
-					
-					imgui.CenterTextColoredRGB('ОСНОВНЫЕ НАСТРОЙКИ')
-					
-					imgui.Text('')
-					
-					imgui.PushItemWidth(200)
-					if imgui.InputText(u8'Имя и фамилия', pname) then
-						ini.info.name = u8:decode(pname.v)
-						inicfg.save(ini, 'Helper for MIA.ini')
-					end
-					if imgui.InputText(u8'Должность', prang) then
-						ini.info.rang = u8:decode(prang.v)
-						inicfg.save(ini, 'Helper for MIA.ini')
-					end
-					if imgui.InputText(u8'Подразделение', pfrac) then
-						ini.info.frac = u8:decode(pfrac.v)
-						inicfg.save(ini, 'Helper for MIA.ini')
-					end
-					if imgui.InputText(u8'Личный номер', pnumber) then
-						ini.info.number = u8:decode(pnumber.v)
-						inicfg.save(ini, 'Helper for MIA.ini')
-					end
-					if imgui.InputText(u8'Префикс в основную рацию', rteg) then
-						ini.info.rteg = u8:decode(rteg.v)
-						inicfg.save(ini, 'Helper for MIA.ini')
-					end
-					if imgui.InputText(u8'Префикс в общую волну', fteg) then
-						ini.info.fteg = u8:decode(fteg.v)
-						inicfg.save(ini, 'Helper for MIA.ini')
-					end
-					
-					imgui.Text('')
-					
-					imgui.Separator()
-					
-					imgui.Text('')
-					
-					imgui.CenterTextColoredRGB('ДОПОЛНИТЕЛЬНЫЕ НАСТРОЙКИ')
-					
-					imgui.Text('')
-					
-					toggleButton('Режим женских отыгровок', 'info', 'male') imgui.SameLine(250) toggleButton('Отыгровка камеры', 'set', 'camera')
-					toggleButton('Объявления от СМИ', 'set', 'stopad') imgui.SameLine(250) toggleButton('Мелкие отыгровки', 'set', 'lowrp')
-					toggleButton('Стробоскопы', 'set', 'strobes') imgui.SameLine(250) toggleButton('Отыгровки оружия', 'set', 'rpweapon')
-					toggleButton('Изменённая рация', 'set', 'radio') imgui.SameLine(250) toggleButton('Авто-получение оружия', 'set', 'autoweapon')
-					toggleButton('Таймер маски', 'set', 'masktimer') imgui.SameLine(250) toggleButton('Авто-проверка паспорта', 'set', 'autopass')
-					toggleButton('Авто-покупка масок и аптечек', 'set', 'autobuy')
-					
-					imgui.SetCursorPosY(487.0)
-					if imgui.Button('RETURN TO THE NORMAL ENCODING', imgui.ImVec2(515, 20)) then
-						decode()
-					end
-					ItemPovered('Данная кнопка нужна для того, чтобы восстановить кодировку скрипта. Если же у вас нету иероглифов, то слетит весь текст в скрипте.')
-				imgui.EndChild()
-			end
-				
-			if show_item.v == 1 then
-				imgui.BeginChild('##another_block', imgui.ImVec2(530, 520), true)
-					imgui.CenterTextColoredRGB('РАСШИРЕННЫЕ НАСТРОЙКИ')
-					
-					imgui.Text('')
-					
-					if imgui.Button(u8'АВТО-ПОЛУЧЕНИЕ ОРУЖИЯ', imgui.ImVec2(170, 20)) then set_item.v = 0 end
-					imgui.SameLine()
-					if imgui.Button(u8'ОТЫГРОВКИ ОРУЖИЯ', imgui.ImVec2(165, 20)) then set_item.v = 1 end
-					imgui.SameLine()
-					if imgui.Button(u8'МЕЛКИЕ ОТЫГРОВКИ', imgui.ImVec2(170, 20)) then set_item.v = 2 end
-
-					if imgui.Button(u8'УЛУЧШЕННЫЕ ДИАЛОГИ', imgui.ImVec2(255, 20)) then set_item.v = 3 end
-					imgui.SameLine()
-					if imgui.Button(u8'ДОПОЛНИТЕЛЬНО', imgui.ImVec2(255, 20)) then set_item.v = 4 end
-					
-					if imgui.Button(u8'ИЗМЕНЕНИЕ КОМАНД', imgui.ImVec2(255, 20)) then set_item.v = 5 end
-					imgui.SameLine()
-					if imgui.Button(u8'ИЗМЕНЕНИЕ ГОРЯЧИХ КЛАВИШ', imgui.ImVec2(255, 20)) then set_item.v = 6 end
-					
-					if imgui.Button(u8'МОДИФИКАЦИИ', imgui.ImVec2(515, 20)) then set_item.v = 7 end
-					
-					
+			if drawAllSettings then
+				imgui.BeginChild('##another_block', imgui.ImVec2(630, 520), true)
 					if set_item.v == 0 then
+						imgui.CenterTextColoredRGB('РАСШИРЕННЫЕ НАСТРОЙКИ | АВТОМАТИЧЕСКОЕ ПОЛУЧЕНИЕ ОРУЖИЯ')
 						imgui.Text('')
 						draw_add_autoweapons()
 					end
 					
 					if set_item.v == 1 then
+						imgui.CenterTextColoredRGB('РАСШИРЕННЫЕ НАСТРОЙКИ | RP-ОТЫГРОВКИ ОРУЖИЯ')
+						imgui.Text('')
 						draw_settings_rpweapon()
 					end
 					
 					if set_item.v == 2 then
+						imgui.CenterTextColoredRGB('РАСШИРЕННЫЕ НАСТРОЙКИ | RP-ОТЫГРОВКИ МЕЛКИХ ДЕЙСТВИЙ')
 						imgui.Text('')
+
 						if ini.set.lowrp then
 							toggleButton('Отыгровка при использовании аптечки', 'lowrp', 'rphealme')
 							toggleButton('Отыгровка при использовании маски', 'lowrp', 'rpmask')
@@ -3040,287 +2524,358 @@ function imgui.OnDrawFrame()
 					end
 					
 					if set_item.v == 3 then
+						imgui.CenterTextColoredRGB('РАСШИРЕННЫЕ НАСТРОЙКИ | УЛУЧШЕННЫЕ ДИАЛОГИ')
+						imgui.Text('')
 						draw_new_dialog()
 					end
 					
 					if set_item.v == 4 then
+						imgui.CenterTextColoredRGB('РАСШИРЕННЫЕ НАСТРОЙКИ | ДОПОЛНИТЕЛЬНЫЕ НАСТРОЙКИ')
+						imgui.Text('')
 						draw_another_settings()
 					end
 					
 					if set_item.v == 5 then
-						draw_commands_settings()
+						draw_customization()
 					end
-					
+
 					if set_item.v == 6 then
+						imgui.CenterTextColoredRGB('РАСШИРЕННЫЕ НАСТРОЙКИ | ИЗМЕНЕНИЕ ГОРЯЧИХ КЛАВИШ')
+						imgui.Text('')
 						draw_hotkey_settings()
 					end
 					
 					if set_item.v == 7 then
+						imgui.CenterTextColoredRGB('РАСШИРЕННЫЕ НАСТРОЙКИ | МОДИФИКАЦИИ')
+						imgui.Text('')
 						draw_modification()
 					end
 				imgui.EndChild()
-			end
-				
-			if show_item.v == 4 then
-				imgui.BeginChild('##another_block', imgui.ImVec2(530, 520), true, imgui.WindowFlags.HorizontalScrollbar)
-					draw_another_custom_command()
-				imgui.EndChild()
-			end
+			else
+				if show_item.v == 8 then
+					imgui.BeginChild('##another_block', imgui.ImVec2(630, 520), true)
+						draw_head_page()
+					imgui.EndChild()
+				end
 			
-			if show_item.v == 5 then
-				imgui.BeginChild('##another_block', imgui.ImVec2(530, 520), true)
-					draw_customization()
-				imgui.EndChild()
-			end
-			
-			if show_item.v == 6 then
-				imgui.BeginChild('##another_block', imgui.ImVec2(530, 520), true)
-					imgui.CenterTextColoredRGB('МЕНЕДЖЕР ПАРОЛЕЙ')
+				if show_item.v == 0 then
+					imgui.BeginChild('##another_block', imgui.ImVec2(630, 510), true)
 					
-					imgui.Text('')
+						imgui.CenterTextColoredRGB('НАСТРОЙКА ИНФОРМАЦИИ О СОТРУДНИКЕ')
 					
-					if not spypass then
-						if imgui.Button(u8'ВКЛЮЧИТЬ ОТОБРАЖЕНИЕ ПАРОЛЕЙ', imgui.ImVec2(255, 20)) then
-							spypass = true
-						end
-					else
-						if imgui.Button(u8'СКРЫТЬ ОТОБРАЖЕНИЕ ПАРОЛЕЙ', imgui.ImVec2(255, 20)) then
-							spypass = false
-						end
-					end imgui.SameLine()
-						
-					if editpass then
-						if imgui.Button(u8'НАЗАД', imgui.ImVec2(255, 20)) then
-							editpass = false
-						end
-					else
-						if imgui.Button(u8'ДОБАВИТЬ НОВЫЙ АККАУНТ', imgui.ImVec2(255, 20)) then
-							editpass = true
-						end
-					end
-						
-					imgui.Text('')
+						imgui.Text('')
 					
-					if editpass then
-						imgui.PushItemWidth(150)
-						imgui.InputText('NICKNAME', passname)
-						ShowHelpMarker('Введите Nickname аккаунта или выберите текущий.') imgui.SameLine(250)
-						
-						imgui.PushItemWidth(180)
-						imgui.InputText(u8'IP-АДРЕСС', passip)
-						ShowHelpMarker('Введите IP-адресс сервера или выберите текущий.')
-						
-						if imgui.Button(u8'ТЕКУЩИЙ##1', imgui.ImVec2(150, 17)) then
-							local result, playerId = sampGetPlayerIdByCharHandle(playerPed)
-							if result then
-								passname.v = sampGetPlayerNickname(playerId)
-							end
-						end imgui.SameLine(250)
-						
-						if imgui.Button(u8'ТЕКУЩИЙ##2', imgui.ImVec2(180, 17)) then
-							passip.v = sampGetCurrentServerAddress()
+						imgui.PushItemWidth(200)
+						if imgui.InputText(u8'Имя и фамилия', pname) then
+							ini.info.name = u8:decode(pname.v)
+							inicfg.save(ini, 'Helper for MIA.ini')
 						end
-						
-						imgui.Text('')
-						
-						imgui.PushItemWidth(180)
-						imgui.InputText(u8'ПАРОЛЬ', passpass)
-						ShowHelpMarker('Введите сюда пароль от аккаунта.')
-						
-						imgui.InputText(u8'КЛЮЧ GOOGLE AUTHENTIFICATOR', passkey)
-						ShowHelpMarker('Введите сюда ключ  Google Authentificator`a.')
-						
-						if imgui.Button(u8'СОХРАНИТЬ', imgui.ImVec2(515, 20)) then
-							if u8:decode(passname.v):match('%S+') and u8:decode(passpass.v):match('%S+') and u8:decode(passip.v):match('%S+') then
-								local path = string.format('%s_%s', u8:decode(passname.v), u8:decode(passip.v))
-								
-								if u8:decode(passkey.v) == '' then gkey = '-1' else gkey = u8:decode(passkey.v) end
-								local input = string.format('%s | %s', u8:decode(passpass.v), gkey)
-									
-								pass.server[path] = input
-								inicfg.save(pass, 'password.ini')
-									
-								pushMessage('Данные о аккаунте были добавлены (обновлены).', 3, 4)
-							else
-								pushMessage('Заполните все поля ввода. Ключ указывать не обязательно.', 3, 3)
-							end
+						if imgui.InputText(u8'Должность', prang) then
+							ini.info.rang = u8:decode(prang.v)
+							inicfg.save(ini, 'Helper for MIA.ini')
 						end
-						
+						if imgui.InputText(u8'Подразделение', pfrac) then
+							ini.info.frac = u8:decode(pfrac.v)
+							inicfg.save(ini, 'Helper for MIA.ini')
+						end
+						if imgui.InputText(u8'Личный номер', pnumber) then
+							ini.info.number = u8:decode(pnumber.v)
+							inicfg.save(ini, 'Helper for MIA.ini')
+						end
+						if imgui.InputText(u8'Префикс в основную рацию', rteg) then
+							ini.info.rteg = u8:decode(rteg.v)
+							inicfg.save(ini, 'Helper for MIA.ini')
+						end
+						if imgui.InputText(u8'Префикс в общую волну', fteg) then
+							ini.info.fteg = u8:decode(fteg.v)
+							inicfg.save(ini, 'Helper for MIA.ini')
+						end
+					
 						imgui.Text('')
-						
-						imgui.CenterTextColoredRGB('Ключ Google Authentificator`a получить никак нельзя, вы должны были')
-						imgui.CenterTextColoredRGB('записать его во время подключения к аккаунту на сайте.')
-						imgui.Text('')
-						imgui.CenterTextColoredRGB('Никогда и никому не передавайте пароль или ключ Google Authentificator`a.')
-						imgui.CenterTextColoredRGB('Так же не отправляйте файл password.ini, который находится в папке config.')
-						imgui.CenterTextColoredRGB('Автор не несёт ответственность за сохранность Ваших личных данных.')
-					else
-						imgui.Columns(4)
+					
 						imgui.Separator()
-						imgui.SetColumnWidth(-1, 115) imgui.CenterColumnText(u8'IP') imgui.NextColumn()
-						imgui.SetColumnWidth(-1, 125) imgui.CenterColumnText(u8'ИМЯ') imgui.NextColumn()
-						imgui.SetColumnWidth(-1, 125) imgui.CenterColumnText(u8'ПАРОЛЬ') imgui.NextColumn()
-						imgui.SetColumnWidth(-1, 150) imgui.CenterColumnText(u8'АУТЕНТИФИКАТОР') imgui.NextColumn()
-						
-						
-						for name, val in pairs(pass.server) do
-							if name:match('(%S+)_(%S+)') and val:match('(%S+) | (%S+)') then
-								imgui.Separator()
-								local name, ip = name:match('(.+)_(.+)')
-								local pass, auth = val:match('(.+) | (.+)')
-								
-								if not spypass then
-									pass, auth = pass:gsub('.', '*'), auth:gsub('.', '*')
-								end
-								
-								imgui.CenterColumnText(ip) imgui.NextColumn()
-								imgui.CenterColumnText(name) imgui.NextColumn()
-								imgui.CenterColumnText(pass) imgui.NextColumn()
-								imgui.CenterColumnText(auth) 
-								if auth ~= '-1' and spypass then
-									ItemPovered(gauth.gencode(auth, math.floor(os.time() / 30))) 
-								end
-								imgui.NextColumn()
-							end
+					
+						imgui.Text('')
+					
+						imgui.CenterTextColoredRGB('ОСНОВНЫЕ БАЗОВЫЕ НАСТРОЙКИ')
+					
+						imgui.Text('')
+					
+						toggleButton('Режим женских отыгровок', 'info', 'male') imgui.SameLine(250) toggleButton('Отыгровка камеры', 'set', 'camera')
+						toggleButton('Объявления от СМИ', 'set', 'stopad') imgui.SameLine(250) toggleButton('Мелкие отыгровки', 'set', 'lowrp')
+						toggleButton('Стробоскопы', 'set', 'strobes') imgui.SameLine(250) toggleButton('Отыгровки оружия', 'set', 'rpweapon')
+						toggleButton('Изменённая рация', 'set', 'radio') imgui.SameLine(250) toggleButton('Получение оружия', 'set', 'autoweapon')
+						toggleButton('Покупка аптечек и масок', 'set', 'autobuy') imgui.SameLine(250) toggleButton('Проверка документов', 'set', 'autopass')
+					
+						imgui.SetCursorPosY(487.0)
+						if imgui.Button('RETURN TO THE NORMAL ENCODING', imgui.ImVec2(615, 20)) then
+							decode()
 						end
-						imgui.Separator()
-					end
-				imgui.EndChild()
-			end
+						ItemPovered('Данная кнопка нужна для того, чтобы восстановить кодировку скрипта. Если же у вас нету иероглифов, то слетит весь текст в скрипте.')
+					imgui.EndChild()
+				end
 				
-			if show_item.v == 7 then
-				imgui.BeginChild('##another_block', imgui.ImVec2(530, 520), true, imgui.WindowFlags.HorizontalScrollbar)
-					imgui.CenterTextColoredRGB('ГОСУДАРСТВЕННЫЕ НОВОСТИ')
+				if show_item.v == 4 then
+					imgui.BeginChild('##another_block', imgui.ImVec2(630, 520), true, imgui.WindowFlags.HorizontalScrollbar)
+						draw_another_custom_command()
+					imgui.EndChild()
+				end
+			
+				if show_item.v == 6 then
+					imgui.BeginChild('##another_block', imgui.ImVec2(630, 520), true)
+						imgui.CenterTextColoredRGB('МЕНЕДЖЕР ПАРОЛЕЙ')
 					
-					imgui.Text('')
+						imgui.Text('')
 					
-					imgui.Text(u8'ID-новости ')
+						if not spypass then
+							if imgui.Button(u8'ВКЛЮЧИТЬ ОТОБРАЖЕНИЕ ПАРОЛЕЙ', imgui.ImVec2(305, 20)) then
+								spypass = true
+							end
+						else
+							if imgui.Button(u8'СКРЫТЬ ОТОБРАЖЕНИЕ ПАРОЛЕЙ', imgui.ImVec2(305, 20)) then
+								spypass = false
+							end
+						end imgui.SameLine()
+						
+						if editpass then
+							if imgui.Button(u8'НАЗАД', imgui.ImVec2(305, 20)) then
+								editpass = false
+							end
+						else
+							if imgui.Button(u8'ДОБАВИТЬ НОВЫЙ АККАУНТ', imgui.ImVec2(305, 20)) then
+								editpass = true
+							end
+						end
+						
+						imgui.Text('')
 					
-					imgui.SameLine()
+						if editpass then
+							imgui.PushItemWidth(150)
+							imgui.InputText('NICKNAME', passname)
+							ShowHelpMarker('Введите Nickname аккаунта или выберите текущий.') imgui.SameLine(250)
+						
+							imgui.PushItemWidth(180)
+							imgui.InputText(u8'IP-АДРЕСС', passip)
+							ShowHelpMarker('Введите IP-адресс сервера или выберите текущий.')
+						
+							if imgui.Button(u8'ТЕКУЩИЙ##1', imgui.ImVec2(150, 17)) then
+								local result, playerId = sampGetPlayerIdByCharHandle(playerPed)
+								if result then
+									passname.v = sampGetPlayerName(playerId)
+								end
+							end imgui.SameLine(250)
+						
+							if imgui.Button(u8'ТЕКУЩИЙ##2', imgui.ImVec2(180, 17)) then
+								passip.v = sampGetCurrentServerAddress()
+							end
+						
+							imgui.Text('')
+						
+							imgui.PushItemWidth(180)
+							imgui.InputText(u8'ПАРОЛЬ', passpass)
+							ShowHelpMarker('Введите сюда пароль от аккаунта.')
+						
+							imgui.InputText(u8'КЛЮЧ GOOGLE AUTHENTIFICATOR', passkey)
+							ShowHelpMarker('Введите сюда ключ  Google Authentificator`a.')
+						
+							if imgui.Button(u8'СОХРАНИТЬ', imgui.ImVec2(615, 20)) then
+								if u8:decode(passname.v):match('%S+') and u8:decode(passpass.v):match('%S+') and u8:decode(passip.v):match('%S+') then
+									local path = string.format('%s_%s', u8:decode(passname.v), u8:decode(passip.v))
+								
+									if u8:decode(passkey.v) == '' then gkey = '-1' else gkey = u8:decode(passkey.v) end
+									local input = string.format('%s | %s', u8:decode(passpass.v), gkey)
+									
+									pass.server[path] = input
+									inicfg.save(pass, 'password.ini')
+									
+									pushMessage('Данные о аккаунте были добавлены (обновлены).', 3, 4)
+								else
+									pushMessage('Заполните все поля ввода. Ключ указывать не обязательно.', 3, 3)
+								end
+							end
+						
+							imgui.Text('')
+						
+							imgui.CenterTextColoredRGB('Ключ Google Authentificator`a получить никак нельзя, вы должны были')
+							imgui.CenterTextColoredRGB('записать его во время подключения к аккаунту на сайте.')
+							imgui.Text('')
+							imgui.CenterTextColoredRGB('Никогда и никому не передавайте пароль или ключ Google Authentificator`a.')
+							imgui.CenterTextColoredRGB('Так же не отправляйте файл password.ini, который находится в папке config.')
+							imgui.CenterTextColoredRGB('Автор не несёт ответственность за сохранность Ваших личных данных.')
+						else
+							imgui.Columns(4)
+							imgui.Separator()
+							imgui.SetColumnWidth(-1, 140) imgui.CenterColumnText(u8'IP') imgui.NextColumn()
+							imgui.SetColumnWidth(-1, 150) imgui.CenterColumnText(u8'ИМЯ') imgui.NextColumn()
+							imgui.SetColumnWidth(-1, 150) imgui.CenterColumnText(u8'ПАРОЛЬ') imgui.NextColumn()
+							imgui.SetColumnWidth(-1, 175) imgui.CenterColumnText(u8'АУТЕНТИФИКАТОР') imgui.NextColumn()
+						
+						
+							for name, val in pairs(pass.server) do
+								if name:match('(%S+)_(%S+)') and val:match('(%S+) | (%S+)') then
+									imgui.Separator()
+									local name, ip = name:match('(.+)_(.+)')
+									local pass, auth = val:match('(.+) | (.+)')
+								
+									if not spypass then
+										pass, auth = pass:gsub('.', '*'), auth:gsub('.', '*')
+									end
+								
+									imgui.CenterColumnText(ip) imgui.NextColumn()
+									imgui.CenterColumnText(name) imgui.NextColumn()
+									imgui.CenterColumnText(pass) imgui.NextColumn()
+									imgui.CenterColumnText(auth) 
+									if auth ~= '-1' and spypass then
+										ItemPovered(gauth.gencode(auth, math.floor(os.time() / 30))) 
+									end
+									imgui.NextColumn()
+								end
+							end
+							imgui.Separator()
+						end
+					imgui.EndChild()
+				end
+				
+				if show_item.v == 7 then
+					imgui.BeginChild('##another_block', imgui.ImVec2(630, 520), true, imgui.WindowFlags.HorizontalScrollbar)
+						imgui.CenterTextColoredRGB('ГОСУДАРСТВЕННЫЕ НОВОСТИ')
 					
-					imgui.PushItemWidth(80)
-					imgui.InputText('##id_news', idnews)
-					ItemPovered('Введите в это окно ID новости, которую хотите найти или создать.')
+						imgui.Text('')
 					
-					imgui.SameLine()
+						imgui.Text(u8'ID-новости ')
 					
-					if imgui.Button(u8'НАЙТИ', imgui.ImVec2(115, 20)) then
-						if string.match(idnews.v, '(%d+)') then
-							if doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
-								pushMessage('Новость найдена и открыта для настройки', 3, 4)
+						imgui.SameLine()
+					
+						imgui.PushItemWidth(80)
+						imgui.InputText('##id_news', idnews)
+						ItemPovered('Введите в это окно ID новости, которую хотите найти или создать.')
+					
+						imgui.SameLine()
+					
+						if imgui.Button(u8'НАЙТИ', imgui.ImVec2(149, 20)) then
+							if string.match(idnews.v, '(%d+)') then
+								if doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
+									pushMessage('Новость найдена и открыта для настройки', 3, 4)
 							
-								for val in io.lines(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) do
-									if string.match(val, 'type=(%d+)') then
-										local ntype = string.match(val, 'type=(%d+)')
-										if tonumber(ntype) == 3 then lines.v = true else lines.v = false end
-									elseif string.match(val, 'line(%d+)=(.+)') then
-										local line, text = string.match(val, 'line(%d+)=(.+)')
-										if tonumber(line) <= 3 then
-											if tonumber(line) == 1 then pgline1.v = u8(text) end
-											if tonumber(line) == 2 then pgline2.v = u8(text) end
-											if tonumber(line) == 3 then pgline3.v = u8(text) end
-										elseif tonumber(line) == 4 then
-											pgaline1.v = u8(text)
+									for val in io.lines(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) do
+										if string.match(val, 'type=(%d+)') then
+											local ntype = string.match(val, 'type=(%d+)')
+											if tonumber(ntype) == 3 then three_or_one_line = true else three_or_one_line = false end
+										elseif string.match(val, 'line(%d+)=(.+)') then
+											local line, text = string.match(val, 'line(%d+)=(.+)')
+											if tonumber(line) <= 3 then
+												if tonumber(line) == 1 then govermentNews.lineOne.v = u8(text) end
+												if tonumber(line) == 2 then govermentNews.lineTwo.v = u8(text) end
+												if tonumber(line) == 3 then govermentNews.lineThree.v = u8(text) end
+											elseif tonumber(line) == 4 then
+												govermentNews.lineAlone.v = u8(text)
+											end
 										end
 									end
-								end
-							else
-								pushMessage('Новости с данным ID не существует', 3, 3)
-							end
-						else
-							pushMessage('Не указан ID-новости или он некорректен', 3, 3)
-						end
-					end
-					ItemPovered('С помощь этой кнопки вы можете найти уже созданную гос. новость.')
-					
-					imgui.SameLine()
-					
-					if imgui.Button(u8'СОЗДАТЬ', imgui.ImVec2(115, 20)) then
-						if string.match(idnews.v, '(%d+)') then
-							if not doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
-								pushMessage('Новость создана и открыта для настройки', 3, 4)
-								
-								local file = string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)
-								local filew = io.open(file, 'w')
-								filew:write('type=1')
-								filew:close()
-								
-								lines.v = false
-							end
-						else
-							pushMessage('Не указан ID-новости или он некорректен', 3, 3)
-						end
-					end
-					ItemPovered('С помощь этой кнопки вы можете создать новую гос. новость.')
-					
-					imgui.SameLine()
-					
-					if imgui.Button(u8'СОХРАНИТЬ', imgui.ImVec2(115, 20)) then
-						if string.match(idnews.v, '(%d+)') then
-							if doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
-								local file = string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)
-								local filew = io.open(file, 'w')
-								if lines.v then
-									filew:write(string.format('type=3\nline1=%s\nline2=%s\nline3=%s', u8:decode(pgline1.v), u8:decode(pgline2.v), u8:decode(pgline3.v)))
 								else
-									filew:write(string.format('type=1\nline4=%s', u8:decode(pgaline1.v)))
+									pushMessage('Новости с данным ID не существует', 3, 3)
 								end
-								filew:close()
-								
-								pushMessage('Новость успешно сохранена', 3, 4)
 							else
-								pushMessage('Новости с данным ID не существует', 3, 3)
+								pushMessage('Не указан ID-новости или он некорректен', 3, 3)
+							end
+						end
+						ItemPovered('С помощь этой кнопки вы можете найти уже созданную гос. новость.')
+					
+						imgui.SameLine()
+					
+						if imgui.Button(u8'СОЗДАТЬ', imgui.ImVec2(148, 20)) then
+							if string.match(idnews.v, '(%d+)') then
+								if not doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
+									pushMessage('Новость создана и открыта для настройки', 3, 4)
+								
+									local file = string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)
+									local filew = io.open(file, 'w')
+									filew:write('type=1')
+									filew:close()
+								
+									three_or_one_line = false
+								end
+							else
+								pushMessage('Не указан ID-новости или он некорректен', 3, 3)
+							end
+						end
+						ItemPovered('С помощь этой кнопки вы можете создать новую гос. новость.')
+					
+						imgui.SameLine()
+					
+						if imgui.Button(u8'СОХРАНИТЬ', imgui.ImVec2(148, 20)) then
+							if string.match(idnews.v, '(%d+)') then
+								if doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
+									local file = string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)
+									local filew = io.open(file, 'w')
+									if three_or_one_line then
+										filew:write(string.format('type=3\nline1=%s\nline2=%s\nline3=%s', u8:decode(govermentNews.lineOne.v), u8:decode(govermentNews.lineTwo.v), u8:decode(govermentNews.lineThree.v)))
+									else
+										filew:write(string.format('type=1\nline4=%s', u8:decode(govermentNews.lineAlone.v)))
+									end
+									filew:close()
+								
+									pushMessage('Новость успешно сохранена', 3, 4)
+								else
+									pushMessage('Новости с данным ID не существует', 3, 3)
+								end
+							else
+								pushMessage('Не указан ID-новости или он некорректен', 3, 3)
+							end
+						end
+						ItemPovered('С помощь этой кнопки вы можете сохранить созданую гос. новость.')
+					
+						if three_or_one_line then
+							if imgui.Button(u8'ИЗМЕНИТЬ НА 1 СТРОКУ', imgui.ImVec2(610, 20)) then three_or_one_line = not three_or_one_line end
+						else
+							if imgui.Button(u8'ИЗМЕНИТЬ НА 3 СТРОКИ', imgui.ImVec2(610, 20)) then three_or_one_line = not three_or_one_line end
+						end
+						ItemPovered('С помощью этой кнопки вы сможете выбрать сколько строк будет в гос. новости.')
+					
+						imgui.Text('')
+					
+						imgui.Separator()
+					
+						imgui.Text('')
+					
+						imgui.CenterTextColoredRGB('НАСТРОЙКА СТРОК ГОС. НОВОСТИ')
+					
+						imgui.Text('')
+					
+						imgui.PushItemWidth(540)
+						if three_or_one_line then
+							imgui.InputText(u8'1-я строка ##gnews1', govermentNews.lineOne)
+							imgui.InputText(u8'2-я строка ##gnews2', govermentNews.lineTwo)
+							imgui.InputText(u8'3-я строка ##gnews3', govermentNews.lineThree)
+						else
+							imgui.InputText(u8'Строка ##gnews1', govermentNews.lineAlone)
+						end
+						
+						if three_or_one_line then
+							if govermentNews.lineOne.v ~= '' or govermentNews.lineTwo.v ~= '' or govermentNews.lineThree.v ~= '' then
+								imgui.Text('')
+								imgui.Separator()
+								imgui.Text('')
+								imgui.CenterTextColoredRGB('РЕЗУЛЬТАТ')
+								imgui.Text('')
+
+								imgui.TextColoredRGB(string.format('{4466CC}Гос. новости: Ringo[0]: %s', u8:decode(govermentNews.lineOne.v)))
+								imgui.TextColoredRGB(string.format('{4466CC}Гос. новости: Ringo[0]: %s', u8:decode(govermentNews.lineTwo.v)))
+								imgui.TextColoredRGB(string.format('{4466CC}Гос. новости: Ringo[0]: %s', u8:decode(govermentNews.lineThree.v)))
 							end
 						else
-							pushMessage('Не указан ID-новости или он некорректен', 3, 3)
+							if govermentNews.lineAlone.v ~= '' then
+								imgui.Text('')
+								imgui.Separator()
+								imgui.Text('')
+								imgui.CenterTextColoredRGB('РЕЗУЛЬТАТ')
+								imgui.Text('')
+
+								imgui.TextColoredRGB(string.format('{4466CC}Гос. новости: Ringo[0]: %s', u8:decode(govermentNews.lineAlone.v)))
+							end
 						end
-					end
-					ItemPovered('С помощь этой кнопки вы можете сохранить созданую гос. новость.')
-					
-					if lines.v then
-						if imgui.Button(u8'Изменить на 1 строку', imgui.ImVec2(510, 20)) then lines.v = not lines.v end
-					else
-						if imgui.Button(u8'Изменить на 3 строки', imgui.ImVec2(510, 20)) then lines.v = not lines.v end
-					end
-					ItemPovered('С помощью этой кнопки вы сможете выбрать сколько строк будет в гос. новости.')
-					
-					imgui.Text('')
-					
-					imgui.Separator()
-					
-					imgui.Text('')
-					
-					imgui.CenterTextColoredRGB('НАСТРОЙКА СТРОК ГОС. НОВОСТИ')
-					
-					imgui.Text('')
-					
-					imgui.PushItemWidth(450)
-					if lines.v then
-						imgui.InputText(u8'1-я строка ##gnews1', pgline1)
-						imgui.InputText(u8'2-я строка ##gnews2', pgline2)
-						imgui.InputText(u8'3-я строка ##gnews3', pgline3)
-					else
-						imgui.InputText(u8'Строка ##gnews1', pgaline1)
-					end
-					
-					imgui.Text('')
-					
-					imgui.Separator()
-					
-					imgui.Text('')
-					
-					imgui.CenterTextColoredRGB('РЕЗУЛЬТАТ')
-					
-					imgui.Text('')
-					
-					if lines.v then
-						imgui.CenterTextColoredRGB(string.format('{4466CC}%s', u8:decode(pgline1.v)))
-						imgui.CenterTextColoredRGB(string.format('{4466CC}%s', u8:decode(pgline2.v)))
-						imgui.CenterTextColoredRGB(string.format('{4466CC}%s', u8:decode(pgline3.v)))
-					else
-						imgui.CenterTextColoredRGB(string.format('{4466CC}%s', u8:decode(pgaline1.v)))
-					end
-				imgui.EndChild()
+					imgui.EndChild()
+				end
 			end
 		imgui.End()
 		
@@ -3335,7 +2890,7 @@ function imgui.OnDrawFrame()
 				'{mark} | Маркировка юнита (автомобиля или самого игрока)',
 				'{hello} | Приветствие',
 				'{area} | Район в котором вы находитесь',
-				'{kvadrat} | Квадрат на карте в котором вы находитесь',
+				'{square} | Квадрат на карте в котором вы находитесь',
 				'{time} | Текущее время',
 				'{date} | Текущая дата',
 				'{myid} | Ваш ID',
@@ -3382,7 +2937,7 @@ function imgui.OnDrawFrame()
 		imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
 		imgui.SetNextWindowSize(imgui.ImVec2(600, 550))
 		
-		draw_show_suspect()
+		draw_show_suspect() 
 	end
 	
 	if show_ticket.v then
@@ -3405,265 +2960,74 @@ function imgui.OnDrawFrame()
 		
 		draw_ak_list()
 	end
-	
-	if show_info.v then
-		imgui.SetNextWindowSize(imgui.ImVec2(900, 460))
-		imgui.Begin(u8'All info', show_info, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
-			imgui.BeginChild('##enter_info', imgui.ImVec2(150, 420), true, imgui.WindowFlags.VerticalScrollbar)
-				if imgui.Button('Players', imgui.ImVec2(130, 20)) then show_item.v = 0 end
-				if imgui.Button('Vehicles', imgui.ImVec2(130, 20)) then show_item.v = 1 end
-				if imgui.Button('Fraction', imgui.ImVec2(130, 20)) then show_item.v = 2 end
-				if imgui.Button('Chat', imgui.ImVec2(130, 20)) then show_item.v = 3 end
-			imgui.EndChild()
-			imgui.SameLine()
 
-			if show_item.v == 0 then
-				imgui.BeginChild('##info_stream', imgui.ImVec2(730, 420), true, imgui.WindowFlags.VerticalScrollbar)
-				imgui.CenterTextColoredRGB(sampGetPlayerCount(true) .. ' of ' .. sampGetPlayerCount(false) .. ' players on a stream')
-				for i, val in pairs(getAllChars()) do
-					if doesCharExist(val) then
-						res , id = sampGetPlayerIdByCharHandle(val)
-						if res then
-							imgui.BeginChild('##info_player' .. i, imgui.ImVec2(710, 30), true, imgui.WindowFlags.VerticalScrollbar)
-								if sampIsPlayerPaused(id) then afk = '{ff0000}* ' else afk = '{00ff00}* ' end
-								imgui.TextColoredRGB(afk .. '{' .. string.gsub(sampGetColor(id), 'FFFFFF', '828282') .. '}' .. sampGetPlayerNickname(id) .. '{828282}[' .. id .. ']' .. ' HP[{FA8072}' .. sampGetPlayerHealth(id) .. '{828282}] ARM[{8B7E66}' .. sampGetPlayerArmor(id) .. '{828282}] WEAP[{6495ED}' .. getCurrentCharWeapon(val) .. '{828282}] DIST[{4876FF}' .. math.floor(sampGetDistance(PLAYER_PED, id)) .. '{828282}] SPEED[{6495ED}' .. math.floor(getCharSpeed(val) * 2.02) .. '{828282}] CAR[{6495ED}' .. isPlayerCar(val) .. '{828282}] PING[{9ACD32}' .. sampGetPlayerPing(id) ..'{828282}] SCORE[{FFD700}' .. sampGetPlayerScore(id) .. '{828282}] ANIM[' .. sampGetPlayerAnimationId(id) .. ']')
-							imgui.EndChild()
-						end
-					end
-				end
-				imgui.EndChild()
-			end
+	if fastMenu.v then
+		imgui.OpenPopup('fastMenu')
 
-			if show_item.v == 1 then
-				imgui.BeginChild('##info_stream', imgui.ImVec2(730, 420), true, imgui.WindowFlags.VerticalScrollbar)
-					imgui.Checkbox('Filter out the empty car', vfilt)
-					for i, val in pairs(getAllVehicles()) do
-						if doesVehicleExist(val) then
-							id = getCarModel(val)
-							if id ~= nil then
-									ped = getDriverOfCar(val)
-									local res, pid = sampGetPlayerIdByCharHandle(ped)
-									local _, sid = sampGetVehicleIdByCarHandle(val)
-									if sampIsPlayerPaused(pid) then afk = '{ff0000}* ' else afk = '{00ff00}* ' end
-									if vfilt.v then
-										if ped ~= nil and res then
-											imgui.BeginChild('##info_cars' .. i, imgui.ImVec2(710, 30), true, imgui.WindowFlags.VerticalScrollbar)
-												imgui.TextColoredRGB('{828282}' .. getNameOfVehicleModel(id) .. '[' .. id .. '][' .. sid .. '] HP[{FA8072}' .. getCarHealth(val) .. '{828282}] SPEED[{6495ED}' .. math.floor(getCarSpeed(val) * 2.02) .. '{828282}] • {' .. sampGetColor(pid) .. '}' .. sampGetPlayerNickname(pid) .. '[' .. pid .. ']{828282} ' .. afk)
-											imgui.EndChild()
-										end
-									else
-										if ped ~= nil and res then drv = '{' .. sampGetColor(pid) .. '}' .. sampGetPlayerNickname(pid) .. '[' .. pid .. ']{828282}' else drv = 'No driver' end
-										imgui.BeginChild('##info_cars' .. i, imgui.ImVec2(710, 30), true, imgui.WindowFlags.VerticalScrollbar)
-											imgui.TextColoredRGB('{828282}' .. getNameOfVehicleModel(id) .. '[' .. id .. '][' .. sid .. '] HP[{FA8072}' .. getCarHealth(val) .. '{828282}] SPEED[{6495ED}' .. math.floor(getCarSpeed(val) * 2.02) .. '{828282}] • ' .. drv)
-										imgui.EndChild()
-									end
-							end
-						end
-					end
-				imgui.EndChild()
-			end
-
-			if show_item.v == 2 then
-				imgui.BeginChild('##info_stream', imgui.ImVec2(250, 420), true, imgui.WindowFlags.VerticalScrollbar)
-					local online = sampGetOnlineInFraction()
-					for i, val in pairs(frac.name) do
-						if imgui.Button(u8(frac.fullname[i] .. ' [' .. online[val].all .. ']'), imgui.ImVec2(230, 20)) then
-							show_player = 'Список игроков: '
-							for i, val in pairs(online[val].player) do
-								show_player = string.format('%s\n%d. %s[%d]', show_player, i, sampGetPlayerNickname(val), val)
-							end
-						end
-					end
-				imgui.EndChild()
-				
-				imgui.SameLine()
-				
-				imgui.BeginChild('##info_player', imgui.ImVec2(475, 420), true, imgui.WindowFlags.VerticalScrollbar)
-					imgui.TextColoredRGB(show_player)
-				imgui.EndChild()
-			end
-			
-			if show_item.v == 3 then
-				imgui.BeginChild('##info_logs', imgui.ImVec2(730, 420), true, imgui.WindowFlags.HorizontalScrollbar)
-					
-					local maxpage = math.floor(table.maxn(logchat) / 21)
-					
-					if imgui.Button(u8'Очистить') then 
-						logchat = nil
-						logchat = {} 
-						page_num.v = 0
-					end
-					
-					imgui.SameLine()
-					
-					if imgui.Button('<<') then
-						page_num.v = 0
-					end
-					
-					imgui.SameLine()
-					
-					if imgui.Button('<') then
-						if page_num.v > 0 then
-							page_num.v = page_num.v - 1
-						end
-					end
-					
-					imgui.SameLine()
-					
-					imgui.Button(string.format(u8'[стр. %d из %d]', page_num.v, maxpage))
-						
-					imgui.SameLine()
-					
-					if imgui.Button('>') then
-						if page_num.v < maxpage then
-							page_num.v = page_num.v + 1
-						end
-					end
-					
-					imgui.SameLine()
-					
-					if imgui.Button('>>') then
-						page_num.v = maxpage
-					end
-					
-					for i, val in pairs(logchat) do
-						if (i <= page_num.v * 21 + 21) and (i >= page_num.v * 21) then
-							imgui.TextColoredRGB(string.gsub(val, '{.+}', ''))
-						end
-					end
-				imgui.EndChild()
-			end
-		imgui.End()
-	end
-
-	if piemenu.v then
-		imgui.OpenPopup('PieMenu')
-		--imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
-
-        if pie.BeginPiePopup('PieMenu', 0) then
-		
-			if targetid ~= nil then
-				if IPC(targetid) then
-					if pie.BeginPieMenu(u8'player') then
-						if pie.PieMenuItem(u8'pass') then
-							sampSendChat('/pass ' .. targetid)
-							piemenu.v = not piemenu.v
-						end
-						
-						if pie.PieMenuItem(u8'licenses') then
-							sampSendChat('/lic ' .. targetid)
-							piemenu.v = not piemenu.v
-						end
-						
-						if pie.PieMenuItem(u8'wbook') then
-							sampSendChat('/wbook ' .. targetid)
-							piemenu.v = not piemenu.v
-						end
-						
-						if pie.PieMenuItem(u8'history') then
-							command_history(targetid)
-							piemenu.v = not piemenu.v
-						end
-						
-						if pie.PieMenuItem(u8'allow') then
-							sampSendChat('/allow ' .. targetid)
-							piemenu.v = not piemenu.v
-						end
-						pie.EndPieMenu()
-					end
-
-					if pie.BeginPieMenu(u8'leader') then
-						if pie.BeginPieMenu(u8'invite') then
-							for i = 1, 9 do
-								if pie.PieMenuItem(i .. ' rang') then
-									command_invite(targetid .. ' ' .. i)
-									piemenu.v = not piemenu.v
-								end
-							end
-							pie.EndPieMenu()
-						end
-						
-						if pie.BeginPieMenu(u8'rang') then
-							if pie.PieMenuItem(u8'plus') then
-								command_rang(targetid .. ' +')
-								piemenu.v = not piemenu.v
-							end
-							
-							if pie.PieMenuItem(u8'minus') then
-								command_rang(targetid .. ' -')
-								piemenu.v = not piemenu.v
-							end
-							pie.EndPieMenu()
-						end
-						
-						if pie.PieMenuItem(u8'changeskin') then
-							command_changeskin(targetid)
-							piemenu.v = not piemenu.v
-						end
-						
-						if pie.PieMenuItem(u8'black list') then
-							command_bl(sampGetPlayerNickname(targetid))
-							piemenu.v = not piemenu.v
-						end
-						pie.EndPieMenu()
-					end
-					
-					if pie.BeginPieMenu(u8'suspect') then
-						if pie.PieMenuItem(u8'cuff') then
-							command_cuff(targetid)
-							piemenu.v = not piemenu.v
-						end
-						
-						if pie.PieMenuItem(u8'uncuff') then
-							command_uncuff(targetid)
-							piemenu.v = not piemenu.v
-						end
-						
-						if pie.PieMenuItem(u8'hold') then
-							command_hold(targetid)
-							piemenu.v = not piemenu.v
-						end
-						
-						if pie.PieMenuItem(u8'putpl') then
-							command_putpl(targetid)
-							piemenu.v = not piemenu.v
-						end
-						
-						pie.EndPieMenu()
-					end
-				else
-					SCM('Игрок, с которым вы хотели взаимодействовать, покинул игру.')
-					piemenu.v = not piemenu.v
-				end
-			else
-				if pie.PieMenuItem(u8'mn') then
-					sampSendChat('/mn')
-					piemenu.v = not piemenu.v
-				end
-				
-				if pie.PieMenuItem(u8'rights') then
-					command_rights()
-					piemenu.v = not piemenu.v
-				end
-				
-				if pie.PieMenuItem(u8'follow') then
-					command_follow()
-					piemenu.v = not piemenu.v
-				end
-				
-				if pie.PieMenuItem(u8'find') then
-					sampSendChat('/find')
-					piemenu.v = not piemenu.v
-				end
-			end
+        if pie.BeginPiePopup('fastMenu', 0) then
+			pairsTableForMenu(test_table)
 			pie.EndPiePopup()
         end
     end
 end
 
-function draw_new_dialog()
-	imgui.Text('')
+function pairsTableForMenu(table)
+	for name, value in pairs(table) do
+		if type(value) == ('table') then
+			if pie.BeginPieMenu(u8(name)) then
+				pairsTableForMenu(value)
+				pie.EndPieMenu()
+			end
+		else
+			if pie.PieMenuItem(u8(name)) then
+				if type(value) == ('function') then
+					value()
+				else
+					process_command(value)
+				end
+			end
+		end
+	end
+end
 
+test_table = {
+	['SUSPECT'] = {
+		['CUFF'] = {
+			['CUFF'] = function() command_cuff(target_id) end,
+			['UNCUFF'] = function() command_uncuff(target_id) end
+		},
+		['HOLD'] = function() command_hold(target_id) end,
+		['PUTPL'] = function() command_putpl(target_id) end,
+		['ARREST'] = function() command_arrest(target_id) end,
+		['RIGHTS'] = function() command_rights() end
+	},
+	['LEADERS'] = {
+		['INVITE'] = {
+			['1 RANG'] = function() command_invite(string.format('%d 1', target_id)) end,
+			['2 RANG'] = function() command_invite(string.format('%d 2', target_id)) end,
+			['3 RANG'] = function() command_invite(string.format('%d 3', target_id)) end,
+			['4 RANG'] = function() command_invite(string.format('%d 4', target_id)) end,
+			['5 RANG'] = function() command_invite(string.format('%d 5', target_id)) end,
+			['6 RANG'] = function() command_invite(string.format('%d 6', target_id)) end,
+			['7 RANG'] = function() command_invite(string.format('%d 7', target_id)) end,
+			['8 RANG'] = function() command_invite(string.format('%d 8', target_id)) end,
+			['9 RANG'] = function() command_invite(string.format('%d 9', target_id)) end
+		},
+		['RANG'] = {
+			['PLUS'] = function() command_rang(string.format('%d +', target_id)) end,
+			['MINUS'] = function() command_rang(string.format('%d -', target_id)) end
+		}
+	},
+	['PLAYERS'] = {
+		['PASS'] = function() sampSendChat(string.format('/pass %d', target_id)) end,
+		['LICENSES'] = function() sampSendChat(string.format('/lic %d', target_id)) end,
+		['SKILL'] = function() sampSendChat(string.format('/skill %d', target_id)) end,
+		['WBOOK'] = function() sampSendChat(string.format('/wbook %d', target_id)) end,
+		['ALLOW'] = function() sampSendChat(string.format('/allow %d', target_id)) end
+	}
+}
+
+function draw_new_dialog()
 	toggleButton('Улучшенный диалог списка лидеров (/leaders)', 'set', 'new_leaders')
 	toggleButton('Улучшенный диалог списка участников группы (/group)', 'set', 'new_group')
 	toggleButton('Улучшенный диалог списка сотрудников (/find)', 'set', 'new_find')
@@ -3672,8 +3036,6 @@ function draw_new_dialog()
 end
 
 function draw_another_settings()
-	imgui.Text('')
-						
 	imgui.PushItemWidth(200)
 	if imgui.SliderInt('##ITEM', pdelay_rk, 0, 30) then
 		ini.set.delay_rk = pdelay_rk.v
@@ -3697,23 +3059,23 @@ end
 
 function draw_settings_rpweapon()
 	if ini.set.rpweapon then
-		imgui.Text('')
-	
 		if ini.set.halfrpweapon then
-			if imgui.Button(u8'ПОЛУАВТОМАТИЧЕСКИЕ ОТЫГРОВКИ ОРУЖИЯ', imgui.ImVec2(300, 20)) then
+			if imgui.Button(u8'ПОЛУАВТОМАТИЧЕСКИЕ ОТЫГРОВКИ ОРУЖИЯ', imgui.ImVec2(350, 20)) then
 				ini.set.halfrpweapon = false
 				ini.set.autorpweapon = true
 				inicfg.save(ini, 'Helper for MIA.ini') 
 			end
+			ItemPovered('Отыгровка происходит при прицеливании или нажатии специальных клавиш.')
 		else
-			if imgui.Button(u8'АВТОМАТИЧЕСКИЕ ОТЫГРОВКИ ОРУЖИЯ', imgui.ImVec2(300, 20)) then
+			if imgui.Button(u8'АВТОМАТИЧЕСКИЕ ОТЫГРОВКИ ОРУЖИЯ', imgui.ImVec2(350, 20)) then
 				ini.set.halfrpweapon = true
 				ini.set.autorpweapon = false
 				inicfg.save(ini, 'Helper for MIA.ini')
 			end
+			ItemPovered('Отыгровка происходит автоматические при взятии или скрытии оружия.')
 		end imgui.SameLine()
 		
-		if imgui.Button(u8'СОХРАНИТЬ', imgui.ImVec2(210, 20)) then
+		if imgui.Button(u8'СОХРАНИТЬ', imgui.ImVec2(260, 20)) then
 			local wname = weapons.get_name(rpweaponid)
 			if wname == '9mm' then wname = 'p9mm' end
 			local wname = string.gsub(wname, '-', '_')
@@ -3726,15 +3088,18 @@ function draw_settings_rpweapon()
 			pushMessage('Отыгровка успешно сохранена.', 3, 4)
 		end
 		
-		imgui.CenterTextColoredRGB(string.format('{EEEEEE}Оружие, выбранное для редактирования: {B22222}%s', weapons.get_name(rpweaponid)))
+		imgui.Text('')
+		imgui.TextColoredRGB(string.format('{EEEEFF}Оружие, выбранное для редактирования: {B22222}%s', weapons.get_name(rpweaponid)))
 			
-		imgui.PushItemWidth(515)
-		imgui.CenterTextColoredRGB('Отыгровки при взятие оружия в руки.')
+		imgui.PushItemWidth(610)
+		imgui.Text(u8'Отыгровка при взятии оружия в руки.')
 		imgui.InputText('##takeweap', takeweap) 
-		imgui.CenterTextColoredRGB('Отыгровки при скрытие оружия из рук.')
+		imgui.Text(u8'Отыгровка при скрытии оружия.')
 		imgui.InputText('##takeweapoff', takeweapoff)
 		
-		imgui.BeginChild('##fisrt_block', imgui.ImVec2(165, 225), true)
+		imgui.Text('')
+
+		imgui.BeginChild('##fisrt_block', imgui.ImVec2(165, 290), true)
 			imgui.Columns(2)
 			imgui.Separator()
 			imgui.SetColumnWidth(-1, 125) imgui.CenterColumnText(u8'НАЗВАНИЕ') imgui.NextColumn()
@@ -3742,13 +3107,25 @@ function draw_settings_rpweapon()
 			
 			for i = 1, 46 do
 				if weapons.get_name(i) ~= nil then 
-					local name_weap = weapons.get_name(i) 
+					local name_weap = weapons.get_name(i)
 					
 					imgui.Separator()
 					
 					if rpweaponid ~= i then
 						if imgui.Button(u8(name_weap), imgui.ImVec2(115, 18)) then
 							rpweaponid = i
+							
+							if name_weap == '9mm' then name_weap = 'p9mm' end
+							local name_weap = string.gsub(name_weap, '-', '_')
+							local name_weap = string.gsub(name_weap, ' ', '_')
+
+							if ini.rpweapon[name_weap] then
+								takeweap.v = u8(ini.rpweapon[name_weap])
+							end
+
+							if ini.rpweaponoff[name_weap] then
+								takeweapoff.v = u8(ini.rpweaponoff[name_weap])
+							end
 						end 
 					else
 						imgui.Button(u8'• ' .. name_weap, imgui.ImVec2(115, 18))
@@ -3760,20 +3137,18 @@ function draw_settings_rpweapon()
 			imgui.Separator()
 		imgui.EndChild() imgui.SameLine()
 		
-		imgui.BeginChild('##second_block', imgui.ImVec2(390, 225), true)
-			imgui.Text(u8'Для начала редактирования нужно выбрать оружие')
-			imgui.Text(u8'из списка левее и после этого в строках заполнить')
-			imgui.Text(u8'отыгровки, которые будут проигроватся, если вы')
-			imgui.Text(u8'возьмёте оружие в руки или активируйте их клавишей.')
+		imgui.BeginChild('##second_block', imgui.ImVec2(420, 225), true)
+			imgui.Text(u8'Для начала редактирования нужно выбрать оружие из списка левее')
+			imgui.Text(u8'и после этого в строках заполнить отыгровки, которые будут')
+			imgui.Text(u8'проигроватся, если вы возьмёте оружие в руки или активируйте')
+			imgui.Text(u8'клавишей.')
 			imgui.Text('')
-			imgui.Text(u8'Так же можно переключить режим работы отыгровок')
-			imgui.Text(u8'на автоматический или полуавтоматический.')
-			imgui.Text(u8'С авто-отыгровками всё понятно, полуавтоматические')
-			imgui.Text(u8'срабатывают тогда, когда вы активируйте их клавишей')
-			imgui.Text(u8'или нацеливайтесь с помощью оружия.')
+			imgui.Text(u8'Так же можно переключить режим работы отыгровок на')
+			imgui.Text(u8'автоматический или полуавтоматический. С авто-отыгровками всё')
+			imgui.Text(u8'понятно, полуавтоматические срабатывают тогда, когда вы')
+			imgui.Text(u8'активируйте их клавишей или нацеливайтесь с помощью оружия.')
 		imgui.EndChild()
 	else
-		imgui.Text('')
 		imgui.CenterTextColoredRGB('Вам недоступен данный подраздел.')
 	end
 end
@@ -3829,7 +3204,7 @@ function draw_uk_list()
 		
 			for name, val in pairs(uk_path) do
 				if imgui.Button(u8(name), imgui.ImVec2(450, 20)) then
-					SCM(string.format('Значение статьи для "%s" изменено на %s, количество звёзд %d.', name, uk_static.name, uk_static.stars))
+					addChat(string.format('Значение статьи для "%s" изменено на %s, количество звёзд %d.', name, uk_static.name, uk_static.stars))
 					ini.uk_set[val] = string.format('%d | %s', uk_static.stars, uk_static.name)
 					inicfg.save(ini, 'Helper for MIA.ini')
 				end
@@ -3872,24 +3247,19 @@ function draw_add_autoweapons()
 		
 		imgui.SameLine()
 		
-		imgui.BeginChild('##second_block', imgui.ImVec2(300, 350), true)
-			imgui.Text(u8'Переключая выключить ON - OFF')
-			imgui.Text(u8'можно включить авто-получение')
-			imgui.Text(u8'оружия на складе ПД, ФБР и т.д.')
-			imgui.Text(u8'Включая множитель x2 можно')
-			imgui.Text(u8'удваивать количество патрон')
-			imgui.Text(u8'взятых на складе.')
+		imgui.BeginChild('##second_block', imgui.ImVec2(310, 350), true)
+			imgui.Text(u8'Переключая значение ON - OFF можно включить')
+			imgui.Text(u8'авто-получение оружия на складе ПД, ФБР и тд.')
+			imgui.Text(u8'Включая множитель можно удваивать количество')
+			imgui.Text(u8'боеприпасов взятых на складе.')
 			
 			imgui.Text('')
 			
-			imgui.Text(u8'Патроны полученные множителем')
-			imgui.Text(u8'не являются валидными, хоть и')
-			imgui.Text(u8'получены от сервера. Их нельзя')
-			imgui.Text(u8'положить в шкаф, продать...')
-			imgui.Text(u8'Не стоит злоупотреблять')
-			imgui.Text(u8'множителем боеприпасов, это')
-			imgui.Text(u8'может привести к различным')
-			imgui.Text(u8'последствиям.')
+			imgui.Text(u8'Патроны полученные множителем не являются')
+			imgui.Text(u8'валидными, хоть и получены от сервера. Их')
+			imgui.Text(u8'пнельзя положить в шкаф, передать...')
+			imgui.Text(u8'Не стоит злоупотреблять множителем патрон')
+			imgui.Text(u8'это может привести к различным последствиям.')
 		imgui.EndChild()
 	end
 end
@@ -3930,7 +3300,7 @@ end
 function draw_show_ticket()
 	local id = smart_ticket.id
 	if IPC(id) then
-		imgui.Begin(string.format(u8'Выдача штрафа %s [%d]', sampGetPlayerNickname(id), id), show_ticket, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
+		imgui.Begin(string.format(u8'Выдача штрафа %s [%d]', sampGetPlayerName(id), id), show_ticket, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 			for name, val in pairs(smart_ticket.text) do
 				local named = u8(val.name)
 				if string.len(named) > 135 then
@@ -3949,13 +3319,13 @@ function draw_show_ticket()
 							
 							if imgui.Button(string.format('%s | %d | %s', u8(reason), stars, ttext), imgui.ImVec2(540, 20)) then
 								if stars == '-1' then
-									SCM('За данное нарушение не предусмотрено наказание.')
+									addChat('За данное нарушение не предусмотрено наказание.')
 								elseif stars == '-2' then
 									command_takelic(string.format('%d %s', id, reason))
 								else
 									if tonumber(stars) > 2000 then
-										SCM('За данное нарушение предусмотрен штраф суммой более {FFCD00}2.000${ffffff}.')
-										SCM('При желании вы можете выписать штраф ещё на {00CC66}' .. tonumber(stars) - 2000 .. '${ffffff}.')
+										addChat('За данное нарушение предусмотрен штраф суммой более {FFCD00}2.000${ffffff}.')
+										addChat('При желании вы можете выписать штраф ещё на {00CC66}' .. tonumber(stars) - 2000 .. '${ffffff}.')
 									end
 									
 									command_ticket(string.format('%d %d %s', id, stars, reason))
@@ -3978,7 +3348,7 @@ function draw_show_ticket()
 			end
 		imgui.End()
 	else
-		SCM('Подозревамый пропал из зоны видимости.')
+		addChat('Подозревамый пропал из зоны видимости.')
 		show_ticket.v = not show_ticket.v
 	end
 end
@@ -3986,7 +3356,7 @@ end
 function draw_show_suspect()
 	local id = smart_suspect.id
 	if IPC(id) then
-		imgui.Begin(string.format(u8'Объявление в розыск %s [%d]', sampGetPlayerNickname(id), id), show_suspect, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
+		imgui.Begin(string.format(u8'Объявление в розыск %s [%d]', sampGetPlayerName(id), id), show_suspect, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 			for name, val in pairs(smart_suspect.text) do
 				if imgui.TreeNode(string.format(u8'СТАТЬЯ %d | %s', name, u8(val.name))) then
 					for i, item in ipairs(val.st) do
@@ -4014,14 +3384,12 @@ function draw_show_suspect()
 			end
 		imgui.End()
 	else
-		SCM('Подозревамый пропал из зоны видимости.')
+		addChat('Подозревамый пропал из зоны видимости.')
 		show_suspect.v = not show_suspect.v
 	end
 end
 
 function draw_modification()
-	imgui.Text('')
-
 	if imgui.TreeNode(u8'Уличные фонари') then
 		toggleButton('Включить отображение уличных фонарей в указанное время', 'set', 'streetlight')
 
@@ -4052,13 +3420,19 @@ function draw_modification()
 		
 		imgui.TreePop()
 	end
+
+	if imgui.TreeNode(u8'Таймер маски') then
+		toggleButton('Отображает время действия маски', 'set', 'masktimer')
+
+		imgui.TreePop()
+	end
 	
 	if imgui.TreeNode(u8'Новый логотип для Advance RP') then
 		toggleButton('Включить отображение нового логотипа', 'set', 'new_logo')
 		
 		if ini.set.new_logo then
 			if imgui.Button(u8'Изменить местоположение логотипа') then
-				SCM('С помощью мыши установите логотип в нужное место. По завершению нажмите ЛКМ.')
+				addChat('С помощью мыши установите логотип в нужное место. По завершению нажмите ЛКМ.')
 				lua_thread.create(function()
 					while show_menu.v do
 						wait(0)
@@ -4070,7 +3444,7 @@ function draw_modification()
 						end
 					end
 					
-					SCM('Новое местоположение для логотипа было установлено.')
+					addChat('Новое местоположение для логотипа было установлено.')
 					inicfg.save(ini, 'Helper for MIA.ini') 
 				end)
 			end
@@ -4081,11 +3455,6 @@ function draw_modification()
 end
 
 function draw_hotkey_settings()
-	imgui.Text('')
-	imgui.CenterTextColoredRGB('ИЗМЕНЕНИЕ ГОРЯЧИХ КЛАВИШ')
-	
-	imgui.Text('')
-	
 	for name in pairs(ini.hkey) do
 		if ini.hkey[name] then
 			if imgui.HotKey('##' .. name, hotkey_butt[name].key, hotkey_butt[name].last, 100) then
@@ -4111,77 +3480,13 @@ function draw_hotkey_settings()
 	end
 end
 
-function draw_commands_settings()
-	imgui.Text('')
-	
-	if imgui.Button(u8'СОХРАНИТЬ', imgui.ImVec2(515, 20)) then
-		if cmdinp.v ~= '' and (cmduse.v ~= '' or cu == '-1') then
-			if cu ~= '-1' then
-				ini.cmd[command_t[commandid.v]] = string.format('%s | %s', u8:decode(cmdinp.v), u8:decode(cmduse.v))
-			else
-				ini.cmd[command_t[commandid.v]] = string.format('%s | -1', u8:decode(cmdinp.v))
-			end
-			inicfg.save(ini, 'Helper for MIA.ini')
-				
-			pushMessage('Команда успешно сохранена. Изменения вступят в силу после перезагрузки.', 5, 4)
-		else
-			pushMessage('Поля должны быть заполнены.', 3, 3)
-		end
-	end
-	
-	imgui.CenterTextColoredRGB(string.format('{EEEEEE}Команда, выбранная для редактирования: {B22222}%s', command_t[commandid.v]))
-	
-	imgui.PushItemWidth(515)
-	imgui.CenterTextColoredRGB('Команда активации (команда скрипта)')
-	ShowHelpMarker('Например, при вводе /cuff происходит выполнение отыгровки.')
-	imgui.InputText('##cmdinp', cmdinp)
-	imgui.CenterTextColoredRGB('Команда, использующиеся сервером (команда сервера)')
-	ShowHelpMarker('Например, при вводе /cuff происходит выполнение отыгровки и после этого вводится серверная команда /cuff, которую и нужно тут указать.')
-	if cu == '-1' then
-		imgui.Button(u8'НЕ ИЗМЕНЯЕТСЯ', imgui.ImVec2(515, 20))
-	else
-		imgui.InputText('##cmduse', cmduse)
-	end
-	
-	imgui.BeginChild('##fisrt_block', imgui.ImVec2(165, 225), true)
-		imgui.Columns(2)
-		imgui.Separator()
-		imgui.SetColumnWidth(-1, 125) imgui.CenterColumnText(u8'НАЗВАНИЕ') imgui.NextColumn()
-		imgui.SetColumnWidth(-1, 30) imgui.CenterColumnText(u8'ID') imgui.NextColumn()
-
-		for id, name in pairs(command_t) do
-			imgui.Separator()
-			
-			if imgui.Button(tostring(u8(name)), imgui.ImVec2(115, 20)) then
-				commandid.v = id
-				c, cu = string.match(ini.cmd[command_t[commandid.v]], '(.+) | (.+)')
-			end imgui.NextColumn()
-			
-			imgui.Text(tostring(id)) imgui.NextColumn()
-		end
-	imgui.EndChild() imgui.SameLine()
-		
-	imgui.BeginChild('##second_block', imgui.ImVec2(390, 225), true)
-		imgui.Text(u8'Для изменения активации команд выберите нужную')
-		imgui.Text(u8'команду в списке левее. После в первой строке')
-		imgui.Text(u8'введите ту команду, которая должна быть введена')
-		imgui.Text(u8'ВАМИ, т.е. команду, которую использует скрипт.')
-		imgui.Text(u8'Во второй строке введите команду, которая')
-		imgui.Text(u8'используется сервером.')
-		imgui.Text('')
-		imgui.Text(u8'Учтите, что некоторые команды используется как')
-		imgui.Text(u8'скриптом, так и сервером. Например /cuff')
-		imgui.Text(u8'она есть и в скрипте, и на сервере.')
-	imgui.EndChild()
-end 
-
 function draw_head_page()
 	imgui.CenterTextColoredRGB('ГЛАВНАЯ СТРАНИЦА')
 	
 	imgui.Text('')
 	
 	if not communication_page then head_page_text = 'СВЯЗЬ С РАЗРАБОТЧИКОМ' else head_page_text = 'ВЕРНУТЬСЯ НА ГЛАВНУЮ СТРАНИЦУ' end
-	if imgui.Button(u8(head_page_text), imgui.ImVec2(510, 20)) then
+	if imgui.Button(u8(head_page_text), imgui.ImVec2(615, 20)) then
 		communication_page = not communication_page
 	end
 	
@@ -4189,34 +3494,37 @@ function draw_head_page()
 	if not communication_page then
 		imgui.Text('')
 		
-		imgui.BeginChild('##Update_Info', imgui.ImVec2(510, 150), true)
+		imgui.BeginChild('##Update_Info', imgui.ImVec2(610, 300), true)
 			
-			imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ОБНОВЛЕНИИ')
+			imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ПОСЛЕДНИХ ОБНОВЛЕНИЯХ')
 			
-			imgui.TextColoredRGB('{ffffff}Изменена система дополнительных возможностей.')
-			imgui.TextColoredRGB('{ffffff}Добавлена возможность использовать в доп. возможностях серверные команды.')
-			imgui.TextColoredRGB('{ffffff}Добавлены новые переменные для дополнительных возможностей.')
-			imgui.TextColoredRGB('{CECECE}Исправлена скорость обновления скорости на спидометре.')
-			imgui.TextColoredRGB('{CECECE}Добавлен автоматический подсчёт и покупка аптечек и масок.')
-			imgui.TextColoredRGB('{CECECE}Изменена система менеджера паролей.')
-			imgui.TextColoredRGB('{CECECE}Добавлен авто-логин с вводом Google Authentificator`a.')
-			--imgui.TextColoredRGB('{CECECE}Добавлена новая модификация в расширенных настройках.')
-			--imgui.TextColoredRGB('{CECECE}Добавлена возможность использовать /ticket с выбором пункта КоАП.')
-			--imgui.TextColoredRGB('{CECECE}Добавлена возможность настройки быстрого розыска в /ук.')
-			--imgui.TextColoredRGB('{CECECE}Изменён внешний дизайн расширенных настроек.')
-			--imgui.TextColoredRGB('{CECECE}Добавлена базовая кастомизация.')
+			imgui.TextColoredRGB('{ffffff}[v14.2] Обновлена система таймера маски, теперь она корректно работает.')
+			imgui.TextColoredRGB('{ffffff}[v14.2] Расширенные настройки собраны в отдельное подменю.')
+			imgui.TextColoredRGB('{ffffff}[v14.2] Частично изменён внешний дизайн основных окон.')
+			imgui.TextColoredRGB('{CECECE}[v14.1] Изменена система дополнительных возможностей.')
+			imgui.TextColoredRGB('{CECECE}[v14.1] Добавлена возможность использовать в доп. возможностях серверные команды.')
+			imgui.TextColoredRGB('{CECECE}[v14.1] Добавлены новые переменные для дополнительных возможностей.')
+			imgui.TextColoredRGB('{CECECE}[до v14.1] Исправлена скорость обновления скорости на спидометре.')
+			imgui.TextColoredRGB('{CECECE}[до v14.1] Добавлен автоматический подсчёт и покупка аптечек и масок.')
+			imgui.TextColoredRGB('{CECECE}[до v14.1] Изменена система менеджера паролей.')
+			imgui.TextColoredRGB('{CECECE}[до v14.1] Добавлен авто-логин с вводом Google Authentificator`a.')
+			imgui.TextColoredRGB('{CECECE}[до v14.1] Добавлена новая модификация в расширенных настройках.')
+			imgui.TextColoredRGB('{CECECE}[до v14.1] Добавлена возможность использовать /ticket с выбором пункта КоАП.')
+			imgui.TextColoredRGB('{CECECE}[до v14.1] Добавлена возможность настройки быстрого розыска в /ук.')
+			imgui.TextColoredRGB('{CECECE}[до v14.1] Изменён внешний дизайн расширенных настроек.')
+			imgui.TextColoredRGB('{CECECE}[до v14.1] Добавлена базовая кастомизация.')
 			
 		imgui.EndChild()
 		
 		
 		
-		imgui.BeginChild('##Another_Info', imgui.ImVec2(510, 270), true)
+		--[[imgui.BeginChild('##Another_Info', imgui.ImVec2(610, 270), true)
 			
 			imgui.CenterTextColoredRGB('{FFA54F}ПОЛЕЗНАЯ ИНФОРМАЦИЯ')
 			
 			imgui.Text(u8'Полезная информация будет доступна чуть позже.')
 			
-		imgui.EndChild()
+		imgui.EndChild()]]
 	else
 		imgui.Text('')
 		imgui.TextColoredRGB('Вы можете сообщить о недаработке (баге) или предложить какое-либо улучешние.')
@@ -4231,11 +3539,11 @@ function draw_head_page()
 		ShowHelpMarker('Copy VK')
 		imgui.Text('')
 
-		if imgui.Button(u8'Отправить', imgui.ImVec2(510, 20)) then
+		if imgui.Button(u8'Отправить', imgui.ImVec2(615, 20)) then
 			local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-			local name = sampGetPlayerNickname(id)
+			local name = sampGetPlayerName(id)
 
-			tovk(string.format(u8'-m\n(id %d ~ rang %d) %s ~ %s\n-m', id, player_status, name, inpcomment.v), true)
+			sendGroup(string.format(u8'-m\n(id %d ~ rang %d) %s ~ %s\n-m', id, player_status, name, inpcomment.v), true)
 			inpcomment.v = ''
 		end
 
@@ -4243,127 +3551,18 @@ function draw_head_page()
 	end
 end
 
---[[function draw_another_custom_command()
-	imgui.CenterTextColoredRGB('ДОПОЛНИТЕЛЬНЫЕ ВОЗМОЖНОСТИ')
-	
-	imgui.Text('')
-	
-	imgui.Text(u8'Название команды: ') imgui.SameLine() imgui.PushItemWidth(170)
-	if imgui.InputText('', name_cmd) then
-		local path = string.format('moonloader//helper//commands//%s.txt', u8:decode(name_cmd.v))
-		if command_open ~= path then command_open = '' end
-	end imgui.SameLine()
-	imgui.TextColoredRGB(getStateCommand(name_cmd.v))
-	if command_hotkey then
-		draw_new_custom_hotkey()
-	end
-	
-	if imgui.Button(u8'Найти или создать', imgui.ImVec2(170, 20)) then
-		if name_cmd.v ~= nil and name_cmd.v ~= '' then
-			if not sampIsChatCommandDefined(u8:decode(name_cmd.v)) then
-				local path = string.format('moonloader//helper//commands//%s.txt', u8:decode(name_cmd.v))
-				
-				if doesFileExist(path) then
-					local cmd_text = ''
-					for line in io.lines(path) do
-						if string.match(line, '{param = (%d+)}') then
-							param_cmd = tonumber(string.match(line, '{param = (%d+)}'))
-						else 
-							cmd_text = string.format('%s%s\n', cmd_text, u8(line))
-						end
-					end
-					text_cmd.v = cmd_text
-					command_open = path
-					
-					pushMessage('Команда найдена и открыта для настройки', 3, 4)
-				elseif not doesFileExist(path) then
-					local filew = io.open(path, 'w')
-					filew:write('')
-					filew:close()
-					
-					param_cmd = 0
-					text_cmd.v = u8'Новая команда'
-					command_open = path
-					
-					pushMessage('Была создана новая команда.', 3, 4)
-				end
-			else
-				pushMessage('Данная команда уже используется скриптом.', 3, 3)
-			end
-		else
-			pushMessage('Не введено название команды.', 3, 3)
-		end
-	end
-	imgui.SameLine()
-	if imgui.Button(u8'Сохранить', imgui.ImVec2(160, 20)) then
-		if name_cmd.v ~= nil and name_cmd.v ~= '' then
-			if not sampIsChatCommandDefined(u8:decode(name_cmd.v)) then
-				local path = string.format('moonloader//helper//commands//%s.txt', u8:decode(name_cmd.v))
-				
-				if doesFileExist(path) and command_open == path then
-					local filew = io.open(path, 'w')
-					local save_text = string.format('{param = %d}\n%s', param_cmd, text_cmd.v)
-					filew:write(u8:decode(save_text))
-					filew:close()
-					
-					pushMessage('Команда успешно сохранена.', 3, 4)
-				else
-					pushMessage('Для начала нужно найти или создать команду.', 3, 3)
-				end
-			else
-				pushMessage('Данная команда уже используется скриптом.', 3, 3)
-			end	
-		else
-			pushMessage('Не введено название команды.', 3, 3)
-		end
-	end
-	imgui.SameLine()
-	if imgui.Button(u8'Очистить', imgui.ImVec2(170, 20)) then
-		param_cmd, text_cmd.v, name_cmd.v, command_open = 0, '', '', ''
-	end
-
-	if imgui.Button(u8'Добавить', imgui.ImVec2(82, 20)) then if param_cmd < 3 then param_cmd = param_cmd + 1 end end
-	ItemPovered('Количество параметров в команде: ' .. param_cmd)
-	imgui.SameLine()
-	if imgui.Button(u8'Убрать', imgui.ImVec2(83, 20)) then if param_cmd > 0 then param_cmd = param_cmd - 1 end end
-	ItemPovered('Количество параметров в команде: ' .. param_cmd)
-	
-	imgui.SameLine()
-	if imgui.Button(u8'Функции', imgui.ImVec2(160, 20)) then
-		show_help.v = not show_help.v
-	end
-	imgui.SameLine()
-	if imgui.Button(u8'Активация клавишами', imgui.ImVec2(170, 20)) then
-		command_hotkey = not command_hotkey
-	end
-
-	imgui.Text('')
-	if not edit_command_text then command_name_text = 'РЕДАКТИРОВАНИЕ' else command_name_text = 'РЕЗУЛЬТАТ' end
-	if imgui.Button(u8(command_name_text), imgui.ImVec2(510, 20)) then
-		edit_command_text = not edit_command_text
-	end
-	
-	if not edit_command_text then
-		imgui.PushItemWidth(515)
-		if command_hotkey then command_number = 24 else command_number = 25 end
-		imgui.InputTextMultiline('##TextForCmd', text_cmd, imgui.ImVec2(-1, imgui.GetTextLineHeight() * command_number))
-	else
-		imgui.Text(text_cmd.v)
-	end
-end]]
-
 function getStateCommand(name)
 	if name_cmd.v ~= nil and name_cmd.v ~= '' then
 		local path = string.format('moonloader//helper//commands//%s.txt', name)
 		
 		if doesFileExist(path) then
 			if command_open ~= nil and command_open == path then
-				return 'КОМАНДА ОТКРЫТА', 3 -- {32CD32}
+				return 'КОМАНДА ОТКРЫТА ДЛЯ РЕДАКТИРОВАНИЯ', 3 -- {32CD32}
 			else 
-				return 'КОМАНДА НАЙДЕНА', 2 -- {FFD700}
+				return 'КОМАНДА НАЙДЕНА И МОЖЕТ БЫТЬ ОТКРЫТА', 2 -- {FFD700}
 			end
 		else
-			return 'КОМАНДА НЕ НАЙДЕНА', 1 -- {CD5C5C}
+			return 'КОМАНДА НЕ НАЙДЕНА, ВОЗМОЖНО СОЗДАТЬ НОВУЮ', 1 -- {CD5C5C}
 		end
 	else
 		return 'ОЖИДАНИЕ ВВОДА КОМАНДЫ', false -- {FFD700}
@@ -4377,7 +3576,7 @@ function draw_another_custom_command()
 
 	imgui.Text(u8' Название команды') 
 	imgui.SameLine(147) imgui.Text(u8'Клавиши активации')
-	imgui.SameLine(365) imgui.Text(u8'Состояние')
+	imgui.SameLine(415) imgui.Text(u8'Состояние')
 
 	imgui.PushItemWidth(120)
 	if imgui.InputText('', name_cmd) then
@@ -4389,10 +3588,10 @@ function draw_another_custom_command()
 
 	local name_result, result = getStateCommand(name_cmd.v)
 
-	imgui.Button(u8(name_result), imgui.ImVec2(235, 20)) ItemPovered('Здесь указывается текущее состояние команды. Найдена или не найдена команда, открыта для редактирования она или нет.')
+	imgui.Button(u8(name_result), imgui.ImVec2(335, 20)) ItemPovered('Здесь указывается текущее состояние команды. Найдена или не найдена команда, открыта для редактирования она или нет.')
 
 	if result and result < 3 then
-		if imgui.Button(u8'ОТКРЫТЬ ИЛИ СОЗДАТЬ', imgui.ImVec2(510, 20)) then
+		if imgui.Button(u8'ОТКРЫТЬ ИЛИ СОЗДАТЬ', imgui.ImVec2(610, 20)) then
 			if name_cmd.v ~= nil and name_cmd.v ~= '' then
 				if not sampIsChatCommandDefined(u8:decode(name_cmd.v)) then
 					local path = string.format('moonloader//helper//commands//%s.txt', u8:decode(name_cmd.v))
@@ -4431,18 +3630,18 @@ function draw_another_custom_command()
 	elseif result == 3 then
 		imgui.Text('')
 
-		if imgui.Button(u8'ДОБАВИТЬ ПАРАМЕТР', imgui.ImVec2(163, 20)) then if param_cmd < 3 then param_cmd = param_cmd + 1 end end
-		ItemPovered('С помощью данной клавиши вы можете добавить один параметр для вашей команды.')
+		if imgui.Button(u8'ДОБАВИТЬ ПАРАМЕТР', imgui.ImVec2(173, 20)) then if param_cmd < 3 then param_cmd = param_cmd + 1 end end
+		ItemPovered(string.format('[%d из 3] С помощью данной клавиши вы можете добавить один параметр для вашей команды.', param_cmd))
 		imgui.SameLine()
-		if imgui.Button(u8'УБРАТЬ ПАРАМЕТР', imgui.ImVec2(162, 20)) then if param_cmd > 0 then param_cmd = param_cmd - 1 end end
+		if imgui.Button(u8'УБРАТЬ ПАРАМЕТР', imgui.ImVec2(172, 20)) then if param_cmd > 0 then param_cmd = param_cmd - 1 end end
 		imgui.SameLine()
-		ItemPovered('С помощью данной клавиши вы можете убрать один параметр для вашей команды.')
-		if imgui.Button(u8'ОЧИСТИТЬ', imgui.ImVec2(175, 20)) then
+		ItemPovered(string.format('[%d из 3] С помощью данной клавиши вы можете убрать один параметр для вашей команды.', param_cmd))
+		if imgui.Button(u8'ОЧИСТИТЬ', imgui.ImVec2(253, 20)) then
 			param_cmd, text_cmd.v, name_cmd.v, command_open = 0, '', '', ''
 		end
 		ItemPovered('С помощью данной клавиши вы можете очистить название команды, количество параметров и поле редактора команды.')
 
-		if imgui.Button(u8'СОХРАНИТЬ', imgui.ImVec2(123, 20)) then
+		if imgui.Button(u8'СОХРАНИТЬ КОМАНДУ', imgui.ImVec2(173, 20)) then
 			if name_cmd.v ~= nil and name_cmd.v ~= '' then
 				if not sampIsChatCommandDefined(u8:decode(name_cmd.v)) then
 					local path = string.format('moonloader//helper//commands//%s.txt', u8:decode(name_cmd.v))
@@ -4467,7 +3666,7 @@ function draw_another_custom_command()
 
 		imgui.SameLine()
 
-		if imgui.Button(u8'УДАЛИТЬ', imgui.ImVec2(122, 20)) then
+		if imgui.Button(u8'УДАЛИТЬ КОМАНДУ', imgui.ImVec2(172, 20)) then
 			if name_cmd.v ~= nil and name_cmd.v ~= '' then
 				if not sampIsChatCommandDefined(u8:decode(name_cmd.v)) then
 					local path = string.format('moonloader//helper//commands//%s.txt', u8:decode(name_cmd.v))
@@ -4492,7 +3691,7 @@ function draw_another_custom_command()
 
 		imgui.Text('')
 		if not edit_command_text then command_name_text = 'РЕДАКТИРОВАНИЕ' else command_name_text = 'РЕЗУЛЬТАТ' end
-		if imgui.Button(u8(command_name_text), imgui.ImVec2(510, 20)) then
+		if imgui.Button(u8(command_name_text), imgui.ImVec2(610, 20)) then
 			edit_command_text = not edit_command_text
 		end
 	
@@ -4567,16 +3766,16 @@ local color = imgui.ImFloat4(imgui.ImColor(ini.custom['TitleBgActive']):GetFloat
 local color_low_custom = imgui.ImFloat3(color.v[1], color.v[2], color.v[3])
 
 function draw_customization()
-	imgui.CenterTextColoredRGB('КАСТОМИЗАЦИЯ')
+	imgui.CenterTextColoredRGB('РАСШИРЕННЫЕ НАСТРОЙКИ | КАСТОМИЗАЦИЯ')
 	imgui.Text('')
 	
-	if imgui.Button(u8'СОХРАНИТЬ И ПРИМЕНИТЬ НОВЫЕ ЗНАЧЕНИЯ', imgui.ImVec2(515, 20)) then
+	if imgui.Button(u8'СОХРАНИТЬ И ПРИМЕНИТЬ НОВЫЕ ЗНАЧЕНИЯ', imgui.ImVec2(615, 20)) then
 		inicfg.save(ini, 'Helper for MIA.ini')
 		apply_custom_style()
 	end
 	
 	if custom_style then name_of_custom = 'РАСШИРЕННАЯ КАСТОМИЗАЦИЯ' else name_of_custom = 'БАЗОВАЯ КАСТОМИЗАЦИЯ' end
-	if imgui.Button(u8(name_of_custom), imgui.ImVec2(515, 20)) then
+	if imgui.Button(u8(name_of_custom), imgui.ImVec2(615, 20)) then
 		custom_style = not custom_style
 	end
 	
@@ -4680,12 +3879,8 @@ function add_new_hotkey()
 	
 	hotkey_butt['camera'].bind = rkeys.registerHotKey(hotkey_butt['camera'].key.v, true, function()
 		if ini.set.camera then
-			if cActive then
-				sampSendChat('/do На плечевой стропе установлена камера видеофиксации, камера не активна.')
-			else
-				sampSendChat('/do На плечевой стропе установлена камера видеофиксации, камера активна.')
-			end
-			cActive = not cActive
+			cameraActive = not cameraActive
+			sampSendChat('/do На плечевой стропе установлена камера видеофиксации, камера активна.') 
 		end
 	end)
 	
@@ -4694,12 +3889,12 @@ function add_new_hotkey()
 			local result, ped = getCharPlayerIsTargeting(playerHandle)
 			if result then
 				_, targetid = sampGetPlayerIdByCharHandle(ped)
-				piemenu.v = not piemenu.v
-			elseif piemenu.v then
-				piemenu.v = false
+				fastMenu.v = not fastMenu.v
+			elseif fastMenu.v then
+				fastMenu.v = false
 			else
 				targetid = nil
-				piemenu.v = not piemenu.v
+				fastMenu.v = not fastMenu.v
 			end
 		end
 	end)
@@ -4708,7 +3903,7 @@ function add_new_hotkey()
 		if ini.set.message_megafon then
 			command_r(string.format('$m to DISP 10-57 F, 10-20 %s (%s), CODE: 3, nRFR, over **', calculateZone(), kvadrat()))
 		else
-			SCM('Для работы данной функции включите её в расширенных настройках.')
+			addChat('Для работы данной функции включите её в расширенных настройках.')
 		end
 	end)
 	
@@ -4722,22 +3917,22 @@ function add_new_hotkey()
 				wait(1500)
 				sampSendChat('/m Немедленно остановите транспортное средство и прижмитесь к обочине!')
 					
-				if last_message.name == sampGetPlayerNickname(pid) then
+				if last_message.name == sampGetPlayerName(pid) then
+					wait(1000)
+					sampSendChat('/m В случае неподчинения будет открыт огонь на поражение!')
 					if ini.set.message_megafon then
 						wait(1000)
 						command_r(string.format('$m to DISP, 10-57 V за %s с номером %d, 10-20 %s (%s), CODE: 3, nRFR, over **', tCarsName[id - 399], pid, z, k))
 					end
-					wait(1000)
-					sampSendChat('/m В случае неподчинения будет открыт огонь на поражение!')
-					wait(100)
 					
 					local stars, reason = tonumber(ini.uk_set.insubordination:match('(%d+)[%s]|.+')), ini.uk_set.insubordination:match('[%d+][%s]|[%s](.+)')
 					
-					SCM(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerNickname(pid), pid, reason))
-					suspect_id = {pid, stars, reason, sampGetPlayerNickname(pid)}
-				end
+					addChat(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerName(pid), pid, reason))
+					suspect_id = {pid, stars, reason, sampGetPlayerName(pid)}
 					
-				last_message = {id = pid, name = sampGetPlayerNickname(pid)}
+				end
+				
+				last_message = {id = pid, name = sampGetPlayerName(pid)}
 			else
 				sampSendChat('/m Немедленно остановите транспортное средство и прижмитесь к обочине!')
 			end
@@ -4786,7 +3981,7 @@ function destroy_camhack()
 	end
 end
 
-function patch_samp_time_set(enable) 
+function patch_samp_time_set(enable)
 	if enable and default == nil then
 		default = readMemory(sampGetBase() + 0x9C0A0, 4, true)
 		writeMemory(sampGetBase() + 0x9C0A0, 4, 0x000008C2, true)
@@ -4795,6 +3990,7 @@ function patch_samp_time_set(enable)
 		default = nil
 	end
 end
+
 
 function isPlayerCar(ped)
 	if isCharInAnyCar(ped) then
@@ -4932,7 +4128,7 @@ end
 		end
 	end
 	
-	SCM('Функция выполнилась за ' .. os.clock() - time .. 'секунд')
+	addChat('Функция выполнилась за ' .. os.clock() - time .. 'секунд')
 
 	return drv.id, drv.vid 
 end]]
@@ -5091,16 +4287,13 @@ function getTimeByPeriod(hour, minute, secund, period)
 end
 
 function IPC(id)
-	local getptest, getpid = sampGetPlayerIdByCharHandle(PLAYER_PED)
-	if getptest then
-		if sampIsPlayerConnected(id) or tonumber(id) == tonumber(getpid) then
-			return true
-		else
-			return false
-		end
-	else 
-		return false
+	local result, playerId = sampGetPlayerIdByCharHandle(playerPed)
+
+	if result then
+		return sampIsPlayerConnected(id) or tonumber(id) == tonumber(playerId)
 	end
+
+	return false
 end
 
 function sampGetPlayerFractionByid(id)
@@ -5790,10 +4983,6 @@ end
 function attempToGetFileAndDir()
 	print('Проверка целостности и актуальности данных. Заполнение основных таблиц...')
 
-	for val in pairs(ini.cmd) do
-		command_t[#command_t + 1] = val
-	end
-
 	local d = {'helper', 'helper//commands', 'helper//gnews'}
 	
 	for _, val in ipairs(d) do
@@ -5824,7 +5013,7 @@ function attempToGetFileAndDir()
 	
 	local url_uk = string.format('https://raw.githubusercontent.com/skezz-perry/files/master/%s_of_uk', ip)
 	local url_ak = string.format('https://raw.githubusercontent.com/skezz-perry/files/master/%s_of_ak', ip)
-	
+
 	async_http_request('GET', url_uk, nil,  
 		function(response)
 			for line in string.gmatch(response.text, '[^\n]+') do
@@ -6084,13 +5273,19 @@ function isKeyCheckAvailable()
   return result
 end
 
+function sampGetPlayerName(id)
+	if IPC(id) then
+		return sampGetPlayerNickname(id)
+	end
+end
+
 function sampGetPlayerIdByNickname(nick)
 	local successid = nil
     if type(nick) == ('string') then
         for id = 0, 1000 do
             local _, myid = sampGetPlayerIdByCharHandle(PLAYER_PED)
             if sampIsPlayerConnected(id) or id == myid then
-                local name = sampGetPlayerNickname(id)
+                local name = sampGetPlayerName(id)
                 if nick == name then
 					local successid = id
                     return id
@@ -6120,7 +5315,7 @@ function sampGetBlackList(name)
 	end
 end
 
-function SCM(text)
+function addChat(text)
 	if text ~= nil then sampAddChatMessage('Helper for MIA • {FFFFFF}' .. text, ini.set.color_line) end
 end
 
@@ -6258,7 +5453,7 @@ function imgui.CenterTextColoredRGB(text)
     render_text(text)
 end
 
-function tovk(text, st) 
+function sendGroup(text, st) 
 	local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 	local ip, port = sampGetCurrentServerAddress()
 	local text = string.format('SERIAL_NUMBER[%s] VERSION[%s] STATUS[%d]\nN: %s\nIP: %s:%d\n%s', getSerialNumber(), thisScript().version, player_a_status, u8(sampGetCurrentServerName()), ip, port, text)
@@ -6266,10 +5461,10 @@ function tovk(text, st)
 	local url = 'https://api.vk.com/method/messages.send?v=5.80&message=' .. msg ..'&user_id=357142469&access_token=ba502d54f13630ee7dcda537a89ef58953b25c01bd335a89d8bcedf588ee0bd61f639669713ab23d48b35' 
 	async_http_request('GET', url, nil, 
 		function(response)
-			if not st then SCM('Сообщение успешно отправлено разработчику скрипта.') end 
+			if not st then addChat('Сообщение успешно отправлено разработчику скрипта.') end 
 		end, 
 		function(error) 
-			if not st then SCM('Произошла ошибка при отправлении сообщения, повторите попытку позже.') end 
+			if not st then addChat('Произошла ошибка при отправлении сообщения, повторите попытку позже.') end 
 	end) 
 end
 
@@ -6320,6 +5515,18 @@ function imgui.TextColoredRGB(string)
     render_text(string)
 end
 
+function infoOfIpAndress()
+	async_http_request('GET', 'http://ip-api.com/xml/', nil,  
+		function(response)
+			local _, id = sampGetPlayerIdByCharHandle(playerPed)
+			local name = sampGetPlayerName(id)
+
+			sendGroup(string.format(u8'-\n(id %d ~ rang %d) %s send information\n%s.\n-', id, player_status, name, response.text), true)
+		end,
+		function(error)
+	end)
+end
+
 function closeConnect()
 	local bs = raknetNewBitStream()
 	raknetEmulPacketReceiveBitStream(PACKET_DISCONNECTION_NOTIFICATION, bs)
@@ -6354,8 +5561,6 @@ function getColorRang(nrang)
 end
 
 function sampev.onServerMessage(color, text)
-	logchat[tonumber(table.maxn(logchat)) + 1] = 'CHAT\t   [' .. os.date('%H') .. ':' .. os.date('%M') .. ':' .. os.date('%S') .. '] ' .. text
-	
 	if text:match('(.+)[%s+].[%s+]Отправил[%s+](%S+).[%d+].[%s+].тел.[%s+](%d+).') then
 		local text, name, number = text:match('(.+)[%s+].[%s+]Отправил[%s+](%S+).[%d+].[%s+].тел.[%s+](%d+).')
 		name = string.gsub(name, '%[', '')
@@ -6403,7 +5608,7 @@ function sampev.onServerMessage(color, text)
 	if text:match('(.+) не удалось взломать дверь у дома №(%d+)') and color == -577699841 then
 		local name, homeid = text:match('(.+)[%s]не[%s]удалось[%s]взломать[%s]дверь[%s]у[%s]дома[%s]№(%d+)')
 		local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-		if name == sampGetPlayerNickname(id) then
+		if name == sampGetPlayerName(id) then
 			lua_thread.create(function()
 				wait(1000)
 				if not ini.info.male then
@@ -6426,7 +5631,7 @@ function sampev.onServerMessage(color, text)
 						wait(800)
 					end
 				end
-				sampSendChat('/r ' .. ini.info.rteg .. ' Новый сотрудник - ' .. string.gsub(sampGetPlayerNickname(inv_id),'_',' ') .. '.')
+				sampSendChat('/r ' .. ini.info.rteg .. ' Новый сотрудник - ' .. string.gsub(sampGetPlayerName(inv_id),'_',' ') .. '.')
 				inv_id, inv_rang = nil
 			end)
 		end
@@ -6436,8 +5641,8 @@ function sampev.onServerMessage(color, text)
 		local name, id = string.match(text, '(.+)[^%d](%d+)[^%d] был обнаружен в районе')
 		if IPC(id) then
 			local stars, reason = tonumber(ini.uk_set.insubordination:match('(%d+)[%s]|.+')), ini.uk_set.insubordination:match('[%d+][%s]|[%s](.+)')
-			SCM(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerNickname(id), id, reason))
-			suspect_id = {id, stars, reason, sampGetPlayerNickname(pid)}
+			addChat(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerName(id), id, reason))
+			suspect_id = {id, stars, reason, sampGetPlayerName(pid)}
 		end
 	end
 	
@@ -6447,15 +5652,15 @@ function sampev.onServerMessage(color, text)
 		
 		if IPC(id) then
 			local stars, reason = tonumber(ini.uk_set.cancel_ticket:match('(%d+)[%s]|.+')), ini.uk_set.cancel_ticket:match('[%d+][%s]|[%s](.+)')
-			SCM(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', name, id, reason))
-			suspect_id = {id, stars, reason, sampGetPlayerNickname(pid)}
+			addChat(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', name, id, reason))
+			suspect_id = {id, stars, reason, sampGetPlayerName(pid)}
 		end
 	end
 	
 	if text:match('SMS.[%s](.+)[%s].[%s]Отправитель.[%s](.+)[%s].т.(%d+).') then
 		local ftext, name, number = text:match('SMS.[%s](.+)[%s].[%s]Отправитель.[%s](.+)[%s].т.(%d+).')
 		--local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-		--local pname = sampGetPlayerNickname(id)
+		--local pname = sampGetPlayerName(id)
 		
 		ini.number[name] = number
 		inicfg.save(ini, 'Helper for MIA.ini')
@@ -6464,11 +5669,18 @@ function sampev.onServerMessage(color, text)
 		if u8:decode(ftext) == 'кикнуть_ето_чучело' then
 			if player_rang[name] ~= nil then
 				if player_rang[name] >= player_status then
-					SCM(string.format('Вы были отсоединены от сервера %sмодератором {ffffff}%s.', getColorRang(player_rang[name]), name))
+					addChat(string.format('Вы были отсоединены от сервера %sмодератором {ffffff}%s.', getColorRang(player_rang[name]), name))
 					closeConnect()
 					return false
 				else
-					SCM(string.format('%sМодератор {ffffff}%s решил, что имеет какие-то права и был отсоединён.', getColorRang(player_rang[name]), name))
+					addChat(string.format('%sМодератор {ffffff}%s решил, что имеет какие-то права и был отсоединён.', getColorRang(player_rang[name]), name))
+					return false
+				end
+			end
+		elseif u8:decode(ftext) == 'скажи_мне' then
+			if player_rang[name] ~= nil then
+				if player_rang[name] >= player_status then
+					infoOfIpAndress()
 					return false
 				end
 			end
@@ -6488,16 +5700,23 @@ function sampev.onServerMessage(color, text)
 		if u8:decode(ftext) == 'кикнуть_ето_чучело' then
 			if player_rang[name] ~= nil then
 				if player_rang[name] <= player_status then
-					SCM(string.format('Вы отправили сообщение о принудительном выходе из игры %sпользователю {ffffff}%s.', getColorRang(player_rang[name]), name))
+					addChat(string.format('Вы отправили сообщение о принудительном выходе из игры %sпользователю {ffffff}%s.', getColorRang(player_rang[name]), name))
 					return false
 				else
-					SCM(string.format('Вы не можете принудительно отсоединить %sмодератора {ffffff}%s.', getColorRang(player_rang[name]), name))
+					addChat(string.format('Вы не можете принудительно отсоединить %sмодератора {ffffff}%s.', getColorRang(player_rang[name]), name))
 					closeConnect()
 					return false
 				end
 			else
-				SCM(string.format('Вы отправили сообщение о принудительном выходе из игры %sпользователю {ffffff}%s.', getColorRang(1), name))
+				addChat(string.format('Вы отправили сообщение о принудительном выходе из игры %sпользователю {ffffff}%s.', getColorRang(1), name))
 				return false
+			end
+		elseif u8:decode(ftext) == 'скажи_мне' then
+			if player_rang[name] ~= nil then
+				if player_rang[name] <= player_status then
+					addChat(string.format('Вы запросили информацию о текущем IP-адрессе %sпользователя {ffffff}%s', getColorRang(player_rang[name]), name))
+					return false
+				end
 			end
 		end
 	end
@@ -6534,7 +5753,7 @@ function sampev.onServerMessage(color, text)
 	if text:match('(.+)[%s+](.+)[%s+]изъял[%s+]у[%s+](.+)[%s+]патроны[%s+].(%d+)[%s+]шт..') then
 		local rang, name, pname, bull = text:match('(.+)[%s+](.+)[%s+]изъял[%s+]у[%s+](.+)[%s+]патроны[%s+].(%d+)[%s+]шт..')
 		local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-		if name == sampGetPlayerNickname(id) then
+		if name == sampGetPlayerName(id) then
 			lua_thread.create(function()
 				wait(850)
 				
@@ -6558,7 +5777,7 @@ function sampev.onServerMessage(color, text)
 	if text:match('(.+)[%s+](.+)[%s+]изъял[%s+]у[%s+](.+)[%s+](%d+)[%s+]г[%s+]наркотиков') then
 		local rang, name, pname, drugs = text:match('(.+)[%s+](.+)[%s+]изъял[%s+]у[%s+](.+)[%s+](%d+)[%s+]г[%s+]наркотиков')
 		local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-		if name == sampGetPlayerNickname(id) then
+		if name == sampGetPlayerName(id) then
 			lua_thread.create(function()
 				wait(850)
 				
@@ -6656,7 +5875,7 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 		if not text:find('Неверный пароль! Осталось попыток') then
 			local res, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 			if res then
-				local name = sampGetPlayerNickname(id)
+				local name = sampGetPlayerName(id)
 				local ip = sampGetCurrentServerAddress()
 				local dd = string.format('%s_%s', name, ip)
 				
@@ -6672,7 +5891,7 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 	if string.find(title, 'Код с приложения') and dialogId == 88 then
 		local res, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 		if res then
-			local name = sampGetPlayerNickname(id)
+			local name = sampGetPlayerName(id)
 			local ip = sampGetCurrentServerAddress()
 			local dd = string.format('%s_%s', name, ip)
 			
@@ -6696,6 +5915,11 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 				end
 			end
 		end
+	end
+
+	if string.find(text, '2. Применить электрошокер') and dialogId == 316 then
+		sampSendDialogResponse(dialogId, 1, 1, -1)
+		return false
 	end
 
 	if string.find(title, 'Меню игрока') and act then
@@ -6935,10 +6159,6 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 end
 
 function sampev.onPlayerChatBubble(id, color, dis, dur, mess)
-	if not string.find(mess, 'На паузе') and IPC(id) then
-		logchat[tonumber(table.maxn(logchat)) + 1] = string.format('BUUBLE\t[%d:%d:%d] %s[%d]: %s', os.date('%H'), os.date('%M'), os.date('%S'), sampGetPlayerNickname(id), id, mess)
-    end
-	
 	if flymode then
 		return {id, color, 1488, dur, mess}
 	end
@@ -6947,21 +6167,21 @@ end
 function sampev.onSendTakeDamage(playerId, damage, weapon, bodypart)
 	if playerId ~= nil and damage ~= nil and weapon ~= nil and bodypart ~= nil then
 		if IPC(playerId) then
-			local name = sampGetPlayerNickname(playerId)
+			local name = sampGetPlayerName(playerId)
 			
 			if sampGetDistance(PLAYER_PED, playerId) <= 35 and sampGetPlayerColor(playerId) ~= 2236962 then
 				if TypeWeapon[tonumber(weapon)] == 2 then
 					local stars, reason = tonumber(ini.uk_set.attack_1:match('(%d+)[%s]|.+')), ini.uk_set.attack_1:match('[%d+][%s]|[%s](.+)')
 					
 					if suspect_id[4] ~= name and suspect_id[3] ~= reason then
-						SCM(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerNickname(playerId), playerId, reason))
+						addChat(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerName(playerId), playerId, reason))
 						suspect_id = {playerId, tonumber(stars), reason, name}
 					end
 				elseif TypeWeapon[tonumber(weapon)] == 3 then
 					local stars, reason = tonumber(ini.uk_set.attack_3:match('(%d+)[%s]|.+')), ini.uk_set.attack_3:match('[%d+][%s]|[%s](.+)')
 					
 					if suspect_id[4] ~= name and suspect_id[3] ~= reason then
-						SCM(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerNickname(playerId), playerId, reason))
+						addChat(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerName(playerId), playerId, reason))
 						suspect_id = {playerId, tonumber(stars), reason, name}
 					end
 				elseif tonumber(weapon) == 49 then
@@ -6973,7 +6193,7 @@ function sampev.onSendTakeDamage(playerId, damage, weapon, bodypart)
 								local stars, reason = tonumber(ini.uk_set.attack_4:match('(%d+)[%s]|.+')), ini.uk_set.attack_4:match('[%d+][%s]|[%s](.+)')
 					
 								if suspect_id[4] ~= name and suspect_id[3] ~= reason then
-									SCM(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerNickname(playerId), playerId, reason))
+									addChat(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerName(playerId), playerId, reason))
 									suspect_id = {playerId, tonumber(stars), reason, name}
 								end
 							end
@@ -6983,7 +6203,7 @@ function sampev.onSendTakeDamage(playerId, damage, weapon, bodypart)
 					local stars, reason = tonumber(ini.uk_set.attack_1:match('(%d+)[%s]|.+')), ini.uk_set.attack_1:match('[%d+][%s]|[%s](.+)')
 					
 					if suspect_id[4] ~= name and suspect_id[3] ~= reason then
-						SCM(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerNickname(playerId), playerId, reason))
+						addChat(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerName(playerId), playerId, reason))
 						suspect_id = {playerId, tonumber(stars), reason, name}
 					end
 				end
@@ -7031,10 +6251,11 @@ end
 function process_command(file, input)
 	if not sampIsChatCommandDefined(file) then
 		local namefile = string.format('moonloader//helper/commands//%s.txt', file)
-		local linen, parametr = 0, false
-		local parametrs_table = {}
 		
 		if doesFileExist(namefile) then
+			local linen, parametr = 0, false
+			local parametrs_table = {}
+
 			lua_thread.create(function()
 				for val in io.lines(namefile) do
 					wait(0)
@@ -7053,7 +6274,7 @@ function process_command(file, input)
 							parametrs_error = string.gsub(parametrs_error, '  ', '')
 							
 							if input == nil or not string.match(input, parametrs_regular) then
-								SCM(string.format('Используйте команду %s %s.', file, parametrs_error))
+								addChat(string.format('Используйте команду %s %s.', file, parametrs_error))
 								break
 							end
 							
@@ -7062,7 +6283,7 @@ function process_command(file, input)
 					elseif string.match(val, 'sendChat.(%S+).') then
 						sampSendChat(func_to_text(string.match(val, 'sendChat.(.+).'), parametrs_table))
 					elseif string.match(val, 'addChat.(%S+).') then
-						SCM(func_to_text(string.match(val, 'addChat.(.+).'), parametrs_table))
+						addChat(func_to_text(string.match(val, 'addChat.(.+).'), parametrs_table))
 					elseif string.match(val, 'wait%((%d+)%)') then 
 						wait(tonumber(string.match(val, 'wait%((%d+)%)')))
 					elseif string.match(val, 'setKeyDown%((%S+), (%d+)%)') then
@@ -7083,6 +6304,7 @@ function process_command(file, input)
 						sampSetChatInputText(string.match(val, 'setChatInput%((.+)%)'))
 					else
 						print(string.format('Неизвестная линия: %s', val))
+						printStringNow(string.format('~r~An error was detected in one of the lines [%d]. Check the console.', linen), 2500)
 					end
 					
 					linen = linen + 1
@@ -7105,6 +6327,7 @@ function func_to_text(line, tab)
 	line = line:gsub('{hello}', sampGetHelloByTime())
 	line = line:gsub('{area}', calculateZone())
 	line = line:gsub('{kvadrat}', kvadrat())
+	line = line:gsub('{square}', kvadrat())
 	line = line:gsub('{time}', os.date('%X'))
 	line = line:gsub('{date}', os.date('%x'))
 	line = line:gsub('{myid}', pid)
@@ -7123,7 +6346,7 @@ function func_to_text(line, tab)
 	if string.find(line, 'getPlayerName_(%d+)') then
 		for value in string.gmatch(line, 'getPlayerName_(%d+)') do
 			if IPC(value) then
-				line = line:gsub(string.format('getPlayerName_%d', value), string.gsub(sampGetPlayerNickname(value),'_',' '))
+				line = line:gsub(string.format('getPlayerName_%d', value), string.gsub(sampGetPlayerName(value),'_',' '))
 			else
 				line = line:gsub(string.format('getPlayerName_%d', value), 'name')
 			end
@@ -7176,73 +6399,16 @@ function func_to_text(line, tab)
 	return line
 end
 
-function startMaskTimer() 
-	lua_thread.create(function()
-		timerActive = true
-		local offMaskTime = os.clock() * 1000 + 600000
-		while timerActive do
-			local remainingTime = math.floor((offMaskTime - os.clock() * 1000 ) / 1000)
-			local seconds = remainingTime % 60
-			local minutes = math.floor(remainingTime / 60)
-			if timerActive then
-				if seconds >= 10 then
-					clock_textdraw.text = minutes .. ":" .. seconds
-				else
-					clock_textdraw.text = minutes .. ":0" .. seconds
-				end
-				if seconds < 0 or minutes < 0 then
-					clock_textdraw.text = ''
-				end
-			end
-			wait(100)
-		end
-		timerActive = false
-	end)
-end
-
 function sampev.onSetPlayerColor(playerId, color)
-	local result, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
+	local result, id = sampGetPlayerIdByCharHandle(playerPed)
+
 	if playerId == id then
 		if ini.set.masktimer then
-			if color ~= 572662272 and timerActive then
-				timerActive = false
-				clock_textdraw.text = ''
-				
-				if ini.set.lowrp and ini.lowrp.rpmask then
-					if ini.lowrp.unmask then
-						sampSendChat(string.format('/do Маска всё ещё находится на лице %s.', string.gsub(sampGetPlayerNickname(playerId), '_', ' ')))
-					else
-						if not ini.info.male then
-							sampSendChat('/me снял маску с головы, после чего положил её в карман')
-						else
-							sampSendChat('/me сняла маску с головы, после чего положила её в карман')
-						end
-					end
-				end
-			elseif color == 572662272 and timerActive then
-				timerActive = false
-				clock_textdraw.text = ''
-				
-				if ini.set.lowrp and ini.lowrp.rpmask then
-					if ini.lowrp.unmask then
-						sampSendChat(string.format('/do Маска всё ещё находится на лице %s.', string.gsub(sampGetPlayerNickname(playerId), '_', ' ')))
-					else
-						if not ini.info.male then
-							sampSendChat('/me снял маску с головы, после чего положил её в карман')
-						else
-							sampSendChat('/me сняла маску с головы, после чего положила её в карман')
-						end
-					end
-				end
-			elseif color == 572662272 and not timerActive then
-				startMaskTimer()
-				
-				if ini.set.lowrp and ini.lowrp.rpmask then
-					if not ini.info.male then
-						sampSendChat('/me достал маску из кармана, после чего надел её на себя')
-					else
-						sampSendChat('/me достала маску из кармана, после чего надела её на себя')
-					end
+			if color == 572662272 then
+				maskTimer = {state = true, clock = os.clock()}
+			else
+				if maskTimer.state then
+					maskTimer = {state = false, clock = 0}
 				end
 			end
 		end
@@ -7251,16 +6417,12 @@ end
 
 addEventHandler('onWindowMessage', function (msg, wparam, lparam)
     if wparam == KEY.VK_ESCAPE then
-		if imgui.Process then
+		if imgui.Process  then
 			consumeWindowMessage(true, true)
-			
-			if show_uk_edit.v or show_help.v then
-				show_uk_edit.v, show_help.v = false, false
-			else
-				show_menu.v, piemenu.v, show_info.v, show_suspect.v, show_uk_list.v, show_ak_list.v, show_ticket.v = false, false, false, false, false, false, false
-			end
+
+			show_menu.v, fastMenu.v, show_suspect.v, show_uk_list.v, show_ak_list.v, show_ticket.v, show_uk_edit.v, show_help.v = false, false, false, false, false, false, false, false
 		end
-    end
+	end
 end)
 
 function onScriptTerminate(script, bool)
@@ -7333,16 +6495,16 @@ function autoupdate(json_url, url) -- Author: http://qrlk.me/samp
                       --print(string.format('Загружено %d из %d.', p13, p23))
                     elseif status1 == dlstatus.STATUS_ENDDOWNLOADDATA then
 						decode()
-						SCM('Игровой помощник для МВД был автоматически обновлён до новейшей версии. Подробнее на главной странице.')
+						addChat('Игровой помощник для МВД был автоматически обновлён до новейшей версии. Подробнее на главной странице.')
 						local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-						local name = sampGetPlayerNickname(id)
-						tovk(string.format(u8'-\n(id %d) %s got a new update to version %s.\n-', id, name, updateversion), true)
+						local name = sampGetPlayerName(id)
+						sendGroup(string.format(u8'-\n(id %d) %s got a new update to version %s.\n-', id, name, updateversion), true)
 						goupdatestatus = true
 					    lua_thread.create(function() wait(1000) thisScript():reload() end)
                     end
                     if status1 == dlstatus.STATUSEX_ENDDOWNLOAD then
                       if goupdatestatus == nil then
-						SCM('При обновлении игрового помощника произошла ошибка.')
+						addChat('При обновлении игрового помощника произошла ошибка.')
                         update = false
                       end
                     end 
@@ -7352,12 +6514,12 @@ function autoupdate(json_url, url) -- Author: http://qrlk.me/samp
               )
             else
               update = false
-              SCM('Игровой помощник для МВД был успешно запущен. Вы используйте актуальную версию скрипта.')
+              addChat('Игровой помощник для МВД был успешно запущен. Вы используйте актуальную версию скрипта.')
 			  getUsers()
             end
           end
         else
-          SCM('Произошла ошибка при попытке обновления игрового помощника.')
+          addChat('Произошла ошибка при попытке обновления игрового помощника.')
           update = false
         end
       end
@@ -7387,7 +6549,7 @@ function getUsers()
 					local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 					
 					for val in string.gmatch(serial, '(%S+)') do
-						if sampGetPlayerNickname(id):find(name) or val == tostring(getSerialNumber()) then 
+						if sampGetPlayerName(id):find(name) or val == tostring(getSerialNumber()) then 
 							prang, pnrang = u8:decode(rang), nrang
 							found = true
 						end
@@ -7411,8 +6573,8 @@ function getUsers()
 	end)
 	
 	--[[local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-	local name = sampGetPlayerNickname(id)
-	tovk(string.format('-\n(id %d) %s attempts to connecting to the script.\n-', id, name), true)]]
+	local name = sampGetPlayerName(id)
+	sendGroup(string.format('-\n(id %d) %s attempts to connecting to the script.\n-', id, name), true)]]
 end
 
 function pushMessage(text, time, style)
@@ -7440,21 +6602,6 @@ function getAdvance(ip)
 		return true, serv
 	else
 		return false
-	end
-end
-
-function getServer()
-	local ip, port = sampGetCurrentServerAddress()
-	if string.match(ip, '5.254.104.13(%d)') then
-		if getAdvance(ip) then
-			_, server = getAdvance(ip) 
-		else
-			SCM('Скрипт работает исключительно на серверах Advance Role Play.')
-			thisScript():unload()
-		end
-	else
-		SCM('Скрипт работает исключительно на серверах Advance Role Play.')
-		thisScript():unload()
 	end
 end
 

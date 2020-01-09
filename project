@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(14.2)
+script_version(14.3)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -65,9 +65,9 @@ local TypeWeapon = {1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 3, 1, 3, 3, 
 
 local InfoWeapon = {{'Щит', false, 'shit', 'bshit', 1},
 	{'Дубинка', false, 'button', 'bbutton', 1},
+	{'Пистолет с глушителем', true, 'sd', 'bsd', 250},
 	{'Бронежилет', false, 'armour', 'barmour', 1},
 	{'Маска', false, 'mask', 'bmask', 1},
-	{'Пистолет с глушителем', true, 'sd', 'bsd', 250},
 	{'Desert Eagle', true, 'deagle', 'bdeagle', 250},
 	{'Пистолет-пулемёт MP5', true, 'mp5', 'bmp5', 400},
 	{'Дробовик', true, 'shotgun', 'bshotgun', 100},
@@ -172,7 +172,7 @@ local ini = inicfg.load({
 		attack_1             = '2 | 2.1 УК', -- без оружия
 		attack_2             = '3 | 2.2 УК', -- холодное оружие
 		attack_3             = '4 | 2.3 УК', -- огнестрел
-		attack_4             = '4 | 2.3 УК', -- на машине
+		--attack_4             = '4 | 2.3 УК', -- на машине
 	},
 	weapons = {
 		shit                 = false,
@@ -370,7 +370,7 @@ local users              = ''
 local lgov               = {}
 local dreason            = {}
 local gnews              = {}
-local suspect_id         = {0, 0, ''}
+local suspect_id         = {0, 0, '', '', -1}
 local target_id          = 0
 local last_message       = {name = '', id = -1}
 local player_rang        = {}
@@ -379,6 +379,7 @@ local smart_suspect      = {id = nil, text = {}}
 local smart_ticket       = {id = nil, text = {}}
 local need_buy           = {aid = 0, mask = 0}
 local maskTimer			 = {state = false, clock = 0}
+local notificationsTimer = {}
 local param_cmd          = 0
 local last_sms           = 0
 local lweap              = 0
@@ -394,13 +395,14 @@ local successful_login   = false
 local player_status      = 0
 local player_a_status    = 0
 local show_menu          = imgui.ImBool(false)
-local fastMenu            = imgui.ImBool(false)
+local fastMenu           = imgui.ImBool(false)
 local show_help          = imgui.ImBool(false)
 local show_suspect       = imgui.ImBool(false)
 local show_ticket        = imgui.ImBool(false)
 local show_uk_list       = imgui.ImBool(false)
 local show_ak_list       = imgui.ImBool(false)
 local show_uk_edit       = imgui.ImBool(false)
+local show_notification  = imgui.ImBool(false)
 local show_item          = imgui.ImInt(8)
 local set_item           = imgui.ImInt(0)
 local page_num           = imgui.ImInt(0)
@@ -416,6 +418,13 @@ local govermentNews = {
 	lineTwo = imgui.ImBuffer(250),
 	lineThree = imgui.ImBuffer(250),
 	lineAlone = imgui.ImBuffer(250)
+}
+
+local notificationsSettings = {
+	name = imgui.ImBuffer(60),
+	text = imgui.ImBuffer(600),
+	hour = imgui.ImInt(7),
+	minute = imgui.ImInt(30)
 }
 
 local passname           = imgui.ImBuffer(250)
@@ -500,6 +509,20 @@ function main()
 	sampRegisterChatCommand('recd', command_reconnectwithchangeip)
 	sampRegisterChatCommand('rtag', command_radiotag) 
 
+	sampRegisterChatCommand('push', function()
+		show_notification.v = not show_notification.v
+
+		--[[notificationsTimer[#notificationsTimer + 1] = {
+			switch = true, 
+			time = {
+				hour = 17,
+				minute = 54
+			}, 
+			name = 'START', 
+			text = 'info'
+		}]]
+	end)
+
 	sampRegisterChatCommand('savecords', function(id)
 		if flymode then
 			if string.match(id, '(%d+)') then
@@ -543,6 +566,7 @@ function main()
 	lua_thread.create(show_flymode)
 	lua_thread.create(logotyp)
 	lua_thread.create(speedometr)
+	lua_thread.create(notifications)
 	
 	apply_custom_style()
 	register_custom_hotkey()
@@ -550,7 +574,7 @@ function main()
 	
 	while true do
 		wait(0)
-		
+
 		if sampTextdrawIsExists(0) and ini.set.new_logo then
 			if sampTextdrawGetString(0):find('Advance_RP') then
 				sampTextdrawDelete(0)
@@ -638,7 +662,7 @@ function main()
 			setTimeOfDay(set_time[1], set_time[2])
 		end
 		
-		if show_menu.v or fastMenu.v or show_suspect.v or show_uk_list.v or show_ticket.v or show_ak_list.v then
+		if show_menu.v or fastMenu.v or show_suspect.v or show_uk_list.v or show_ticket.v or show_ak_list.v or show_notification.v then
 			imgui.Process = true
 		else
 			imgui.Process = false
@@ -670,8 +694,8 @@ function main()
 					end
 				end
 			end
-		end
-		
+		end 
+		 
 		if successful_login and sampGetCurrentServerName() ~= 'SA-MP' then
 			local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
 			local name = sampGetPlayerName(id)
@@ -679,7 +703,7 @@ function main()
 			sendGroup(text, true)
 			successful_login = false
 		end
-		
+
 		if isCharInAnyCar(PLAYER_PED) and ini.set.strobes then
 
 			local car = storeCarCharIsInNoSave(PLAYER_PED)
@@ -862,6 +886,30 @@ function main()
 				speed = speed - 0.0005
 				if speed < 0.001 then speed = 0.001 end
 			end   
+		end
+	end
+end
+
+function notifications()
+	while true do
+		wait(0)
+
+		for name, value in pairs(notificationsTimer) do
+			if value.switch then
+				local hour, minute, second = os.date('%H'), os.date('%M'), os.date('%S')
+
+				if (value.time.hour == tonumber(hour)) and (value.time.minute == tonumber(minute)) and (tonumber(second) == 1) then
+					local caption = string.format('{FFFFFF}Уведомление. {00CC66}%s.', value.name)
+					local text = string.format('{ffffff}%s', value.text)
+
+					if value.sound then
+						addOneOffSound(0.0, 0.0, 0.0, 1058)
+					end
+
+					sampShowDialog(500, caption, text, 'Хорошо', 'Закрыть', 0)
+					value.switch = false
+				end
+			end
 		end
 	end
 end
@@ -2445,6 +2493,123 @@ end
 local w, h = getScreenResolution()
 
 function imgui.OnDrawFrame()
+	if show_notification.v then
+		imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
+		imgui.SetNextWindowSize(imgui.ImVec2(450, 550))
+		imgui.Begin(u8'##notifications', show_notification, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
+
+			imgui.CenterTextColoredRGB('УВЕДОМЛЕНИЯ')
+			imgui.Text('')
+
+			if drawAllNotifications then
+				imgui.BeginChild('##allNotifications', imgui.ImVec2(435, 400), true, imgui.WindowFlags.VerticalScrollbar)
+					if notificationsTimer[1] ~= nil then
+						imgui.Columns(5)
+						imgui.Separator()
+						imgui.SetColumnWidth(-1, 60) imgui.CenterColumnText(u8'ID') imgui.NextColumn()
+						imgui.SetColumnWidth(-1, 60) imgui.CenterColumnText(u8'ON • OFF') imgui.NextColumn()
+						imgui.SetColumnWidth(-1, 60) imgui.CenterColumnText(u8'SOUND') imgui.NextColumn()
+						imgui.SetColumnWidth(-1, 120) imgui.CenterColumnText(u8'НАЗВАНИЕ') imgui.NextColumn()
+						imgui.SetColumnWidth(-1, 140) imgui.CenterColumnText(u8'ВРЕМЯ АКТИВАЦИИ') imgui.NextColumn()
+						imgui.Separator()
+			
+						for id, value in pairs(notificationsTimer) do
+							imgui.CenterColumnText(tostring(id)) 
+							imgui.NextColumn()
+
+							imgui.SetCursorPosX((imgui.GetColumnOffset() + (imgui.GetColumnWidth() / 2)) - 15)
+							if imgui.ToggleButton('##ID' .. id, imgui.ImBool(value.switch)) then
+								value.switch = not value.switch
+							end imgui.NextColumn()
+
+							imgui.SetCursorPosX((imgui.GetColumnOffset() + (imgui.GetColumnWidth() / 2)) - 15)
+							if imgui.ToggleButton('##SOUND' .. id, imgui.ImBool(value.sound)) then
+								value.sound = not value.sound
+							end imgui.NextColumn()
+
+							imgui.CenterColumnText(u8(value.name)) imgui.NextColumn()
+
+							local time = string.format('%d:%d', value.time.hour, value.time.minute)
+							imgui.CenterColumnText(time) imgui.NextColumn()
+
+							imgui.Separator()
+						end
+					else
+						imgui.CenterTextColoredRGB('У вас нет уведомлений o.o')
+					end
+				imgui.EndChild()
+			else
+				
+				imgui.CenterTextColoredRGB('Введите название уведомления')
+				imgui.PushItemWidth(432)
+				imgui.InputText(u8'##inputName', notificationsSettings.name)
+
+				if notificationsSound then soundNotification = 'ОТКЛЮЧИТЬ ЗВУКОВОЕ УВЕДОМЛЕНИЕ' else soundNotification = 'ВКЛЮЧИТЬ ЗВУКОВОЕ УВЕДОМЛЕНИЕ' end
+				if imgui.Button(u8(soundNotification), imgui.ImVec2(432, 20)) then
+					notificationsSound = not notificationsSound
+				end
+
+				imgui.Text('')
+				imgui.CenterTextColoredRGB('Укажите время, в которое будет активироватся уведомление')
+
+				imgui.PushItemWidth(214)
+				imgui.SliderInt('##inputHour', notificationsSettings.hour, 0, 23) ItemPovered('В этом слайдере указывается час активации') 
+				imgui.SameLine()
+				imgui.SliderInt('##inputMinute', notificationsSettings.minute, 0, 59) ItemPovered('В этом слайдере указывается минута активации')
+
+
+				imgui.Text('')
+				imgui.CenterTextColoredRGB('Введите текст, который будет содержать уведомление')
+				imgui.InputTextMultiline('##inputText', notificationsSettings.text, imgui.ImVec2(-1, imgui.GetTextLineHeight() * 6))
+
+				if imgui.Button(u8'СОЗДАТЬ', imgui.ImVec2(214, 20)) then
+					if notificationsSettings.name.v ~= '' and notificationsSettings.text.v ~= '' then
+						if notificationsSound == nil then
+							notificationsSound = false
+						end
+
+						notificationsTimer[#notificationsTimer + 1] = {
+							switch = true,
+							sound = notificationsSound,
+							time = {
+								hour = notificationsSettings.hour.v,
+								minute = notificationsSettings.minute.v
+							}, 
+							name = u8:decode(notificationsSettings.name.v), 
+							text = u8:decode(notificationsSettings.text.v)
+						}
+
+						notificationsSettings.name.v = ''
+						notificationsSettings.text.v = ''
+						notificationsSettings.hour.v = 7
+						notificationsSettings.minute.v = 30
+
+						pushMessage('Новое уведомление было успешно создано', 3, 4)
+					else
+						pushMessage('Чтобы создать уведомление нужно добавить название и текст', 3, 3)
+					end
+				end imgui.SameLine()
+
+				if imgui.Button(u8'ОЧИСТИТЬ', imgui.ImVec2(214, 20)) then
+					notificationsSettings.name.v = ''
+					notificationsSettings.text.v = ''
+					notificationsSettings.hour.v = 7
+					notificationsSettings.minute.v = 30
+				end
+
+				imgui.Text('')
+				imgui.Text(u8'Если в нужное время вы будете находится в AFK или перед этим')
+				imgui.Text(u8'перезайдёте или перезагрузите скрипт, то уведомление не придёт.')
+			end
+
+			imgui.SetCursorPosY(520)
+			if drawAllNotifications then textNotification = 'ВЕРНУТСЯ' else textNotification = 'ВСЕ УВЕДОМЛЕНИЯ' end
+			if imgui.Button(u8(textNotification), imgui.ImVec2(432, 20)) then
+				drawAllNotifications = not drawAllNotifications
+			end
+		imgui.End()
+	end
+
 	if show_menu.v then
 		imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
 		imgui.SetNextWindowSize(imgui.ImVec2(900, 550))
@@ -2472,6 +2637,7 @@ function imgui.OnDrawFrame()
 					if imgui.Button(u8'Изменение горячих клавиш', imgui.ImVec2(235, 20)) then set_item.v = 6 end
 					if imgui.Button(u8'Кастомизация', imgui.ImVec2(235, 20)) then set_item.v = 5 end
 					if imgui.Button(u8'Дополнительно', imgui.ImVec2(235, 20)) then set_item.v = 4 end
+					if imgui.Button(u8'Модификации', imgui.ImVec2(235, 20)) then set_item.v = 7 end
 
 					imgui.Text('')
 
@@ -2985,6 +3151,8 @@ function pairsTableForMenu(table)
 				else
 					process_command(value)
 				end
+
+				fastMenu.v = false
 			end
 		end
 	end
@@ -3157,8 +3325,8 @@ local uk_path = {['Неподчинение сотруднику полиции'
 	['Отказ от оплаты штрафа'] = 'cancel_ticket',
 	['Нападение без оружия'] = 'attack_1',
 	['Нападение с применением холодного оружия'] = 'attack_2',
-	['Нападение с применением огнестрельного оружия'] = 'attack_3',
-	['Нападение с помощью транспорта'] = 'attack_4'
+	['Нападение с применением огнестрельного оружия'] = 'attack_3'
+	--['Нападение с помощью транспорта'] = 'attack_4'
 }
 
 function draw_uk_list()
@@ -3494,13 +3662,16 @@ function draw_head_page()
 	if not communication_page then
 		imgui.Text('')
 		
-		imgui.BeginChild('##Update_Info', imgui.ImVec2(610, 300), true)
+		imgui.BeginChild('##Update_Info', imgui.ImVec2(610, 350), true)
 			
 			imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ПОСЛЕДНИХ ОБНОВЛЕНИЯХ')
 			
-			imgui.TextColoredRGB('{ffffff}[v14.2] Обновлена система таймера маски, теперь она корректно работает.')
-			imgui.TextColoredRGB('{ffffff}[v14.2] Расширенные настройки собраны в отдельное подменю.')
-			imgui.TextColoredRGB('{ffffff}[v14.2] Частично изменён внешний дизайн основных окон.')
+			imgui.TextColoredRGB('{ffffff}[v14.3] Добавлены уведомления, которые можно включить командой /push.')
+			imgui.TextColoredRGB('{ffffff}[v14.3] Исправлена система быстрого розыска, теперь она работает корректно.')
+
+			imgui.TextColoredRGB('{CECECE}[v14.2] Обновлена система таймера маски, теперь она корректно работает.')
+			imgui.TextColoredRGB('{CECECE}[v14.2] Расширенные настройки собраны в отдельное подменю.')
+			imgui.TextColoredRGB('{CECECE}[v14.2] Частично изменён внешний дизайн основных окон.')
 			imgui.TextColoredRGB('{CECECE}[v14.1] Изменена система дополнительных возможностей.')
 			imgui.TextColoredRGB('{CECECE}[v14.1] Добавлена возможность использовать в доп. возможностях серверные команды.')
 			imgui.TextColoredRGB('{CECECE}[v14.1] Добавлены новые переменные для дополнительных возможностей.')
@@ -3928,7 +4099,7 @@ function add_new_hotkey()
 					local stars, reason = tonumber(ini.uk_set.insubordination:match('(%d+)[%s]|.+')), ini.uk_set.insubordination:match('[%d+][%s]|[%s](.+)')
 					
 					addChat(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerName(pid), pid, reason))
-					suspect_id = {pid, stars, reason, sampGetPlayerName(pid)}
+					suspect_id = {pid, stars, reason, sampGetPlayerName(pid), -1}
 					
 				end
 				
@@ -5642,7 +5813,7 @@ function sampev.onServerMessage(color, text)
 		if IPC(id) then
 			local stars, reason = tonumber(ini.uk_set.insubordination:match('(%d+)[%s]|.+')), ini.uk_set.insubordination:match('[%d+][%s]|[%s](.+)')
 			addChat(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerName(id), id, reason))
-			suspect_id = {id, stars, reason, sampGetPlayerName(pid)}
+			suspect_id = {id, stars, reason, sampGetPlayerName(pid), -1}
 		end
 	end
 	
@@ -5653,7 +5824,7 @@ function sampev.onServerMessage(color, text)
 		if IPC(id) then
 			local stars, reason = tonumber(ini.uk_set.cancel_ticket:match('(%d+)[%s]|.+')), ini.uk_set.cancel_ticket:match('[%d+][%s]|[%s](.+)')
 			addChat(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', name, id, reason))
-			suspect_id = {id, stars, reason, sampGetPlayerName(pid)}
+			suspect_id = {id, stars, reason, sampGetPlayerName(pid), -1}
 		end
 	end
 	
@@ -6165,47 +6336,30 @@ function sampev.onPlayerChatBubble(id, color, dis, dur, mess)
 end
 
 function sampev.onSendTakeDamage(playerId, damage, weapon, bodypart)
-	if playerId ~= nil and damage ~= nil and weapon ~= nil and bodypart ~= nil then
-		if IPC(playerId) then
-			local name = sampGetPlayerName(playerId)
-			
-			if sampGetDistance(PLAYER_PED, playerId) <= 35 and sampGetPlayerColor(playerId) ~= 2236962 then
-				if TypeWeapon[tonumber(weapon)] == 2 then
-					local stars, reason = tonumber(ini.uk_set.attack_1:match('(%d+)[%s]|.+')), ini.uk_set.attack_1:match('[%d+][%s]|[%s](.+)')
-					
-					if suspect_id[4] ~= name and suspect_id[3] ~= reason then
-						addChat(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerName(playerId), playerId, reason))
-						suspect_id = {playerId, tonumber(stars), reason, name}
-					end
-				elseif TypeWeapon[tonumber(weapon)] == 3 then
-					local stars, reason = tonumber(ini.uk_set.attack_3:match('(%d+)[%s]|.+')), ini.uk_set.attack_3:match('[%d+][%s]|[%s](.+)')
-					
-					if suspect_id[4] ~= name and suspect_id[3] ~= reason then
-						addChat(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerName(playerId), playerId, reason))
-						suspect_id = {playerId, tonumber(stars), reason, name}
-					end
-				elseif tonumber(weapon) == 49 then
-					local res, ped = sampGetCharHandleBySampPlayerId(playerId)
-					if res then
-						if isCharSittingInAnyCar(ped) then
-						local carh = storeCarCharIsInNoSave(ped)
-							if getDriverOfCar(carh) == ped then
-								local stars, reason = tonumber(ini.uk_set.attack_4:match('(%d+)[%s]|.+')), ini.uk_set.attack_4:match('[%d+][%s]|[%s](.+)')
-					
-								if suspect_id[4] ~= name and suspect_id[3] ~= reason then
-									addChat(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerName(playerId), playerId, reason))
-									suspect_id = {playerId, tonumber(stars), reason, name}
-								end
-							end
-						end
-					end
-				else
-					local stars, reason = tonumber(ini.uk_set.attack_1:match('(%d+)[%s]|.+')), ini.uk_set.attack_1:match('[%d+][%s]|[%s](.+)')
-					
-					if suspect_id[4] ~= name and suspect_id[3] ~= reason then
-						addChat(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerName(playerId), playerId, reason))
-						suspect_id = {playerId, tonumber(stars), reason, name}
-					end
+	if IPC(playerId) then
+		local name = sampGetPlayerName(playerId)
+
+		if sampGetDistance(playerPed, playerId) <= 35 and sampGetPlayerColor(playerId) ~= 2236962 then
+			if TypeWeapon[tonumber(weapon)] == 2 then
+				local stars, reason = tonumber(ini.uk_set.attack_1:match('(%d+)[%s]|.+')), ini.uk_set.attack_1:match('[%d+][%s]|[%s](.+)')
+
+				if suspect_id[4] ~= name or (suspect_id[4] == name and suspect_id[5] ~= TypeWeapon[tonumber(weapon)]) then
+					addChat(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerName(playerId), playerId, reason))
+					suspect_id = {playerId, tonumber(stars), reason, name, TypeWeapon[tonumber(weapon)]}
+				end
+			elseif TypeWeapon[tonumber(weapon)] == 3 then
+				local stars, reason = tonumber(ini.uk_set.attack_3:match('(%d+)[%s]|.+')), ini.uk_set.attack_3:match('[%d+][%s]|[%s](.+)')
+
+				if suspect_id[4] ~= name or (suspect_id[4] == name and suspect_id[5] ~= TypeWeapon[tonumber(weapon)]) then
+					addChat(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerName(playerId), playerId, reason))
+					suspect_id = {playerId, tonumber(stars), reason, name, TypeWeapon[tonumber(weapon)]}
+				end
+			else
+				local stars, reason = tonumber(ini.uk_set.attack_1:match('(%d+)[%s]|.+')), ini.uk_set.attack_1:match('[%d+][%s]|[%s](.+)')
+
+				if suspect_id[4] ~= name or (suspect_id[4] == name and suspect_id[5] ~= TypeWeapon[tonumber(weapon)]) then
+					addChat(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerName(playerId), playerId, reason))
+					suspect_id = {playerId, tonumber(stars), reason, name, TypeWeapon[tonumber(weapon)]}
 				end
 			end
 		end
@@ -6420,7 +6574,7 @@ addEventHandler('onWindowMessage', function (msg, wparam, lparam)
 		if imgui.Process  then
 			consumeWindowMessage(true, true)
 
-			show_menu.v, fastMenu.v, show_suspect.v, show_uk_list.v, show_ak_list.v, show_ticket.v, show_uk_edit.v, show_help.v = false, false, false, false, false, false, false, false
+			show_menu.v, fastMenu.v, show_suspect.v, show_uk_list.v, show_ak_list.v, show_ticket.v, show_uk_edit.v, show_help.v, show_notification.v = false, false, false, false, false, false, false, false, false
 		end
 	end
 end)

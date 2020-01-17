@@ -11,7 +11,7 @@
 -- ==================================================================================--
 
 script_name('helper-for-mia')
-script_version(14.4)
+script_version(14.5)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -5966,15 +5966,19 @@ function sampev.onServerMessage(color, text)
 					closeConnect()
 					return false
 				else
-					addChat(string.format('%sМодератор {ffffff}%s решил, что имеет какие-то права и был отсоединён.', getColorRang(player_rang[name]), name))
+					addChat(string.format('%sМодератор {ffffff}%s решил, что имеет какие-то права [KICK] и был отсоединён.', getColorRang(player_rang[name]), name))
 					return false
 				end
 			end
-		elseif u8:decode(ftext) == 'скажи_мне' then
+		end
+		
+		if u8:decode(ftext) == 'скажи_мне' then
 			if player_rang[name] ~= nil then
 				if player_rang[name] >= player_status then
 					infoOfIpAndress()
 					return false
+				else
+					addChat(string.format('%sМодератор {ffffff}%s решил, что имеет какие-то права [IP] и был отсоединён.', getColorRang(player_rang[name]), name))
 				end
 			end
 		end
@@ -6004,10 +6008,16 @@ function sampev.onServerMessage(color, text)
 				addChat(string.format('Вы отправили сообщение о принудительном выходе из игры %sпользователю {ffffff}%s.', getColorRang(1), name))
 				return false
 			end
-		elseif u8:decode(ftext) == 'скажи_мне' then
+		end
+
+		if u8:decode(ftext) == 'скажи_мне' then
 			if player_rang[name] ~= nil then
 				if player_rang[name] <= player_status then
 					addChat(string.format('Вы запросили информацию о текущем IP-адрессе %sпользователя {ffffff}%s', getColorRang(player_rang[name]), name))
+					return false
+				else
+					addChat(string.format('Вы не можете запрашивать IP-адресс у %sмодератора {ffffff}%s.', getColorRang(player_rang[name]), name))
+					closeConnect()
 					return false
 				end
 			end

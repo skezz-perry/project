@@ -1,5 +1,17 @@
+-- ==================================================================================--
+--      __     __     _______     __          _______      _______     _______       --
+--     |  |   |  |   |  ____/    |  |        |   __  \    |  ____/    |   __  \      --
+--     |  |   |  |   |  |        |  |        |  |  |  |   |  |        |  |  |  |     --
+--     |  |___|  |   |  |____    |  |        |  |__|  |   |  |____    |  |__|  |     --
+--     |   ___   |   |   ____|   |  |        |   ____/    |   ____|   |   ____/      --
+--     |  |   |  |   |  |        |  |        |  |         |  |        |  |           --
+--     |  |   |  |   |  |___     |  |____    |  |         |  |___     |  |           --
+--     |__|   |__|   |_______\   |_______|   |__|         |_______\   |__|           --
+--                                                                                   --
+-- ==================================================================================--
+
 script_name('helper-for-mia')
-script_version(14.3)
+script_version(14.4)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -11,7 +23,7 @@ local memory            = require 'memory'
 local imgui             = require 'imgui'
 local pie               = require 'imgui_piemenu'
 local encoding          = require 'encoding'
-local color             = require "colorise"
+local color             = require 'colorise'
 local inicfg            = require 'inicfg'
 local lanes             = require('lanes').configure()
 local dlstatus          = require('moonloader').download_status
@@ -346,6 +358,120 @@ local ini = inicfg.load({
 	}
 }, 'Helper for MIA.ini')
 
+--[[local allCommands = inicfg.load({
+	default = {
+		r = true,
+		rn = true,
+		f = true,
+		fn = true,
+		cuff = true,
+		uncuff = true,
+		arrest = true,
+		pull = true,
+		su = true,
+		skip = true,
+		clear = true,
+		hold = true,
+		ticket = true,
+		takelic = true,
+		putpl = true,
+		rights = true,
+		search = true,
+		follow = true,
+		hack = true,
+		invite = true,
+		uninvite = true,
+		rang = true,
+		changeskin = true,
+		ud = true,
+		pas = true,
+		rep = true,
+		uk = true,
+		ak = true,
+		code = true,
+		ustav = true,
+		sw = true,
+		st = true,
+		sskin = true,
+		history = true,
+		asms = true,
+		gov = true,
+		addbl = true,
+		delbl = true,
+		pay = true,
+		users = true,
+		rkinfo = true,
+		sms = true,
+		open = true,
+		bl = true,
+		blname = true,
+		rec = true,
+		recn = true,
+		recd = true,
+		rtag = true,
+		push = true,
+		mh = true,
+		strobes = true
+	}
+}, 'HfMIA Commands.ini')]]
+
+local scriptCommands = {
+	default = {
+		r = {true, 'command_r'},
+		rn = {true, 'command_rn'},
+		f = {true, 'command_f'},
+		fn = {true, 'command_fn'},
+		cuff = {true, 'command_cuff'},
+		uncuff = {true, 'command_uncuff'},
+		arrest = {true, 'command_arrest'},
+		pull = {true, 'command_pull'},
+		su = {true, 'command_su'},
+		skip = {true, 'command_skip'},
+		clear = {true, 'command_clear'},
+		hold = {true, 'command_hold'},
+		ticket = {true, 'command_ticket'},
+		takelic = {true, 'command_takelic'},
+		putpl = {true, 'command_putpl'},
+		rights = {true, 'command_rights'},
+		search = {true, 'command_search'},
+		follow = {true, 'command_follow'},
+		hack = {true, 'command_hack'},
+		invite = {true, 'command_invite'},
+		uninvite = {true, 'command_uninvite'},
+		rang = {true, 'command_rang'},
+		changeskin = {true, 'command_changeskin'},
+		ud = {true, 'command_ud'},
+		pas = {true, 'command_pas'},
+		rep = {true, 'command_report'},
+		uk = {true, 'command_uk'},
+		ak = {true, 'command_ak'},
+		code = {true, 'command_code'},
+		ustav = {true, 'command_ustav'},
+		sw = {true, 'command_setweather'},
+		st = {true, 'command_settime'},
+		sskin = {true, 'command_setskin'},
+		history = {true, 'command_history'},
+		asms = {true, 'command_asms'},
+		gov = {true, 'command_gov'},
+		addbl = {true, 'command_addbl'},
+		delbl = {true, 'command_delbl'},
+		pay = {true, 'command_apay'},
+		users = {true, 'command_users'},
+		rkinfo = {true, 'command_rkinfo'},
+		sms = {true, 'command_sms'},
+		open = {true, 'command_open'},
+		bl = {true, 'command_bl'},
+		blname = {true, 'command_namebl'},
+		rec = {true, 'command_reconnect'},
+		recn = {true, 'command_reconnectwithchange'},
+		recd = {true, 'command_reconnectwithchangeip'},
+		rtag = {true, 'command_radiotag'},
+		push = {true, 'command_push'},
+		mh = {true, 'command_menu'},
+		strobes = {true, 'command_strobes'}
+	}
+}
+
 local pass = inicfg.load({
 	server = {}
 }, 'password.ini')
@@ -454,112 +580,19 @@ function main()
 	while not isSampAvailable() do wait(100) end
 	
 	autoupdate('https://raw.githubusercontent.com/skezz-perry/project/master/version', 'https://raw.githubusercontent.com/skezz-perry/project/master/project')
-	--autoupdate('https://raw.githubusercontent.com/skezz-perry/project/master/version_luac', 'https://raw.githubusercontent.com/skezz-perry/project/master/project_luac')
-
 	attempToGetFileAndDir()
-	
-	sampRegisterChatCommand('r', command_r)
-	sampRegisterChatCommand('rn', command_rn)
-	sampRegisterChatCommand('f', command_f)
-	sampRegisterChatCommand('fn', command_fn)
-	sampRegisterChatCommand('cuff', command_cuff)
-	sampRegisterChatCommand('uncuff', command_uncuff)
-	sampRegisterChatCommand('arrest', command_arrest)
-	sampRegisterChatCommand('pull', command_pull)
-	sampRegisterChatCommand('su', command_su)
-	sampRegisterChatCommand('skip', command_skip)
-	sampRegisterChatCommand('clear', command_clear)
-	sampRegisterChatCommand('hold', command_hold)
-	sampRegisterChatCommand('ticket', command_ticket)
-	sampRegisterChatCommand('takelic', command_takelic)
-	sampRegisterChatCommand('putpl', command_putpl)
-	sampRegisterChatCommand('rights', command_rights)
-	sampRegisterChatCommand('search', command_search)
-	sampRegisterChatCommand('follow', command_follow)
-	sampRegisterChatCommand('hack', command_hack)
-	sampRegisterChatCommand('invite', command_invite)
-	sampRegisterChatCommand('uninvite', command_uninvite)
-	sampRegisterChatCommand('rang', command_rang)
-	sampRegisterChatCommand('changeskin', command_changeskin)
-	sampRegisterChatCommand('ud', command_ud)
-	sampRegisterChatCommand('pas', command_pas)
-	sampRegisterChatCommand('rep', command_report)
-	sampRegisterChatCommand('ук', command_uk)
-	sampRegisterChatCommand('ак', command_ak)
-	sampRegisterChatCommand('код', command_code)
-	sampRegisterChatCommand('устав', command_ustav)
-	sampRegisterChatCommand('sw', command_setweather)
-	sampRegisterChatCommand('st', command_settime)
-	sampRegisterChatCommand('sskin', command_setskin)
-	sampRegisterChatCommand('history', command_history) 
-	sampRegisterChatCommand('asms', command_asms)
-	sampRegisterChatCommand('gov', command_gov)
-	sampRegisterChatCommand('addbl', command_addbl)
-	sampRegisterChatCommand('delbl', command_delbl)
-	sampRegisterChatCommand('pay', command_apay)
-	sampRegisterChatCommand('users', command_users)
-	sampRegisterChatCommand('rkinfo', command_rkinfo)
-	sampRegisterChatCommand('sms', command_sms)
-	sampRegisterChatCommand('open', command_open)
-	sampRegisterChatCommand('bl', command_bl)
-	sampRegisterChatCommand('blname', command_namebl)
+
 	sampRegisterChatCommand('amake', command_rofl)
-	sampRegisterChatCommand('rec', command_reconnect)
-	sampRegisterChatCommand('recn', command_reconnectwithchange)
-	sampRegisterChatCommand('recd', command_reconnectwithchangeip)
-	sampRegisterChatCommand('rtag', command_radiotag) 
 
-	sampRegisterChatCommand('push', function()
-		show_notification.v = not show_notification.v
-
-		--[[notificationsTimer[#notificationsTimer + 1] = {
-			switch = true, 
-			time = {
-				hour = 17,
-				minute = 54
-			}, 
-			name = 'START', 
-			text = 'info'
-		}]]
-	end)
-
-	sampRegisterChatCommand('savecords', function(id)
-		if flymode then
-			if string.match(id, '(%d+)') then
-				if static_camera[tonumber(id)] ~= nil then
-					table.insert(static_camera, tonumber(id), {posX = posX, posY = posY, posZ = posZ, poiX = poiX, poiY = poiY, poiZ = poiZ, angZ = angZ})
-					addChat(string.format('Изменено и сохранено расположение камеры {FFCD00}#%d{ffffff} в текущих координатах.', id))
-				else
-					addChat('Невозможно сохранить расположение камеры в не индексированном месте.')
-				end
-			else
-				if #static_camera < 9 then
-					table.insert(static_camera, {posX = posX, posY = posY, posZ = posZ, poiX = poiX, poiY = poiY, poiZ = poiZ, angZ = angZ})
-					addChat(string.format('Сохранено расположение камеры {FFCD00}#%d{ffffff} в текущих координатах.', #static_camera))
-				else
-					addChat('Использовано максимально возможное количество слотов сохранения камеры.')
+	for command, _function in pairs(scriptCommands.default) do
+		if not sampIsChatCommandDefined(command) then
+			if _function[1] then
+				if type(_G[_function[2]]) == ('function') then
+					sampRegisterChatCommand(command, _G[_function[2]])
 				end
 			end
-		else
-			addChat('Для использование функции сохранения позиции камеры вы должны включить CamHack.')
 		end
-	end)
-
-	sampRegisterChatCommand('mh', function()
-		show_menu.v = not show_menu.v
-	end)
-
-	sampRegisterChatCommand('strobes', function()
-		if isCharInAnyCar(PLAYER_PED) and ini.set.strobes  then
-			local car = storeCarCharIsInNoSave(PLAYER_PED)
-			local driverPed = getDriverOfCar(car)
-
-			if PLAYER_PED == driverPed then
-				local state = not isCarSirenOn(car)
-				switchCarSiren(car, state)
-			end
-		end
-	end)
+	end
 	
 	lua_thread.create(strobe)
 	lua_thread.create(rpweapon)
@@ -731,18 +764,6 @@ function main()
 		end
 
 		if flymode and not sampIsChatInputActive() and not isSampfuncsConsoleActive() then
-			for key = 49, 58 do
-				if wasKeyPressed(key) and isKeyCheckAvailable() then
-					if static_camera[key - 48] ~= nil then
-						local t = static_camera[key - 48]
-						posX, posY, posZ, poiX, poiY, poiZ, angZ = t.posX, t.posY, t.posZ, t.poiX, t.poiY, t.poiZ, t.angZ
-						setFixedCameraPosition(t.posX, t.posY, t.posZ, 0.0, 0.0, 0.0)
-						pointCameraAtPoint(t.poiX, t.poiY, t.poiZ, 2)
-						setCharHeading(playerPed, t.angZ)
-					end
-				end
-			end
-			
 			offMouX, offMouY = getPcMouseMovement()
 			  
 			offMouX = offMouX / 4.0
@@ -966,6 +987,26 @@ function logotyp()
 					end
 				end
 			end
+		end
+	end
+end
+
+function command_menu()
+	show_menu.v = not show_menu.v
+end
+
+function command_push()
+	show_notification.v = not show_notification.v
+end
+
+function command_strobes()
+	if isCharInAnyCar(PLAYER_PED) and ini.set.strobes  then
+		local car = storeCarCharIsInNoSave(PLAYER_PED)
+		local driverPed = getDriverOfCar(car)
+
+		if PLAYER_PED == driverPed then
+			local state = not isCarSirenOn(car)
+			switchCarSiren(car, state)
 		end
 	end
 end
@@ -1228,8 +1269,7 @@ function command_report(text)
 	if not string.match(text, '(.+)') then
 		addChat('Используйте команду /rep [текст].')
 	else
-		report = text
-		act = true
+		toReport = text
 		sampSendChat('/mn')
 	end
 end
@@ -1622,12 +1662,12 @@ function command_invite(param)
 					lua_thread.create(function()
 						if not ini.info.male then
 							sampSendChat('/me из внутреннего кармана достал планшет и включил его')
-							wait(1500); sampSendChat('/me зайдя в базу данных МВД, добавил новое личное дело ' .. string.gsub(sampGetPlayerName(inv_id),'_',' ') .. '')
+							wait(1500); sampSendChat('/me зайдя в базу данных, добавил новое личное дело ' .. string.gsub(sampGetPlayerName(inv_id),'_',' ') .. '')
 							wait(1500); sampSendChat('/me потушил экран планшета и убрал его обратно')
 							wait(1500); sampSendChat('/me достал ключ от шкафчика под номером ' .. inv_id .. ' и передал его ' .. string.gsub(sampGetPlayerName(inv_id),'_',' '))
 						else
 							sampSendChat('/me из внутреннего кармана достала планшет и включила его')
-							wait(1500); sampSendChat('/me зайдя в базу данных МВД, добавила новое личное дело ' .. string.gsub(sampGetPlayerName(inv_id),'_',' ') .. '')
+							wait(1500); sampSendChat('/me зайдя в базу данных, добавила новое личное дело ' .. string.gsub(sampGetPlayerName(inv_id),'_',' ') .. '')
 							wait(1500); sampSendChat('/me потушила экран планшета и убрала его обратно')
 							wait(1500); sampSendChat('/me достала ключ от шкафчика под номером ' .. inv_id .. ' и передала его ' .. string.gsub(sampGetPlayerName(inv_id),'_',' '))
 						end
@@ -1655,16 +1695,16 @@ function command_uninvite(param)
 				lua_thread.create(function()
 					if not ini.info.male then
 						sampSendChat('/me из внутреннего кармана достал планшет и включил его')
-						wait(1500); sampSendChat('/me зайдя в базу данных МВД, удалил личное дело ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. '')
+						wait(1500); sampSendChat('/me зайдя в базу данных, удалил личное дело ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. '')
 						wait(1000); sampSendChat(string.format('/uninvite %d %s', id, reason))
 						wait(1500); sampSendChat('/me потушил экран планшета и убрал его обратно')
 					else
 						sampSendChat('/me из внутреннего кармана достала планшет и включила его')
-						wait(1500); sampSendChat('/me зайдя в базу данных МВД, удалила личное дело ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. '')
+						wait(1500); sampSendChat('/me зайдя в базу данных, удалила личное дело ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. '')
 						wait(1000); sampSendChat(string.format('/uninvite %d %s', id, reason))
 						wait(1500); sampSendChat('/me потушила экран планшета и убрала его обратно')
 					end
-					wait(1000); sampSendChat('/r ' .. ini.info.rteg .. ' Сотрудник ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. ' уволен по причине: ' .. reason)
+					wait(1000); command_r('Сотрудник ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. ' уволен по причине: ' .. reason)
 				end)
 			else
 				addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
@@ -1828,16 +1868,16 @@ function command_skip(id)
 				lua_thread.create(function()
 					if not ini.info.male then
 						sampSendChat('/me из внутреннего кармана достал планшет и включил его')
-						wait(1500); sampSendChat('/me зайдя в базу данных МВД, оформил временный пропуск на имя ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. '')
+						wait(1500); sampSendChat('/me зайдя в базу данных, оформил временный пропуск на имя ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. '')
 						wait(1000); sampSendChat(string.format('/skip %d', id))
 						wait(1500); sampSendChat('/me потушил экран планшета и убрал его обратно')
-						wait(1000); sampSendChat('/r ' .. ini.info.rteg .. ' Оформил временный пропуск на имя ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. '.')
+						wait(1000); command_r('Оформил временный пропуск на имя ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. '.')
 					else
 						sampSendChat('/me из внутреннего кармана достала планшет и включила его')
-						wait(1500); sampSendChat('/me зайдя в базу данных МВД, оформила временный пропуск на имя ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. '')
+						wait(1500); sampSendChat('/me зайдя в базу данных, оформила временный пропуск на имя ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. '')
 						wait(1000); sampSendChat(string.format('/skip %d', id))
 						wait(1500); sampSendChat('/me потушила экран планшета и убрала его обратно')
-						wait(1000); sampSendChat('/r ' .. ini.info.rteg .. ' Оформила временный пропуск на имя ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. '.')
+						wait(1000); command_r('Оформил временный пропуск на имя ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. '.')
 					end
 				end)
 			else
@@ -1867,16 +1907,16 @@ function command_clear(param)
 			if sampGetDistance(PLAYER_PED, id) < 10 then
 				lua_thread.create(function()
 					if not ini.info.male then
-						sampSendChat('/me достав планшет, зашёл в базу данных МВД и нашёл нужное дело')
+						sampSendChat('/me достав планшет, зашёл в базу данных и нашёл нужное дело')
 						wait(1500); sampSendChat('/me пролистав страницу в самый низ, выбрал пункт с закрытием дела')
 						wait(1000); sampSendChat(string.format('/clear %d' , id))
-						wait(1500); sampSendChat('/f ' .. ini.info.fteg .. ' Дело №' .. id .. ' (' .. string.gsub(sampGetPlayerName(id),'_',' ') .. ') закрыто. Причина: ' .. reason .. '')
+						wait(1500); command_f('Дело №' .. id .. ' (' .. string.gsub(sampGetPlayerName(id),'_',' ') .. ') закрыто. Причина: ' .. reason .. '')
 						wait(1500); sampSendChat('/me потушил экран планшета и убрал его обратно')
 					else
-						sampSendChat('/me достав планшет, зашла в базу данных МВД и нашла нужное дело')
+						sampSendChat('/me достав планшет, зашла в базу данных и нашла нужное дело')
 						wait(1500); sampSendChat('/me пролистав страницу в самый низ, выбрала пункт с закрытием дела')
 						wait(1000); sampSendChat(string.format('/clear %d' , id))
-						wait(1500); sampSendChat('/f ' .. ini.info.fteg .. ' Дело №' .. id .. ' (' .. string.gsub(sampGetPlayerName(id),'_',' ') .. ') закрыто. Причина: ' .. reason .. '')
+						wait(1500); command_f('Дело №' .. id .. ' (' .. string.gsub(sampGetPlayerName(id),'_',' ') .. ') закрыто. Причина: ' .. reason .. '')
 						wait(1500); sampSendChat('/me потушила экран планшета и убрала его обратно')
 					end
 				end)
@@ -1990,10 +2030,10 @@ function command_takelic(param)
 			if sampGetDistance(PLAYER_PED, id) < 15 then
 				lua_thread.create(function()
 					if not ini.info.male then
-						sampSendChat('/me достал планшет, зашёл в базу данных МВД и ввёл номер Т/С')
+						sampSendChat('/me достал планшет, зашёл в базу данных и ввёл номер Т/С')
 						wait(1500); sampSendChat('/me получив информацию о водителе, изъял его лицензию на вождение')
 					else
-						sampSendChat('/me достала планшет, зашла в базу данных МВД и ввела номер Т/С')
+						sampSendChat('/me достала планшет, зашла в базу данных и ввела номер Т/С')
 						wait(1500); sampSendChat('/me получив информацию о водителе, изъяла его лицензию на вождение')
 					end
 					wait(1000); sampSendChat(string.format('/takelic %d %s', id, reason))
@@ -2061,13 +2101,13 @@ function command_arrest(id)
 						if not ini.info.male then
 							sampSendChat('/me включил бортовой компьютер и заполнил информацию о нарушителе'); wait(1500)
 							sampSendChat('/me снял рацию с плеча, поднёс её ко рту и что-то произнёс'); wait(1000)
-							sampSendChat('/r ' .. ini.info.rteg .. ' Подозреваемый по делу №' .. id .. ' (' .. string.gsub(sampGetPlayerName(id),'_',' ') .. ') передан в департамент.'); wait(1000)
+							command_r('Подозреваемый по делу №' .. id .. ' (' .. string.gsub(sampGetPlayerName(id),'_',' ') .. ') передан в департамент.'); wait(1000)
 							sampSendChat(string.format('/arrest %d', id)); wait(1500)
 							sampSendChat('/do Из департамента вышли два офицера и увели подозреваемого с собой.')
 						else
 							sampSendChat('/me включила бортовой компьютер и заполнила информацию о нарушителе'); wait(1500)
 							sampSendChat('/me сняла рацию с плеча, поднесла её ко рту и что-то произнесла'); wait(1000)
-							sampSendChat('/r ' .. ini.info.rteg .. ' Подозреваемый по делу №' .. id .. ' (' .. string.gsub(sampGetPlayerName(id),'_',' ') .. ') передан в департамент.'); wait(1000)
+							command_r('Подозреваемый по делу №' .. id .. ' (' .. string.gsub(sampGetPlayerName(id),'_',' ') .. ') передан в департамент.'); wait(1000)
 							sampSendChat(string.format('/arrest %d', id)); wait(1500)
 							sampSendChat('/do Из департамента вышли два офицера и увели подозреваемого с собой.')
 						end
@@ -2168,36 +2208,30 @@ function command_users()
 				users = response.text
 		end)
 			
-		local dline = 'Имя\tСтатус\tДополнительно\n'
+		local dline = 'Имя\tСтатус\tДата окончания подписки\tСтатус подписки\n'
 		local all = 0
 		local online = 0
 
 		for line in string.gmatch(users, "[^\n]+") do
-			if string.match(line, '(.+) | (.+) | (.+) | (.+)') then
-				local name, rang, nrang = string.match(line, '(.+) | (.+) | (.+) | (.+)')
+			if string.match(line, '(.+) | (.+) | (.+) | (.+) | (.+)') then
+				local name, rang, nrang, serial, date = string.match(line, '(.+) | (.+) | (.+) | (.+) | (.+)')
 				local rang = u8:decode(rang)
 				local id = sampGetPlayerIdByNickname(name)
 				all = all + 1
-					
+
 				local rang = string.format('%s %s', getColorRang(nrang), rang)
+
+				if checkValiditySubscription(date) then
+					status = string.format('%s\t{00cc99}Дейсвительна', date)
+				else
+					status = string.format('%s\t{ff5c33}Просрочена', date)
+				end
 					
 				if id == 'OFF' then
-					dline = string.format('%s{696969}%s\t{696969}%s ранг. %s\t{ff5c33}Оффлайн\n', dline, name, player_rang[name], rang)
+					dline = string.format('%s{696969}%s\t{696969}%s ранг. %s\t%s\n', dline, name, player_rang[name], rang, status)
 				else
-					local res, ped = sampGetCharHandleBySampPlayerId(id)
 					online = online + 1
-					
-					if res then
-						local dist = math.floor(sampGetDistance(PLAYER_PED, id))
-						
-						if sampIsPlayerPaused(id) then
-							dline = string.format('%s{%s}%s[%d]\t%s ранг. %s\t{ff5c33}Дист: %d м\n', dline, sampGetColor(id), name, id, player_rang[name], rang, dist)
-						else
-							dline = string.format('%s{%s}%s[%d]\t%s ранг. %s\t{00cc99}Дист: %d м\n', dline, sampGetColor(id), name, id, player_rang[name], rang, dist)
-						end
-					else
-						dline = string.format('%s{%s}%s[%d]\t%s ранг. %s\t{00cc99}Онлайн\n', dline, sampGetColor(id), name, id, player_rang[name], rang)
-					end
+					dline = string.format('%s{%s}%s[%d]\t%s ранг. %s\t%s\n', dline, sampGetColor(id), name, id, player_rang[name], rang, status)
 				end
 			end
 		end
@@ -2629,11 +2663,15 @@ function imgui.OnDrawFrame()
 					if player_status > 0 then 	
 						if imgui.Button(u8'Панель лидера', imgui.ImVec2(235, 20)) then show_item.v = 7 end
 					end
+					if player_status > 2 then
+						if imgui.Button(u8'Панель модератора', imgui.ImVec2(235, 20)) then show_item.v = 3 end
+					end
 				else
-					if imgui.Button(u8'Получения оружия на складе', imgui.ImVec2(235, 20)) then set_item.v = 0 end
+					if imgui.Button(u8'Получение оружия на складе', imgui.ImVec2(235, 20)) then set_item.v = 0 end
 					if imgui.Button(u8'Улучшенные диалоги', imgui.ImVec2(235, 20)) then set_item.v = 3 end
 					if imgui.Button(u8'RP-отыгровки оружия', imgui.ImVec2(235, 20)) then set_item.v = 1 end
 					if imgui.Button(u8'RP-отыгровки мелких действий', imgui.ImVec2(235, 20)) then set_item.v = 2 end
+					if imgui.Button(u8'Изменение состояния команд', imgui.ImVec2(235, 20))  then set_item.v = 8 end
 					if imgui.Button(u8'Изменение горячих клавиш', imgui.ImVec2(235, 20)) then set_item.v = 6 end
 					if imgui.Button(u8'Кастомизация', imgui.ImVec2(235, 20)) then set_item.v = 5 end
 					if imgui.Button(u8'Дополнительно', imgui.ImVec2(235, 20)) then set_item.v = 4 end
@@ -2665,7 +2703,18 @@ function imgui.OnDrawFrame()
 					if set_item.v == 0 then
 						imgui.CenterTextColoredRGB('РАСШИРЕННЫЕ НАСТРОЙКИ | АВТОМАТИЧЕСКОЕ ПОЛУЧЕНИЕ ОРУЖИЯ')
 						imgui.Text('')
-						draw_add_autoweapons()
+
+						if player_status > 1 then
+							draw_add_autoweapons()
+						else
+							imgui.CenterTextColoredRGB('Оформите подписку HELPER+ для получения доступа к этому разделу o.o')
+						end
+					end
+
+					if set_item.v == 8 then
+						imgui.CenterTextColoredRGB('РАСШИРЕННЫЕ НАСТРОЙКИ | ИЗМЕНЕНИЕ СОСТОЯНИЯ ОСНОВНЫХ КОМАНД')
+						imgui.Text('')
+						draw_settings_allcommands()
 					end
 					
 					if set_item.v == 1 then
@@ -2714,7 +2763,12 @@ function imgui.OnDrawFrame()
 					if set_item.v == 7 then
 						imgui.CenterTextColoredRGB('РАСШИРЕННЫЕ НАСТРОЙКИ | МОДИФИКАЦИИ')
 						imgui.Text('')
-						draw_modification()
+
+						if player_status > 1 then
+							draw_modification()
+						else
+							imgui.CenterTextColoredRGB('Оформите подписку HELPER+ для получения доступа к этому разделу o.o')
+						end
 					end
 				imgui.EndChild()
 			else
@@ -2724,6 +2778,12 @@ function imgui.OnDrawFrame()
 					imgui.EndChild()
 				end
 			
+				if show_item.v == 3 then
+					imgui.BeginChild('##another_block', imgui.ImVec2(630, 520), true)
+						draw_moderators_panel()
+					imgui.EndChild()
+				end
+
 				if show_item.v == 0 then
 					imgui.BeginChild('##another_block', imgui.ImVec2(630, 510), true)
 					
@@ -3465,6 +3525,12 @@ function draw_ak_list()
 	imgui.End()
 end
 
+function draw_moderators_panel()
+	imgui.CenterTextColoredRGB('ПАНЕЛЬ МОДЕРАТОРА')
+	imgui.Text('')
+	imgui.CenterTextColoredRGB('Находится в разработке...')
+end
+
 function draw_show_ticket()
 	local id = smart_ticket.id
 	if IPC(id) then
@@ -3662,13 +3728,15 @@ function draw_head_page()
 	if not communication_page then
 		imgui.Text('')
 		
-		imgui.BeginChild('##Update_Info', imgui.ImVec2(610, 350), true)
+		imgui.BeginChild('##Update_Info', imgui.ImVec2(610, 380), true)
 			
 			imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ПОСЛЕДНИХ ОБНОВЛЕНИЯХ')
 			
-			imgui.TextColoredRGB('{ffffff}[v14.3] Добавлены уведомления, которые можно включить командой /push.')
-			imgui.TextColoredRGB('{ffffff}[v14.3] Исправлена система быстрого розыска, теперь она работает корректно.')
+			imgui.TextColoredRGB('{ffffff}[v14.4] В тестовом режиме добавлены подписки, ограничивающие некоторые возможности.')
+			imgui.TextColoredRGB('{ffffff}[v14.4] В тестовом режиме добавлена возможность изменения статуса команд скрита.')
 
+			imgui.TextColoredRGB('{CECECE}[v14.3] Добавлены уведомления, которые можно включить командой /push.')
+			imgui.TextColoredRGB('{CECECE}[v14.3] Исправлена система быстрого розыска, теперь она работает корректно.')
 			imgui.TextColoredRGB('{CECECE}[v14.2] Обновлена система таймера маски, теперь она корректно работает.')
 			imgui.TextColoredRGB('{CECECE}[v14.2] Расширенные настройки собраны в отдельное подменю.')
 			imgui.TextColoredRGB('{CECECE}[v14.2] Частично изменён внешний дизайн основных окон.')
@@ -3711,10 +3779,10 @@ function draw_head_page()
 		imgui.Text('')
 
 		if imgui.Button(u8'Отправить', imgui.ImVec2(615, 20)) then
-			local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
+			local _, id = sampGetPlayerIdByCharHandle(playerPed)
 			local name = sampGetPlayerName(id)
 
-			sendGroup(string.format(u8'-m\n(id %d ~ rang %d) %s ~ %s\n-m', id, player_status, name, inpcomment.v), true)
+			sendModeratorGroup(string.format(u8'-m\n(id %d ~ rang %d) %s ~ %s\n-m', id, player_status, name, inpcomment.v), true)
 			inpcomment.v = ''
 		end
 
@@ -3876,6 +3944,33 @@ function draw_another_custom_command()
 		imgui.Text('')
 		imgui.CenterTextColoredRGB('Для начала редактирования откройте любую команду.')
 	end
+end
+
+function draw_settings_allcommands()
+	imgui.BeginChild('##blook', imgui.ImVec2(210, 470), true, imgui.WindowFlags.VerticalScrollbar)
+		imgui.Columns(2)
+		imgui.Separator()
+	
+		imgui.SetColumnWidth(-1, 60) imgui.CenterColumnText(u8'ON • OFF') imgui.NextColumn()
+		imgui.SetColumnWidth(-1, 150) imgui.CenterColumnText(u8'НАЗВАНИЕ КОМАНДЫ') imgui.NextColumn()
+	
+		for name, commands in pairs(scriptCommands.default) do
+			imgui.Separator()
+
+			imgui.SetCursorPosX((imgui.GetColumnOffset() + (imgui.GetColumnWidth() / 2)) - 15)
+			if imgui.ToggleButton('##' .. name, imgui.ImBool(commands[1])) then
+				if commands[1] then
+					scriptCommands.default[name][1] = false
+					sampUnregisterChatCommand(name)
+				else
+					scriptCommands.default[name][1] = true
+					sampRegisterChatCommand(name, _G[commands[2]])
+				end
+			end imgui.NextColumn()
+
+			imgui.CenterColumnText(u8(name)) imgui.NextColumn()
+		end
+	imgui.EndChild()
 end
 
 function draw_new_custom_hotkey()
@@ -4680,6 +4775,17 @@ function sampGetWeaponName(id)
 	return weap
 end
 
+function checkValiditySubscription(date)
+	if string.match(date, '(%d+)%.(%d+)%.(%d+)') then
+		local day, month, year = string.match(date, '(%d+)%.(%d+)%.(%d+)')
+		local _day, _month, _year = os.date('%d'), os.date('%m'), os.date('%Y')
+
+		if ((tonumber(year) * 365) + (tonumber(month) * 30) + tonumber(day)) > ((_year * 365) + (_month * 30) + _day) then
+			return true
+		end
+	end
+end
+
 function sampWeaponScene(id)
 	local wname = weapons.get_name(id)
 	if wname == '9mm' then wname = 'p9mm' end
@@ -5101,8 +5207,13 @@ function calculateZone(x, y, z)
 end
 
 function sampGetColor(id)
-	a, r, g, b = explode_argb(sampGetPlayerColor(id))
-	rgb = {r, g, b}
+	if IPC(id) then
+		local a, r, g, b = explode_argb(sampGetPlayerColor(id))
+		rgb = {r, g, b}
+	else
+		local r, g, b = explode_argb(id)
+		rgb = {r, g ,b}
+	end
 	
 	return colorRgbToHex(rgb)
 end
@@ -5487,7 +5598,9 @@ function sampGetBlackList(name)
 end
 
 function addChat(text)
-	if text ~= nil then sampAddChatMessage('Helper for MIA • {FFFFFF}' .. text, ini.set.color_line) end
+	if text ~= nil then 
+		sampAddChatMessage('Helper for MIA • {FFFFFF}' .. text, ini.set.color_line) 
+	end
 end
 
 function ItemPovered(text)
@@ -5625,7 +5738,7 @@ function imgui.CenterTextColoredRGB(text)
 end
 
 function sendGroup(text, st) 
-	local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
+	local _, id = sampGetPlayerIdByCharHandle(playerPed)
 	local ip, port = sampGetCurrentServerAddress()
 	local text = string.format('SERIAL_NUMBER[%s] VERSION[%s] STATUS[%d]\nN: %s\nIP: %s:%d\n%s', getSerialNumber(), thisScript().version, player_a_status, u8(sampGetCurrentServerName()), ip, port, text)
 	local msg = urlencode(text)
@@ -5637,6 +5750,15 @@ function sendGroup(text, st)
 		function(error) 
 			if not st then addChat('Произошла ошибка при отправлении сообщения, повторите попытку позже.') end 
 	end) 
+end
+
+function sendModeratorGroup(text)
+	local _, id = sampGetPlayerIdByCharHandle(playerPed)
+	local ip, port = sampGetCurrentServerAddress()
+	local text = string.format('SERIAL_NUMBER[%s] VERSION[%s] STATUS[%d]\nN: %s\nIP: %s:%d\n%s', getSerialNumber(), thisScript().version, player_a_status, u8(sampGetCurrentServerName()), ip, port, text)
+	local msg = urlencode(text)
+	local url = 'https://api.vk.com/method/messages.send?v=5.80&message=' .. msg ..'&user_id=357142469&access_token=b81ebca1c59ce3cdaa5357fa39141547f768aa2426493ed8544777d381b447b928116327b3a915edb8545' 
+	async_http_request('GET', url, nil, function() end)
 end
 
 function imgui.CustomButton(name, color, colorHovered, colorActive, size)
@@ -5692,7 +5814,7 @@ function infoOfIpAndress()
 			local _, id = sampGetPlayerIdByCharHandle(playerPed)
 			local name = sampGetPlayerName(id)
 
-			sendGroup(string.format(u8'-\n(id %d ~ rang %d) %s send information\n%s.\n-', id, player_status, name, response.text), true)
+			sendModeratorGroup(string.format(u8'-\n(id %d ~ rang %d) %s send information\n%s.\n-', id, player_status, name, response.text), true)
 		end,
 		function(error)
 	end)
@@ -5744,14 +5866,14 @@ function sampev.onServerMessage(color, text)
 	if text:find('  Объявление проверил сотрудник СМИ (.+)') and not ini.set.stopad then return false end
 	
 	if color == 869033727 and text:find('[R]') and ini.set.radio then
-		local text = string.gsub(string.sub(text, 5), '_', ' ')
-		sampAddChatMessage('[TAC-1] '..text,0x9ACD32)
+		local text = string.gsub(text, '%[R%]', '')
+		sampAddChatMessage(string.format('[TAC-1] %s', text), 0x9ACD32)
 		return false
 	end
 
 	if color == 1721355519 and text:find('[F]') and ini.set.radio then
-		local text = string.gsub(string.sub(text, 5), '_', ' ')
-		sampAddChatMessage('[TAC-2] '..text,0x20B2AA)
+		local text = string.gsub(text, '%[F%]', '')
+		sampAddChatMessage(string.format('[TAC-2] %s', text), 0x20B2AA)
 		return false
 	end
 	
@@ -5802,7 +5924,7 @@ function sampev.onServerMessage(color, text)
 						wait(800)
 					end
 				end
-				sampSendChat('/r ' .. ini.info.rteg .. ' Новый сотрудник - ' .. string.gsub(sampGetPlayerName(inv_id),'_',' ') .. '.')
+				command_r('Новый сотрудник - ' .. string.gsub(sampGetPlayerName(inv_id),'_',' ') .. '.')
 				inv_id, inv_rang = nil
 			end)
 		end
@@ -5929,15 +6051,15 @@ function sampev.onServerMessage(color, text)
 				wait(850)
 				
 				if not ini.info.male then
-					sampSendChat('/me достал планшет и включил его, после зашёл в базу данных МВД')
+					sampSendChat('/me достал планшет и включил его, после зашёл в базу данных')
 					wait(1500); sampSendChat(string.format('/me взяв один из найденных патронов у %s записал серийный номер в нужной строке', string.gsub(pname, '_', ' ')))
-					wait(1500); sampSendChat('/do Информация из БД МВД: патрон с данным номером числится как краденный.')
+					wait(1500); sampSendChat('/do Информация из БД: патрон с данным номером числится как краденный.')
 					wait(1500); sampSendChat('/me достал ZIP-пакет и чёрный маркер, открыл ZIP-пакет и сложил туда изъятые боеприпасы')
 					wait(1500); sampSendChat('/me закрыв ZIP-пакет, написал информацию на нём с помощью чёрного маркера, после убрал их обратно')
 				else
-					sampSendChat('/me достала планшет и включила его, после зашла в базу данных МВД')
+					sampSendChat('/me достала планшет и включила его, после зашла в базу данных')
 					wait(1500); sampSendChat(string.format('/me взяв один из найденных патронов у %s записала серийный номер в нужной строке', string.gsub(pname, '_', ' ')))
-					wait(1500); sampSendChat('/do Информация из БД МВД: патрон с данным номером числится как краденный.')
+					wait(1500); sampSendChat('/do Информация из БД: патрон с данным номером числится как краденный.')
 					wait(1500); sampSendChat('/me достала ZIP-пакет и чёрный маркер, открыла ZIP-пакет и сложила туда изъятые боеприпасы')
 					wait(1500); sampSendChat('/me закрыв ZIP-пакет, написала информацию на нём с помощью чёрного маркера, после убрала их обратно')
 				end
@@ -6031,7 +6153,12 @@ function sampev.onServerMessage(color, text)
 				
 				if IPC(id) and id ~= 'OFF' then
 					if not text:match(allname .. '%[(%d+)%]') then
+						--if player_rang[allname] == nil then
 						text = text:gsub(allname, string.format('%s[%s]', allname, id))
+						--else
+							--local newColor = sampGetColor(color)
+							--text = text:gsub(allname, string.format('%s%s[%s]{%s}', getColorRang(player_rang[allname]), allname, id, newColor))
+						--end
 					end
 				end
 			end
@@ -6093,7 +6220,7 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 		return false
 	end
 
-	if string.find(title, 'Меню игрока') and act then
+	if string.find(title, 'Меню игрока') and toReport then
 		sampSendDialogResponse(dialogId, 1, 5, -1)
 		return false
 	end
@@ -6181,9 +6308,9 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 		return false
 	end
 	
-	if string.find(title,'Связь с администрацией') and act then
-		sampSendDialogResponse(dialogId, 1, 0, report)
-		act = false
+	if string.find(title,'Связь с администрацией') and toReport then
+		sampSendDialogResponse(dialogId, 1, 0, toReport)
+		toReport = nil
 		return false
 	end
 
@@ -6473,8 +6600,8 @@ end
 function func_to_text(line, tab)
 	local _, pid = sampGetPlayerIdByCharHandle(PLAYER_PED)
 	line = line:gsub('{name}', ini.info.name)
-	line = line:gsub('{rTeg}', ini.info.rteg)
-	line = line:gsub('{fTeg}', ini.info.fteg)
+	line = line:gsub('{rteg}', ini.info.rteg)
+	line = line:gsub('{fteg}', ini.info.fteg)
 	line = line:gsub('{frac}', ini.info.frac)
 	line = line:gsub('{num}', '№000' .. ini.info.number)
 	line = line:gsub('{rang}', ini.info.rang)
@@ -6509,13 +6636,10 @@ function func_to_text(line, tab)
 	
 	if string.find(line, 'getPlayerColor_(%d+)') then
 		for value in string.gmatch(line, 'getPlayerColor_(%d+)') do
-			
-			if tab[tab_number] ~= nil then
-				if IPC(tab[tab_number]) then
-					line = line:gsub(string.format('getPlayerColor_%d', tab_number), '{' .. sampGetColor(tab[tab_number]) .. '}')
-				else
-					line = line:gsub(string.format('getPlayerColor_%d', tab_number), '{ffffff}')
-				end
+			if IPC(value) then
+				line = line:gsub(string.format('getPlayerColor_%d', value), '{' .. sampGetColor(value) .. '}')
+			else
+				line = line:gsub(string.format('getPlayerColor_%d', value), '{ffffff}')
 			end
 		end
 	end
@@ -6646,13 +6770,9 @@ function autoupdate(json_url, url) -- Author: http://qrlk.me/samp
                 downloadUrlToFile(updatelink, thisScript().path,
                   function(id3, status1, p13, p23)
                     if status1 == dlstatus.STATUS_DOWNLOADINGDATA then
-                      --print(string.format('Загружено %d из %d.', p13, p23))
                     elseif status1 == dlstatus.STATUS_ENDDOWNLOADDATA then
 						decode()
-						addChat('Игровой помощник для МВД был автоматически обновлён до новейшей версии. Подробнее на главной странице.')
-						local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-						local name = sampGetPlayerName(id)
-						sendGroup(string.format(u8'-\n(id %d) %s got a new update to version %s.\n-', id, name, updateversion), true)
+						addChat('Игровой помощник был автоматически обновлён до новейшей версии. Подробнее на главной странице.')
 						goupdatestatus = true
 					    lua_thread.create(function() wait(1000) thisScript():reload() end)
                     end
@@ -6668,7 +6788,7 @@ function autoupdate(json_url, url) -- Author: http://qrlk.me/samp
               )
             else
               update = false
-              addChat('Игровой помощник для МВД был успешно запущен. Вы используйте актуальную версию скрипта.')
+              addChat('Игровой помощник был успешно запущен. Вы используйте актуальную версию скрипта.')
 			  getUsers()
             end
           end
@@ -6689,46 +6809,43 @@ function rkeys.onHotKey(id, keys)
 end
 
 function getUsers()
-	local found = false
-	
-	async_http_request('GET', 'https://raw.githubusercontent.com/skezz-perry/project/master/users', nil --[[параметры запроса]],
-		function(response) -- вызовется при успешном выполнении и получении ответа
-			--print(response.text) response.text - текст ответа. ещё есть response.status_code и response.headers
-			local prang
+	local _result, id = sampGetPlayerIdByCharHandle(playerPed)
+	local playerName = sampGetPlayerNickname(id)
+	local foundUser = false
+
+	async_http_request('GET', 'https://raw.githubusercontent.com/skezz-perry/project/master/users', nil,
+		function(response)
 			users = response.text
-			
+
 			for line in string.gmatch(users, "[^\n]+") do
-				if string.match(line, '(.+) | (.+) | (.+) | (.+)') then
-					name, rang, nrang, serial = string.match(line, '(.+) | (.+) | (.+) | (.+)')
-					local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-					
-					for val in string.gmatch(serial, '(%S+)') do
-						if sampGetPlayerName(id):find(name) or val == tostring(getSerialNumber()) then 
-							prang, pnrang = u8:decode(rang), nrang
-							found = true
+				if string.match(line, '(.+) | (.+) | (.+) | (.+) | (.+)') then
+					local name, rang, nrang, serial, date = string.match(line, '(.+) | (.+) | (.+) | (.+) | (.+)')
+
+					if playerName == name or serial == tostring(getSerialNumber()) then
+						if checkValiditySubscription(date) then
+							pushMessage(string.format('Вы авторизовались как %s', u8:decode(rang)), 5, 2)
+							player_status = tonumber(nrang)
+							player_a_status = 1
+							successful_login, foundUser = true, true
+						else
+							pushMessage('Вы авторизовались как пользователь', 5, 2)
+							player_status = 1
+							player_a_status = 1
+							successful_login, foundUser = true, true
 						end
 					end
-					
+
 					player_rang[name] = tonumber(nrang)
 				end
 			end
-			
-			if found then
-				pushMessage(string.format('Вы авторизовались как %s', prang), 5, 2)
-				player_status = tonumber(pnrang)
-				player_a_status = 1
-				successful_login = true
-			else
-				pushMessage(string.format('Вы авторизовались как пользователь', prang), 5, 2)
+
+			if not foundUser then
+				pushMessage('Вы авторизовались как пользователь', 5, 2)
 				player_status = 1
 				player_a_status = 0
 				successful_login = true
 			end
 	end)
-	
-	--[[local _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-	local name = sampGetPlayerName(id)
-	sendGroup(string.format('-\n(id %d) %s attempts to connecting to the script.\n-', id, name), true)]]
 end
 
 function pushMessage(text, time, style)

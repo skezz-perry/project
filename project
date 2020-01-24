@@ -11,7 +11,7 @@
 -- ==================================================================================--
 
 script_name('helper-for-mia')
-script_version(14.6)
+script_version(14.7)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -372,7 +372,7 @@ local scriptCommands = {
 		skip = {true, 'command_skip'},
 		clear = {true, 'command_clear'},
 		hold = {true, 'command_hold'},
-		ticket = {true, 'command_ticket'},
+		ticket = {true, 'command_ticket'}, 
 		takelic = {true, 'command_takelic'},
 		putpl = {true, 'command_putpl'},
 		rights = {true, 'command_rights'},
@@ -581,7 +581,7 @@ function main()
 	if not isSampLoaded() or not isSampfuncsLoaded() then return end
 	while not isSampAvailable() do wait(100) end
 	
-	autoUpdate('https://raw.githubusercontent.com/skezz-perry/project/master/version', 'https://raw.githubusercontent.com/skezz-perry/project/master/project')
+	autoUpdate('https://raw.githubusercontent.com/skezz-perry/project/master/version', 'https://github.com/skezz-perry/project/blob/master/project.luac?raw=true')
 	attempToGetFileAndDir()
 
 	for command, _function in pairs(scriptCommands.default) do
@@ -4725,28 +4725,34 @@ end
 
 function sampWeaponScene(id)
 	local wname = weapons.get_name(id)
-	if wname == '9mm' then wname = 'p9mm' end
-	wname = string.gsub(wname, '-', '_')
-	wname = string.gsub(wname, ' ', '_')
+
+	if wname ~= nil then
+		if wname == '9mm' then wname = 'p9mm' end
+		wname = string.gsub(wname, '-', '_')
+		wname = string.gsub(wname, ' ', '_')
 	
-	if ini.rpweapon[wname] ~= nil then
-		if ini.rpweapon[wname] ~= '' then
-			return true, ini.rpweapon[wname]
+		if ini.rpweapon[wname] ~= nil then
+			if ini.rpweapon[wname] ~= '' then
+				return true, ini.rpweapon[wname]
+			end
 		end
 	end
-	
+
 	return false, ''
 end
 
 function sampWeaponSceneOff(id)
 	local wname = weapons.get_name(id)
-	if wname == '9mm' then wname = 'p9mm' end
-	wname = string.gsub(wname, '-', '_')
-	wname = string.gsub(wname, ' ', '_')
+
+	if wname ~= nil then
+		if wname == '9mm' then wname = 'p9mm' end
+		wname = string.gsub(wname, '-', '_')
+		wname = string.gsub(wname, ' ', '_')
 	
-	if ini.rpweaponoff[wname] ~= nil then
-		if ini.rpweaponoff[wname] ~= '' then
-			return true, ini.rpweaponoff[wname]
+		if ini.rpweaponoff[wname] ~= nil then
+			if ini.rpweaponoff[wname] ~= '' then
+				return true, ini.rpweaponoff[wname]
+			end
 		end
 	end
 	
@@ -5536,9 +5542,7 @@ function sampGetBlackList(name)
 end
 
 function addChat(text)
-	if text ~= nil then 
-		sampAddChatMessage('Helper for MIA • {FFFFFF}' .. text, ini.set.color_line) 
-	end
+	sampAddChatMessage(('Helper for MIA • {ffffff}%s'):format(tostring(text)), ini.set.color_line)
 end
 
 function ItemPovered(text)
@@ -6750,6 +6754,7 @@ end
 
 function autoUpdate(versionUrl, updateUrl)
 	local versionPath = string.format('%s\\%s-version.json', getWorkingDirectory(), thisScript().name)
+	local lastPath = string.format('%s\\project.lua', getWorkingDirectory()) 
 	if doesFileExist(versionPath) then os.remove(versionPath) end
 
 	downloadUrlToFile(versionUrl, versionPath, function(id, status, value1, value2)
@@ -6768,11 +6773,15 @@ function autoUpdate(versionUrl, updateUrl)
 						lua_thread.create(function()
 							wait(200)
 
-							downloadUrlToFile(updateUrl, thisScript().path, function(_id, _status, _value1, _value2)
-								if _status == downloadStatus.STATUSEX_ENDDOWNLOAD then
-									decode()
+							local path = string.format('%s\\%s.luac', getWorkingDirectory(), thisScript().name)
+							downloadUrlToFile(updateUrl, path, function(id, status, value1, value2)
+								if status == downloadStatus.STATUSEX_ENDDOWNLOAD then
 									addChat('Игровой помощник был автоматически обновлён до новейшей версии. Подробнее на главной странице.')
-									wait(1000) thisScript():reload()
+									if doesFileExist(lastPath) then 
+										addChat('После установки данного обновления нажмите сочетание {FFCD00}CTRL + R{ffffff}  или перезайдите в игру {FFCD00}/q.')
+										os.remove(lastPath)
+									end
+									lua_thread.create(function() wait(1000) thisScript():reload() end)
 								end
 							end)
 						end)

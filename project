@@ -11,7 +11,7 @@
 -- ==================================================================================--
 
 script_name('helper-for-mia')
-script_version(14.7)
+script_version(14.8)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -581,7 +581,7 @@ function main()
 	if not isSampLoaded() or not isSampfuncsLoaded() then return end
 	while not isSampAvailable() do wait(100) end
 	
-	autoUpdate('https://raw.githubusercontent.com/skezz-perry/project/master/version', 'https://github.com/skezz-perry/project/blob/master/project.luac?raw=true')
+	autoUpdate('https://raw.githubusercontent.com/skezz-perry/project/master/version', 'https://github.com/skezz-perry/project/blob/master/projectRAZRAB_protected.luac?raw=true')
 	attempToGetFileAndDir()
 
 	for command, _function in pairs(scriptCommands.default) do

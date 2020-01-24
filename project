@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(15.1)
+script_version(15.2)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -4354,13 +4354,12 @@ function sampGetNearestDriver()
 						if driverVehicle == ped then
 							local _, id = sampGetPlayerIdByCharHandle(ped)
 							local distance = sampGetDistanceToPlayer(id)
-
 							if distance < maxDistance then
 								if vehicle ~= vehiclePed then
 									local vehicleId = getCarModel(vehicle)
-
 									maxDistance = distance
-									driver = {playerId = playerId, vehicleId = vehicleId}
+									driver.playerId = id
+									driver.vehicleId = vehicleId
 								end
 							end
 						end

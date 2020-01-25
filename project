@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(15.2)
+script_version(15.3)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -666,8 +666,10 @@ function main()
 					target_id = id
 
 					if lastBlipChar then removeBlip(lastBlipChar) end
-					lastBlipChar = addBlipForChar(ped)
-					changeBlipColour(lastBlipChar, '0x' .. sampGetColorByPlayer(id) .. 'FF')
+					if sampGetPlayerColor(target_id) ~= 2236962 then
+						lastBlipChar = addBlipForChar(ped)
+						changeBlipColour(lastBlipChar, '0x' .. sampGetColorByPlayer(id) .. 'FF')
+					end
 				end
 			end
 		end
@@ -679,9 +681,25 @@ function main()
 			local minute = math.floor(alltime / 60)
 			local secund = math.fmod(alltime, 60)
 
-			local text = string.format('%d minutes %d seconds', minute, secund)
+			-- NEW COORD
+			if isCharInAnyCar(playerPed) then
+				local vehicle = storeCarCharIsInNoSave(playerPed)
+				angle = math.rad(math.floor(getCarHeading(vehicle)))
+				x, y, z = getCarCoordinates(vehicle)
+				x = x + 1.2 * math.cos(angle)
+				y = y + 1.2 * math.sin(angle)
+				_x, _y = convert3DCoordsToScreen(x, y, z + 0.3)
+			else
+				angle = math.rad(math.floor(getCharHeading(playerPed)))
+				x, y, z = getCharCoordinates(playerPed)
+				x = x + 0.27 * math.cos(angle)
+				y = y + 0.27 * math.sin(angle)
+				_x, _y = convert3DCoordsToScreen(x, y, z - 0.2)
+			end
+			-- NEW COORD
 
-			renderFontDrawText(font_logo, text, sx - 200, sy - 30, 0xFFFFFFFF)
+			local text = string.format('{FA8072}%d{ffffff} MINUTES {FA8072}%d{ffffff} SECONDS', minute, secund)
+			renderFontDrawText(font_logo_lil, text, _x, _y, 0xFFFFFFFF)
 		end
 
 		if set_time then
@@ -700,8 +718,8 @@ function main()
 				local angle = math.rad(math.floor(getCarHeading(vehicle)))
 				local x, y, z = getCarCoordinates(vehicle)
 
-				local x = x + math.cos(angle)
-				local y = y + math.sin(angle)
+				local x = x + 1.2 * math.cos(angle)
+				local y = y + 1.2 * math.sin(angle)
 
 				local _x, _y = convert3DCoordsToScreen(x, y, z + 0.5)
 
@@ -3690,10 +3708,11 @@ function draw_head_page()
 			
 			imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ПОСЛЕДНИХ ОБНОВЛЕНИЯХ')
 			
-			imgui.TextColoredRGB('{ffffff}[v14.9] Добавлено удобное отображение скорости автомобиля при включённых стробоскопах.')
-			imgui.TextColoredRGB('{ffffff}[v14.9] Стробоскопы отделены от основных спец.сигналов, их активация RButton + H.')
-			imgui.TextColoredRGB('{ffffff}[v14.9] При наведении игрока над его головой будет отображатся пикап и метка на карте.')
+			imgui.TextColoredRGB('{ffffff}[v15.3] Изменено отбражаение таймера маски на более удобное.')
 
+			imgui.TextColoredRGB('{CECECE}[v14.9] Добавлено удобное отображение скорости автомобиля при включённых стробоскопах.')
+			imgui.TextColoredRGB('{CECECE}[v14.9] Стробоскопы отделены от основных спец.сигналов, их активация RButton + H.')
+			imgui.TextColoredRGB('{CECECE}[v14.9] При наведении игрока над его головой будет отображатся пикап и метка на карте.')
 			imgui.TextColoredRGB('{CECECE}[v14.7(8)] Переход на .luac версию скрипта. Исправление некоторых ошибок.')
 			imgui.TextColoredRGB('{CECECE}[v14.6] Добавлен просмотр результата редактирования команд.')
 			imgui.TextColoredRGB('{CECECE}[v14.6] Добавлен в тестовом режиме синтаксис ников пользователей в рациях.')
@@ -4423,7 +4442,7 @@ end
 function sampGetDistanceToPlayer(id)
 	local result, playerId = sampGetPlayerIdByCharHandle(playerPed)
 
-	if result and playerId == id then 
+	if result and playerId == tonumber(id) then 
 		return 1
 	end
 
@@ -4656,58 +4675,6 @@ function sampGetBodyPart(id)
 	end
 
 	return body
-end
-
-function sampGetWeaponName(id)
-	if id == 0 then weap = 'Fist'
-	elseif id == 1 then weap = 'Knuckle'
-	elseif id == 2 then weap = 'Golf club'
-	elseif id == 3 then weap = 'Police baton'
-	elseif id == 4 then weap = 'Knife'
-	elseif id == 5 then weap = 'Baseball bat'
-	elseif id == 6 then weap = 'Shovel'
-	elseif id == 7 then weap = 'Cue'
-	elseif id == 8 then weap = 'Katana'
-	elseif id == 9 then weap = 'Chainsaw'
-	elseif id == 10 then weap = 'Double sided Dildo'
-	elseif id == 11 then weap = 'Dildo'
-	elseif id == 12 then weap = 'Vibrator'
-	elseif id == 13 then weap = 'Silver vibrator'
-	elseif id == 14 then weap = 'Flower'
-	elseif id == 15 then weap = 'Stick'
-	elseif id == 16 then weap = 'Grenade'
-	elseif id == 17 then weap = 'Tear Gas'
-	elseif id == 18 then weap = 'Cocktail of Molotov'
-	elseif id == 22 then weap = 'Gun of 9mm'
-	elseif id == 23 then weap = 'SD pistol 9mm'
-	elseif id == 24 then weap = 'Desert Eagle'
-	elseif id == 25 then weap = 'ShotGun'
-	elseif id == 26 then weap = 'Edge ShotGun'
-	elseif id == 27 then weap = 'Combat ShotGun'
-	elseif id == 28 then weap = 'Usi'
-	elseif id == 29 then weap = 'MP-5'
-	elseif id == 30 then weap = 'AK-47'
-	elseif id == 31 then weap = 'M4'
-	elseif id == 32 then weap = 'Tec-9'
-	elseif id == 33 then weap = 'Rifle'
-	elseif id == 34 then weap = 'Sniper Rifle'
-	elseif id == 35 then weap = 'RPG-7'
-	elseif id == 36 then weap = 'Rocket Launcher'
-	elseif id == 37 then weap = 'Flamer'
-	elseif id == 38 then weap = 'Minigun'
-	elseif id == 39 then weap = 'Bag of C4'
-	elseif id == 40 then weap = 'Detonator for C4'
-	elseif id == 41 then weap = 'Spray'
-	elseif id == 42 then weap = 'Огнетушитель'
-	elseif id == 43 then weap = 'Photo Camera'
-	elseif id == 44 then weap = 'Night Vision'
-	elseif id == 45 then weap = 'Hot Vision'
-	elseif id == 46 then weap = 'Parachute'
-	elseif id == 49 then weap = 'Vehicle'
-	else weap = 'Неизвестно'
-	end
-
-	return weap
 end
 
 function checkValiditySubscription(date)
@@ -5506,23 +5473,19 @@ function sampGetPlayerName(id)
 	end
 end
 
-function sampGetPlayerIdByNickname(nick)
-	local successid = nil
-    if type(nick) == ('string') then
-        for id = 0, 1000 do
-            local _, myid = sampGetPlayerIdByCharHandle(playerPed)
-            if sampIsPlayerConnected(id) or id == myid then
-                local name = sampGetPlayerName(id)
-                if nick == name then
-					local successid = id
-                    return id
-                end
-            end
-        end
-		if not successid then return 'OFF' end
-    else
-		return 'OFF'
+function sampGetPlayerIdByNickname(name)
+	if type(name) == ('string') then
+		for id = 0, 1000 do
+			if IPC(id) then
+				local nick = sampGetPlayerName(id)
+				if nick == name then
+					return id
+				end
+			end
+		end
 	end
+
+	return 'OFF'
 end
 
 function sampGetBlackList(name)

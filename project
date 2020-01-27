@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(15.3)
+script_version(15.4)
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -400,7 +400,8 @@ local scriptCommands = {
 		rtag = {true, 'command_radiotag'},
 		push = {true, 'command_push'},
 		mh = {true, 'command_menu'},
-		strobes = {true, 'command_strobes'}
+		strobes = {true, 'command_strobes'},
+		pickweap = {true, 'command_pickweapon'}
 	}
 }
 
@@ -457,7 +458,8 @@ local allCommands = inicfg.load({
 		rtag = true,
 		push = true,
 		mh = true,
-		strobes = true
+		strobes = true,
+		pickweap = true
 	},
 	custom = {
 	}
@@ -1146,6 +1148,31 @@ function command_radiotag()
 	text = string.format('%s\n{FFCD00}$p\t\t{ffffff}Местоположение (Район / Квадрат)', text)
 	
 	sampShowDialog(1005, '{FFCD00}Список радио-тэгов для рации', text, 'Закрыть', '', 2)
+end
+
+function command_pickweapon()
+	local function sampGetPickupHandleByCoords(model, x, y, z)
+		for name, value in pairs(getAllPickups()) do
+			if getPickupModel(value) == model then
+				local pX, pY, pZ = getPickupCoordinates(value)
+				
+				if pX == x and pY == y and pZ == z then
+					return value
+				end
+			end
+		end
+	end
+
+	local corditanesPickup = {LS = {x = 258.5, y = 77.75, z = 1003.625}, SF = {x = 240.375, y = 112.75, z = 1003.125}, LV = {x = 234.25, y = 159.625, z = 1003}}
+
+	for name, value in pairs(corditanesPickup) do
+		local handle = sampGetPickupHandleByCoords(1239, value.x, value.y, value.z)
+
+		if handle then
+			local id = sampGetPickupSampIdByHandle(handle)
+			sampSendPickedUpPickup(id)
+		end
+	end
 end
 
 function command_reconnect(parametrs)
@@ -3708,7 +3735,9 @@ function draw_head_page()
 			
 			imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ПОСЛЕДНИХ ОБНОВЛЕНИЯХ')
 			
-			imgui.TextColoredRGB('{ffffff}[v15.3] Изменено отбражаение таймера маски на более удобное.')
+			imgui.TextColoredRGB('{ffffff}[v15.4] Добавлена возможность получить оружие в любом департамента (/pickweap).')
+
+			imgui.TextColoredRGB('{CECECE}[v15.3] Изменено отбражаение таймера маски на более удобное.')
 
 			imgui.TextColoredRGB('{CECECE}[v14.9] Добавлено удобное отображение скорости автомобиля при включённых стробоскопах.')
 			imgui.TextColoredRGB('{CECECE}[v14.9] Стробоскопы отделены от основных спец.сигналов, их активация RButton + H.')
@@ -6462,6 +6491,11 @@ function process_command(file, input)
 					elseif string.match(val, 'setChatInput%((.+)%)') then
 						sampSetChatInputEnabled(true)
 						sampSetChatInputText(string.match(val, 'setChatInput%((.+)%)'))
+					elseif string.match(val, 'global%((.+)%)') then
+						local _function = string.match(val, 'global%((.+)%)')
+						if type(_G[_function]) == ('function') then
+							_G[_function]()
+						end
 					else
 						print(string.format('Неизвестная линия: %s', val))
 						printStringNow(string.format('~r~An error was detected in one of the lines [%d]. Check the console.', linen), 2500)
@@ -6563,7 +6597,7 @@ function showMyResult(text)
 		['{param3}'] = 0
 	}
 
-	local tableFunction = {'addChat', 'sendChat', 'wait', 'setKeyDown', 'setChatInput'}
+	local tableFunction = {'addChat', 'sendChat', 'wait', 'setKeyDown', 'setChatInput', 'global'}
 
 	for name, value in pairs(tableFunction) do
 		if string.find(text, value) then

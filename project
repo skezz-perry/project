@@ -1,5 +1,6 @@
 script_name('helper-for-mia')
-script_version(15.4)
+script_version(15.5)
+--script_properties('work-in-pause')
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
@@ -341,6 +342,63 @@ local ini = inicfg.load({
 		strob_right = false,
 		strob_left = false
 	},
+	defaultCommands = {
+		r = true,
+		rn = true,
+		f = true,
+		fn = true,
+		cuff = true,
+		uncuff = true,
+		arrest = true,
+		pull = true,
+		su = true,
+		skip = true,
+		clear = true,
+		hold = true,
+		ticket = true,
+		takelic = true,
+		putpl = true,
+		rights = true,
+		search = true,
+		follow = true,
+		hack = true,
+		invite = true,
+		uninvite = true,
+		rang = true,
+		changeskin = true,
+		ud = true,
+		pas = true,
+		rep = true,
+		uk = true,
+		ak = true,
+		code = true,
+		ustav = true,
+		sw = true,
+		st = true,
+		sskin = true,
+		history = true,
+		asms = true,
+		gov = true,
+		addbl = true,
+		delbl = true,
+		pay = true,
+		users = true,
+		rkinfo = true,
+		sms = true,
+		open = true,
+		bl = true,
+		blname = true,
+		rec = true,
+		recn = true,
+		recd = true,
+		rtag = true,
+		push = true,
+		mh = true,
+		strobes = true,
+		pickweap = true
+	},
+	customCommands = {
+	},
 	custom_hkey = {
 	},
 	number = {
@@ -404,66 +462,6 @@ local scriptCommands = {
 		pickweap = {true, 'command_pickweapon'}
 	}
 }
-
-local allCommands = inicfg.load({
-	default = {
-		r = true,
-		rn = true,
-		f = true,
-		fn = true,
-		cuff = true,
-		uncuff = true,
-		arrest = true,
-		pull = true,
-		su = true,
-		skip = true,
-		clear = true,
-		hold = true,
-		ticket = true,
-		takelic = true,
-		putpl = true,
-		rights = true,
-		search = true,
-		follow = true,
-		hack = true,
-		invite = true,
-		uninvite = true,
-		rang = true,
-		changeskin = true,
-		ud = true,
-		pas = true,
-		rep = true,
-		uk = true,
-		ak = true,
-		code = true,
-		ustav = true,
-		sw = true,
-		st = true,
-		sskin = true,
-		history = true,
-		asms = true,
-		gov = true,
-		addbl = true,
-		delbl = true,
-		pay = true,
-		users = true,
-		rkinfo = true,
-		sms = true,
-		open = true,
-		bl = true,
-		blname = true,
-		rec = true,
-		recn = true,
-		recd = true,
-		rtag = true,
-		push = true,
-		mh = true,
-		strobes = true,
-		pickweap = true
-	},
-	custom = {
-	}
-}, 'HfMIA Commands.ini')
 
 local pass = inicfg.load({
 	server = {}
@@ -575,15 +573,47 @@ function main()
 	autoUpdate('https://raw.githubusercontent.com/skezz-perry/project/master/version', 'https://raw.githubusercontent.com/skezz-perry/project/master/project')
 	attempToGetFileAndDir()
 
+	for name, bool in pairs(ini.defaultCommands) do
+		if scriptCommands.default[name] then
+			scriptCommands.default[name][1] = bool
+		end
+	end
+
+	local numberCommands, registerCommands = 0, 0
 	for command, _function in pairs(scriptCommands.default) do
+		numberCommands = numberCommands + 1
 		if not sampIsChatCommandDefined(command) then
 			if _function[1] then
 				if type(_G[_function[2]]) == ('function') then
+					registerCommands = registerCommands + 1
 					sampRegisterChatCommand(command, _G[_function[2]])
 				end
 			end
 		end
 	end
+	print(('Во время подготовки было найдено %d стандартных команд(-ы) в скрипте, из них было зарегистрировано %d.'):format(numberCommands, registerCommands))
+
+	local numberCommands, registerCommands = 0, 0
+	for name, value in pairs(ini.customCommands) do
+		numberCommands = numberCommands + 1
+		if not sampIsChatCommandDefined(name) then
+			if value then
+				local nameFile = string.format('moonloader//helper//commands//%s.txt', name)
+				if doesFileExist(nameFile) then
+					registerCommands = registerCommands + 1
+					sampRegisterChatCommand(name, function(input)
+						process_command(name, input)
+					end)
+				end
+			end
+		end
+	end
+	print(('Во время подготовки было найдено %d пользовательских команд(-ы) в скрипте, из них было зарегистрировано %d.'):format(numberCommands, registerCommands))
+
+	--[[memory.setuint8(7634870, 1) 
+	memory.setuint8(7635034, 1)
+	memory.fill(7623723, 144, 8)
+	memory.fill(5499528, 144, 6)]]
 
 	lua_thread.create(strobe)
 	lua_thread.create(rpweapon)
@@ -685,23 +715,15 @@ function main()
 
 			-- NEW COORD
 			if isCharInAnyCar(playerPed) then
-				local vehicle = storeCarCharIsInNoSave(playerPed)
-				angle = math.rad(math.floor(getCarHeading(vehicle)))
-				x, y, z = getCarCoordinates(vehicle)
-				x = x + 1.2 * math.cos(angle)
-				y = y + 1.2 * math.sin(angle)
-				_x, _y = convert3DCoordsToScreen(x, y, z + 0.3)
+				fX, fY, fZ = getOffsetFromCarInWorldCoords(storeCarCharIsInNoSave(playerPed), 1.2, 0.0, 0.3)
 			else
-				angle = math.rad(math.floor(getCharHeading(playerPed)))
-				x, y, z = getCharCoordinates(playerPed)
-				x = x + 0.27 * math.cos(angle)
-				y = y + 0.27 * math.sin(angle)
-				_x, _y = convert3DCoordsToScreen(x, y, z - 0.2)
+				fX, fY, fZ = getOffsetFromCharInWorldCoords(playerPed, 0.33, 0.0, -0.18)
 			end
+			local x, y = convert3DCoordsToScreen(fX, fY, fZ)
 			-- NEW COORD
 
 			local text = string.format('{FA8072}%d{ffffff} MINUTES {FA8072}%d{ffffff} SECONDS', minute, secund)
-			renderFontDrawText(font_logo_lil, text, _x, _y, 0xFFFFFFFF)
+			renderFontDrawText(font_logo_lil, text, x, y, 0xFFFFFFFF)
 		end
 
 		if set_time then
@@ -717,13 +739,8 @@ function main()
 		if boolStrobes and ini.set.newStrobes then
 			if isCharInAnyCar(playerPed) then
 				local vehicle = storeCarCharIsInNoSave(playerPed)
-				local angle = math.rad(math.floor(getCarHeading(vehicle)))
-				local x, y, z = getCarCoordinates(vehicle)
-
-				local x = x + 1.2 * math.cos(angle)
-				local y = y + 1.2 * math.sin(angle)
-
-				local _x, _y = convert3DCoordsToScreen(x, y, z + 0.5)
+				local fX, fY, fZ = getOffsetFromCarInWorldCoords(vehicle, 1.2, 0.0, 0.5)
+				local x, y = convert3DCoordsToScreen(fX, fY, fZ)
 
 				if isCarSirenOn(vehicle) then
 					if math.fmod(math.floor(os.clock()), 2) == 0 then 
@@ -735,7 +752,7 @@ function main()
 					textStrobes = 'STROBES {ffffff}| {FA8072}' .. math.ceil(getCarSpeed(vehicle) * 2.02) .. '{ffffff} KM/H'
 				end
 
- 				renderFontDrawText(font_logo_lil, textStrobes, _x, _y, 0xFFFFFFFF)
+ 				renderFontDrawText(font_logo_lil, textStrobes, x, y, 0xFFFFFFFF)
 			end
 		end
 
@@ -2798,7 +2815,8 @@ function imgui.OnDrawFrame()
 						if imgui.InputText(u8'Имя и фамилия', pname) then
 							ini.info.name = u8:decode(pname.v)
 							inicfg.save(ini, 'Helper for MIA.ini')
-						end
+						end 
+
 						if imgui.InputText(u8'Должность', prang) then
 							ini.info.rang = u8:decode(prang.v)
 							inicfg.save(ini, 'Helper for MIA.ini')
@@ -3735,10 +3753,13 @@ function draw_head_page()
 			
 			imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ПОСЛЕДНИХ ОБНОВЛЕНИЯХ')
 			
-			imgui.TextColoredRGB('{ffffff}[v15.4] Добавлена возможность получить оружие в любом департамента (/pickweap).')
+			imgui.TextColoredRGB('{ffffff}[v15.5] Добавлена возможность включать и отключать команды скрипта, а так же доп. команды.')
+			imgui.TextColoredRGB('{ffffff}[v15.5] Добавлен лог убийств в sampfuncs-консоли, просмотреть его можно нажав Ё (~).')
+			imgui.TextColoredRGB('{ffffff}[v15.5] Изменена система дополтнительных возможностей на более правильную.')
+			imgui.TextColoredRGB('{ffffff}[v15.5] Слегка изменена система отображения скорости автомобиля и таймера маски.')
 
+			imgui.TextColoredRGB('{CECECE}[v15.4] Добавлена возможность получить оружие в любом департамента (/pickweap).')
 			imgui.TextColoredRGB('{CECECE}[v15.3] Изменено отбражаение таймера маски на более удобное.')
-
 			imgui.TextColoredRGB('{CECECE}[v14.9] Добавлено удобное отображение скорости автомобиля при включённых стробоскопах.')
 			imgui.TextColoredRGB('{CECECE}[v14.9] Стробоскопы отделены от основных спец.сигналов, их активация RButton + H.')
 			imgui.TextColoredRGB('{CECECE}[v14.9] При наведении игрока над его головой будет отображатся пикап и метка на карте.')
@@ -3807,14 +3828,18 @@ function getStateCommand(name)
 	if name_cmd.v ~= nil and name_cmd.v ~= '' then
 		local path = string.format('moonloader//helper//commands//%s.txt', name)
 		
-		if doesFileExist(path) then
-			if command_open ~= nil and command_open == path then
-				return 'КОМАНДА ОТКРЫТА ДЛЯ РЕДАКТИРОВАНИЯ', 3 -- {32CD32}
-			else 
-				return 'КОМАНДА НАЙДЕНА И МОЖЕТ БЫТЬ ОТКРЫТА', 2 -- {FFD700}
+		if not ini.defaultCommands[name] then
+			if doesFileExist(path) then
+				if command_open ~= nil and command_open == path then
+					return 'КОМАНДА ОТКРЫТА ДЛЯ РЕДАКТИРОВАНИЯ', 3 -- {32CD32}
+				else 
+					return 'КОМАНДА НАЙДЕНА И МОЖЕТ БЫТЬ ОТКРЫТА', 2 -- {FFD700}
+				end
+			else
+				return 'КОМАНДА НЕ НАЙДЕНА, ВОЗМОЖНО СОЗДАТЬ НОВУЮ', 1 -- {CD5C5C}
 			end
 		else
-			return 'КОМАНДА НЕ НАЙДЕНА, ВОЗМОЖНО СОЗДАТЬ НОВУЮ', 1 -- {CD5C5C}
+			return 'КОМАНДА ИСПОЛЬЗУЕТСЯ СКРИПТОМ', 1
 		end
 	else
 		return 'ОЖИДАНИЕ ВВОДА КОМАНДЫ', false -- {FFD700}
@@ -3845,9 +3870,19 @@ function draw_another_custom_command()
 	if result and result < 3 then
 		if imgui.Button(u8'ОТКРЫТЬ ИЛИ СОЗДАТЬ', imgui.ImVec2(610, 20)) then
 			if name_cmd.v ~= nil and name_cmd.v ~= '' then
-				if not sampIsChatCommandDefined(u8:decode(name_cmd.v)) then
+				if not ini.defaultCommands[name_cmd.v] then
 					local path = string.format('moonloader//helper//commands//%s.txt', u8:decode(name_cmd.v))
 				
+					if ini.customCommands[name_cmd.v] == nil then
+						ini.customCommands[name_cmd.v] = true
+						inicfg.save(ini, 'Helper for MIA.ini')
+
+						sampUnregisterChatCommand(name_cmd.v)
+						sampRegisterChatCommand(name_cmd.v, function(input)
+							process_command(name_cmd.v, input)
+						end)
+					end
+
 					if doesFileExist(path) then
 						local cmd_text = ''
 						for line in io.lines(path) do
@@ -3857,6 +3892,7 @@ function draw_another_custom_command()
 								cmd_text = string.format('%s%s\n', cmd_text, u8(line))
 							end
 						end
+
 						text_cmd.v = cmd_text
 						command_open = path
 					
@@ -3865,7 +3901,7 @@ function draw_another_custom_command()
 						local filew = io.open(path, 'w')
 						filew:write('')
 						filew:close()
-					
+
 						param_cmd = 0
 						text_cmd.v = u8'Новая команда'
 						command_open = path
@@ -3895,7 +3931,7 @@ function draw_another_custom_command()
 
 		if imgui.Button(u8'СОХРАНИТЬ КОМАНДУ', imgui.ImVec2(173, 20)) then
 			if name_cmd.v ~= nil and name_cmd.v ~= '' then
-				if not sampIsChatCommandDefined(u8:decode(name_cmd.v)) then
+				if not ini.defaultCommands[name_cmd.v] then
 					local path = string.format('moonloader//helper//commands//%s.txt', u8:decode(name_cmd.v))
 				
 					if doesFileExist(path) and command_open == path then
@@ -3903,7 +3939,7 @@ function draw_another_custom_command()
 						local save_text = string.format('{param = %d}\n%s', param_cmd, text_cmd.v)
 						filew:write(u8:decode(save_text))
 						filew:close()
-					
+
 						pushMessage('Команда успешно сохранена.', 3, 4)
 					else
 						pushMessage('Для начала нужно найти или создать команду.', 3, 3)
@@ -3920,11 +3956,15 @@ function draw_another_custom_command()
 
 		if imgui.Button(u8'УДАЛИТЬ КОМАНДУ', imgui.ImVec2(172, 20)) then
 			if name_cmd.v ~= nil and name_cmd.v ~= '' then
-				if not sampIsChatCommandDefined(u8:decode(name_cmd.v)) then
+				if not ini.defaultCommands[name_cmd.v] then
 					local path = string.format('moonloader//helper//commands//%s.txt', u8:decode(name_cmd.v))
 				
 					if doesFileExist(path) and command_open == path then
 						os.remove(path)
+
+						sampUnregisterChatCommand(name_cmd.v)
+						ini.customCommands[name_cmd.v] = nil
+						inicfg.save(ini, 'Helper for MIA.ini')
 					else
 						pushMessage('Для начала нужно найти или создать команду.', 3, 3)	
 					end
@@ -3973,7 +4013,8 @@ function draw_another_custom_command()
 end
 
 function draw_settings_allcommands()
-	imgui.BeginChild('##blook', imgui.ImVec2(210, 470), true, imgui.WindowFlags.VerticalScrollbar)
+	imgui.SetCursorPosX(18) imgui.Text(u8'ОСНОВНЫЕ КОМАНДЫ СКРИПТА') imgui.SameLine(232) imgui.Text(u8'ПОЛЬЗОВАТЕЛЬСКИЕ КОМАНДЫ')
+	imgui.BeginChild('##blook1', imgui.ImVec2(210, 450), true, imgui.WindowFlags.VerticalScrollbar)
 		imgui.Columns(2)
 		imgui.Separator()
 	
@@ -3987,11 +4028,44 @@ function draw_settings_allcommands()
 			if imgui.ToggleButton('##' .. name, imgui.ImBool(commands[1])) then
 				if commands[1] then
 					scriptCommands.default[name][1] = false
+					ini.defaultCommands[name] = false
 					sampUnregisterChatCommand(name)
 				else
 					scriptCommands.default[name][1] = true
+					ini.defaultCommands[name] = true
 					sampRegisterChatCommand(name, _G[commands[2]])
 				end
+
+				inicfg.save(ini, 'Helper for MIA.ini')
+			end imgui.NextColumn()
+
+			imgui.CenterColumnText(u8(name)) imgui.NextColumn()
+		end
+	imgui.EndChild() imgui.SameLine()
+
+	imgui.BeginChild('##blook2', imgui.ImVec2(210, 450), true, imgui.WindowFlags.VerticalScrollbar)
+		imgui.Columns(2)
+		imgui.Separator()
+	
+		imgui.SetColumnWidth(-1, 60) imgui.CenterColumnText(u8'ON • OFF') imgui.NextColumn()
+		imgui.SetColumnWidth(-1, 150) imgui.CenterColumnText(u8'НАЗВАНИЕ КОМАНДЫ') imgui.NextColumn()
+	
+		for name, value in pairs(ini.customCommands) do
+			imgui.Separator()
+
+			imgui.SetCursorPosX((imgui.GetColumnOffset() + (imgui.GetColumnWidth() / 2)) - 15)
+			if imgui.ToggleButton('##' .. name, imgui.ImBool(value)) then
+				if value then
+					ini.customCommands[name] = false
+					sampUnregisterChatCommand(name)
+				else
+					ini.customCommands[name] = true
+					sampRegisterChatCommand(name, function(input)
+						process_command(name, input)
+					end)
+				end
+
+				inicfg.save(ini, 'Helper for MIA.ini')
 			end imgui.NextColumn()
 
 			imgui.CenterColumnText(u8(name)) imgui.NextColumn()
@@ -5204,6 +5278,7 @@ function urlencode(str)
 end
 
 function attempToGetFileAndDir()
+	local startTime = os.clock()
 	print('Проверка целостности и актуальности данных. Заполнение основных таблиц...')
 
 	local d = {'helper', 'helper//commands', 'helper//gnews'}
@@ -6343,6 +6418,13 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 		end
 	end
 
+
+	if dialogId == 175 then
+		if ini.set.autoweapon then
+			return false
+		end
+	end
+
 	if ini.set.autobuy then
 		if string.find(title, 'Покупка аптечек') then
 			if need_buy.aid > 0 then
@@ -6401,13 +6483,17 @@ function sampev.onSendTakeDamage(playerId, damage, weapon, bodypart)
 	end
 end
 
-function sampev.onSendDeathNotification(reas, id)
-	if reas ~= nil then
+function sampev.onSendDeathNotification(reason, playerId)
+	if reason then
 		dreason = {calculateZone(), os.date('%H'), os.date('%M'), os.date('%S')}
+
+		if playerId then
+			print(('Вы были убиты игроком {%s}%s{ffffff}[%d] в %d:%d.'):format(sampGetColorByPlayer(playerId), sampGetPlayerName(playerId), playerId, os.date('%H'), os.date('%M')))
+		end
 	end
 end
 
-function sampev.onSendCommand(param)
+--[[function sampev.onSendCommand(param)
 	if string.match(param, '(%S+)[%s](%S+)') then file, val = string.match(param, '(%S+)[%s](.+)') else file, val = param, nil end
 
 	if not sampIsChatCommandDefined(file) then
@@ -6421,7 +6507,7 @@ function sampev.onSendCommand(param)
 			end
 		end
 	end
-end
+end]]
 
 function onGetTableCommand(p)
 	local tab = {}
@@ -6438,7 +6524,7 @@ function onGetTableCommand(p)
 end
 
 function process_command(file, input)
-	if not sampIsChatCommandDefined(file) then
+	--if not sampIsChatCommandDefined(file) then
 		local namefile = string.format('moonloader//helper/commands//%s.txt', file)
 		
 		if doesFileExist(namefile) then
@@ -6463,7 +6549,7 @@ function process_command(file, input)
 							parametrs_error = string.gsub(parametrs_error, '  ', '')
 							
 							if input == nil or not string.match(input, parametrs_regular) then
-								addChat(string.format('Используйте команду %s %s.', file, parametrs_error))
+								addChat(string.format('Используйте команду /%s %s.', file, parametrs_error))
 								break
 							end
 							
@@ -6507,7 +6593,7 @@ function process_command(file, input)
 				last_command = nil
 			end)
 		end
-	end
+	--end
 end
 
 function func_to_text(text, tab)
@@ -6796,6 +6882,7 @@ end
 function getUsers()
 	local _result, id = sampGetPlayerIdByCharHandle(playerPed)
 	local playerName = sampGetPlayerNickname(id)
+	local playerSerial = tostring(getSerialNumber())
 	local foundUser = false
 
 	async_http_request('GET', 'https://raw.githubusercontent.com/skezz-perry/project/master/users', nil,
@@ -6806,7 +6893,13 @@ function getUsers()
 				if string.match(line, '(.+) | (.+) | (.+) | (.+) | (.+)') then
 					local name, rang, nrang, serial, date = string.match(line, '(.+) | (.+) | (.+) | (.+) | (.+)')
 
-					if playerName == name or serial == tostring(getSerialNumber()) then
+					for userSerial in string.gmatch(serial, '[^,%s]+') do
+						if userSerial == playerSerial then
+							normalSerial = true
+						end
+					end
+
+					if playerName == name or normalSerial then
 						local result, lastDay = checkValiditySubscription(date)
 
 						if result then
@@ -6824,6 +6917,7 @@ function getUsers()
 						end
 					end
 
+					normalSerial = false
 					player_rang[name] = tonumber(nrang)
 				end
 			end
@@ -6840,28 +6934,6 @@ end
 function pushMessage(text, time, style)
 	if bNotf then
 		notf.addNotification(text, time, style)
-	end
-end
-
-function getAdvance(ip)
-	local last_n = string.match(ip, '5.254.104.13(%d)')
-	local last_n = tonumber(last_n)
-
-	if last_n == 1 then serv = 'red'
-	elseif last_n == 2 then serv = 'green'
-	elseif last_n == 3 then serv = 'yellow'
-	elseif last_n == 4 then serv = 'orange'
-	elseif last_n == 5 then serv = 'blue'
-	elseif last_n == 6 then serv = 'white'
-	elseif last_n == 7 then serv = 'silver'
-	elseif last_n == 8 then serv = 'purple'
-	elseif last_n == 9 then serv = 'chocolate'
-	end
-	
-	if serv ~= nil then
-		return true, serv
-	else
-		return false
 	end
 end
 

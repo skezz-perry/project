@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(15.5)
+script_version(15.6)
 --script_properties('work-in-pause')
 
 require 'lib.moonloader'
@@ -121,6 +121,15 @@ local static = {
 	clock = {hour = nil, minute = nil},
 	weather = nil
 }
+
+local pass = inicfg.load({
+	favourite = {
+		ADVANCE_RP_RED   = '5.254.104.131:7777',
+		ADVANCE_RP_GREEN = '5.254.104.132:7777',
+		ADVANCE_RP_BLUE  = '5.254.104.135:7777',
+	},
+	server = {}
+}, 'HfMIA servers and passwords.ini')
 
 local ini = inicfg.load({
 	info = {
@@ -395,7 +404,10 @@ local ini = inicfg.load({
 		push = true,
 		mh = true,
 		strobes = true,
-		pickweap = true
+		pickweap = true,
+		lserver = true,
+		pickeat = true,
+		dropall = true
 	},
 	customCommands = {
 	},
@@ -403,7 +415,7 @@ local ini = inicfg.load({
 	},
 	number = {
 	}
-}, 'Helper for MIA.ini')
+}, 'HfMIA global settings.ini')
 
 local scriptCommands = {
 	default = {
@@ -459,13 +471,12 @@ local scriptCommands = {
 		push = {true, 'command_push'},
 		mh = {true, 'command_menu'},
 		strobes = {true, 'command_strobes'},
-		pickweap = {true, 'command_pickweapon'}
+		pickweap = {true, 'command_pickweapon'},
+		lserver = {true, 'command_server'},
+		pickeat = {true, 'command_pickeat'},
+		dropall = {true, 'command_dropall'}
 	}
 }
-
-local pass = inicfg.load({
-	server = {}
-}, 'password.ini')
 
 local hotkey_butt = {
 	eat = {key = {v = {}}, last = {}, bind = -1, name = 'Использоние еды (/eat)'},
@@ -520,6 +531,7 @@ local show_uk_list       = imgui.ImBool(false)
 local show_ak_list       = imgui.ImBool(false)
 local show_uk_edit       = imgui.ImBool(false)
 local show_notification  = imgui.ImBool(false)
+local show_server        = imgui.ImBool(false)
 local show_item          = imgui.ImInt(8)
 local set_item           = imgui.ImInt(0)
 local page_num           = imgui.ImInt(0)
@@ -558,6 +570,8 @@ local fteg               = imgui.ImBuffer(u8(ini.info.fteg), 256)
 local name_cmd           = imgui.ImBuffer(256)
 local takeweap           = imgui.ImBuffer(256)
 local takeweapoff        = imgui.ImBuffer(256)
+local addNameServer      = imgui.ImBuffer(256)
+local addIpAndPortServer = imgui.ImBuffer(256)
 local url_bl             = imgui.ImBuffer(500)
 local cmduse             = imgui.ImBuffer(30)
 local cmdinp             = imgui.ImBuffer(30)
@@ -573,11 +587,19 @@ function main()
 	autoUpdate('https://raw.githubusercontent.com/skezz-perry/project/master/version', 'https://raw.githubusercontent.com/skezz-perry/project/master/project')
 	attempToGetFileAndDir()
 
-	for name, bool in pairs(ini.defaultCommands) do
+	for name in pairs(scriptCommands.default) do
+		if ini.defaultCommands[name] == nil then
+			ini.defaultCommands[name] = true
+		else
+			scriptCommands.default[name][1] = ini.defaultCommands[name]
+		end
+	end inicfg.save(ini, 'HfMIA global settings.ini')
+
+	--[[for name, bool in pairs(ini.defaultCommands) do
 		if scriptCommands.default[name] then
 			scriptCommands.default[name][1] = bool
 		end
-	end
+	end]]
 
 	local numberCommands, registerCommands = 0, 0
 	for command, _function in pairs(scriptCommands.default) do
@@ -756,7 +778,7 @@ function main()
 			end
 		end
 
-		if show_menu.v or fastMenu.v or show_suspect.v or show_uk_list.v or show_ticket.v or show_ak_list.v or show_notification.v then
+		if show_menu.v or fastMenu.v or show_suspect.v or show_uk_list.v or show_ticket.v or show_ak_list.v or show_notification.v or show_server.v then
 			imgui.Process = true
 		else
 			imgui.Process = false
@@ -1034,6 +1056,10 @@ function command_push()
 	show_notification.v = not show_notification.v
 end
 
+function command_server()
+	show_server.v = not show_server.v
+end
+
 function command_strobes()
 	if isCharInAnyCar(playerPed) and ini.set.strobes  then
 		boolStrobes = not boolStrobes
@@ -1168,18 +1194,6 @@ function command_radiotag()
 end
 
 function command_pickweapon()
-	local function sampGetPickupHandleByCoords(model, x, y, z)
-		for name, value in pairs(getAllPickups()) do
-			if getPickupModel(value) == model then
-				local pX, pY, pZ = getPickupCoordinates(value)
-				
-				if pX == x and pY == y and pZ == z then
-					return value
-				end
-			end
-		end
-	end
-
 	local corditanesPickup = {LS = {x = 258.5, y = 77.75, z = 1003.625}, SF = {x = 240.375, y = 112.75, z = 1003.125}, LV = {x = 234.25, y = 159.625, z = 1003}}
 
 	for name, value in pairs(corditanesPickup) do
@@ -1190,6 +1204,19 @@ function command_pickweapon()
 			sampSendPickedUpPickup(id)
 		end
 	end
+end
+
+function command_pickeat()
+	local handle = sampGetPickupHandleByCoords(2821)
+	if handle then
+		local id = sampGetPickupSampIdByHandle(handle)
+		sampSendPickedUpPickup(id)
+	end
+end
+
+function command_dropall()
+	dropAll = true
+	sampSendChat('/drop')
 end
 
 function command_reconnect(parametrs)
@@ -1220,7 +1247,7 @@ function command_reconnectwithchange(parametrs)
 	end
 end
 
-function command_reconnectwithchangeip(parametrs)
+--[[function command_reconnectwithchangeip(parametrs)
 	if string.match(parametrs, '(%d+) (%S+)') then
 		local id, name = string.match(parametrs, '(%d+) (.+)')
 		local id = tonumber(id)
@@ -1238,7 +1265,29 @@ function command_reconnectwithchangeip(parametrs)
 			addChat('Номер сервера не должен быть менее 1 и более 9.')
 		end
 	else
-		addChat('Используйте команду /recd [номер сервера] [никнейм (необязательно)]')
+		addChat('Используйте команду /recd [ip-адресс сервера] [никнейм (необязательно)]')
+	end
+end]]
+
+function command_reconnectwithchangeip(parametrs)
+	if string.match(parametrs, '(%S+) (%S+)') then
+		local ip, name = string.match(parametrs, '(%S+) (%S+)')
+		if string.match(ip, '(%S+):(%d+)') then
+			sampSetLocalPlayerName(name)
+			reconnect(1, ip)
+		else
+			addChat('IP-адресс сервера должен быть в формате IP:PORT (например: 5.254.104.132:7777).')
+		end
+	elseif string.match(parametrs, '(%S+)') then
+		local ip = parametrs
+		if string.match(ip, '(%S+):(%d+)') then
+			sampSetLocalPlayerName(name)
+			reconnect(1, ip)
+		else
+			addChat('IP-адресс сервера должен быть в формате IP:PORT (например: 5.254.104.132:7777).')
+		end
+	else
+		addChat('Используйте команду /recd [IP-адресс сервера] [никнейм (необязательно)].')
 	end
 end
 
@@ -1267,11 +1316,11 @@ end
 function command_rkinfo()
 	if dreason[1] ~= nil then
 		local timed = getTimeByPeriod(tonumber(dreason[2]), tonumber(dreason[3]), tonumber(dreason[4]), ini.set.delay_rk)
-		addChat(string.format('Вы можете вернутся в район %s в %d ч. %d мин. %d сек.', dreason[1], timed[1], timed[2], timed[3]))
+		addChat(string.format('Вы можете вернуться в район %s в %d ч. %d мин. %d сек.', dreason[1], timed[1], timed[2], timed[3]))
 		if sampGetPassedTimeByPeriod(tonumber(dreason[2]), tonumber(dreason[3]), tonumber(dreason[4]), ini.set.delay_rk) then
-			addChat(string.format('Время вышло и вы уже {00cc99}можете{ffffff} вернутся в район %s.', dreason[1]))
+			addChat(string.format('Время вышло и вы уже {00cc99}можете{ffffff} вернуться в район %s.', dreason[1]))
 		else
-			addChat(string.format('В данный момент Вы {ff5c33}не можете{ffffff} вернутся в район %s.', dreason[1]))
+			addChat(string.format('В данный момент Вы {ff5c33}не можете{ffffff} вернуться в район %s.', dreason[1]))
 			if tostring(calculateZone()) == tostring(dreason[1]) then
 				addChat(string.format(' {ff5c33}[ПРЕДУПРЕЖДЕНИЕ] {ffffff}Вы находитесь в запрещённом для Вас районе %s.', dreason[1]))
 			end
@@ -1532,6 +1581,7 @@ end
 
 function command_setweather(id)
 	if string.match(id, '(%d+)') then 
+		local id = string.match(id, '(%d+)')
 		if tonumber(id) > 0 and tonumber(id) <= 45 then
 			forceWeatherNow(id)
 			addChat('Вы установили ID погоды {FFCD00}' .. id .. '.')
@@ -1655,7 +1705,7 @@ function search_law(table, text)
 end
 
 function command_ustav(text)
-	if not string.match(text, '(.+)') then addChat('Используйте команду /устав [часть или номер статьи]')
+	if not string.match(text, '(.+)') then addChat('Используйте команду /ustav [часть или номер статьи]')
 	else
 		search_file('ustav', text)
 	end
@@ -1676,7 +1726,7 @@ function command_ak(text)
 end
 
 function command_code(text)
-	if not string.match(text, '(.+)') then addChat('Используйте команду /код [часть или номер кода]')
+	if not string.match(text, '(.+)') then addChat('Используйте команду /code [часть или номер кода]')
 	else
 		search_file('code', text)
 	end
@@ -2539,7 +2589,7 @@ end
 function checkBox(name, block, value)
 	if imgui.Checkbox(u8(name), imgui.ImBool(ini[block][value])) then 
 		ini[block][value] = not ini[block][value]
-		inicfg.save(ini, 'Helper for MIA.ini')
+		inicfg.save(ini, 'HfMIA global settings.ini')
 		return true
 	end
 end
@@ -2547,7 +2597,7 @@ end
 function toggleButton(name, block, value)
 	if imgui.ToggleButton('##' .. name, imgui.ImBool(ini[block][value])) then
 		ini[block][value] = not ini[block][value]
-		inicfg.save(ini, 'Helper for MIA.ini')
+		inicfg.save(ini, 'HfMIA global settings.ini')
 		return true
 	end
 	
@@ -2557,6 +2607,60 @@ end
 local w, h = getScreenResolution()
 
 function imgui.OnDrawFrame()
+	if show_server.v then
+		imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
+		imgui.SetNextWindowSize(imgui.ImVec2(450, 550))
+		imgui.Begin(u8'##servers', show_server, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
+			imgui.CenterTextColoredRGB('МЕНЕДЖЕР СЕРВЕРОВ')
+			imgui.Text('')
+
+			imgui.BeginChild('##serverList', imgui.ImVec2(435, 400), true, imgui.WindowFlags.VerticalScrollbar)
+				imgui.Columns(3)
+				imgui.Separator()
+				imgui.SetColumnWidth(-1, 140) imgui.CenterColumnText(u8'ДЕЙСТВИЕ') imgui.NextColumn()
+				imgui.SetColumnWidth(-1, 140) imgui.CenterColumnText(u8'НАЗВАНИЕ СЕРВЕРА') imgui.NextColumn()
+				imgui.SetColumnWidth(-1, 160) imgui.CenterColumnText(u8'IP-АДРЕСС И ПОРТ') imgui.NextColumn()
+				imgui.Separator()
+				
+				if imgui.Button(u8'ДОБАВИТЬ', imgui.ImVec2(130, 20)) then
+					if addNameServer.v == '' and addIpAndPortServer.v == '' then
+						pushMessage('Введите название сервера, IP-адресс и порт в нужные поля', 3, 3)
+					else
+						if string.match(addIpAndPortServer.v, '(%S+):(%d+)') then
+							local nameServer = addNameServer.v:gsub(' ', '_')
+							pass.favourite[nameServer] = addIpAndPortServer.v
+							inicfg.save(pass, 'HfMIA servers and passwords.ini')
+							addIpAndPortServer.v = ''
+							addNameServer.v = ''
+							pushMessage('Вы добавили новый сервер в общий список', 3, 4)
+						else
+							pushMessage('IP-адресс сервера должен быть в формате IP:PORT (например: 5.254.104.132:7777)', 3, 3)
+						end
+					end
+				end imgui.NextColumn()
+
+				imgui.PushItemWidth(130)
+				imgui.InputText(u8'##name', addNameServer) imgui.NextColumn()
+				imgui.PushItemWidth(140)
+				imgui.InputText(u8'##iort', addIpAndPortServer) imgui.NextColumn()
+				imgui.Separator()
+
+				for name, ip in pairs(pass.favourite) do
+					local fname = name:gsub('_', ' ')
+
+					if imgui.Button(u8'ПОДКЛЮЧИТЬСЯ##' .. name, imgui.ImVec2(130, 20)) then
+						command_reconnectwithchangeip(ip)
+					end imgui.NextColumn()
+
+					imgui.CenterColumnText(fname) imgui.NextColumn()
+					imgui.CenterColumnText(ip) imgui.NextColumn()
+
+					imgui.Separator()
+				end
+			imgui.End()
+		imgui.End()
+	end
+
 	if show_notification.v then
 		imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
 		imgui.SetNextWindowSize(imgui.ImVec2(450, 550))
@@ -2667,7 +2771,7 @@ function imgui.OnDrawFrame()
 			end
 
 			imgui.SetCursorPosY(520)
-			if drawAllNotifications then textNotification = 'ВЕРНУТСЯ' else textNotification = 'ВСЕ УВЕДОМЛЕНИЯ' end
+			if drawAllNotifications then textNotification = 'ВЕРНУТЬСЯ' else textNotification = 'ВСЕ УВЕДОМЛЕНИЯ' end
 			if imgui.Button(u8(textNotification), imgui.ImVec2(432, 20)) then
 				drawAllNotifications = not drawAllNotifications
 			end
@@ -2814,28 +2918,28 @@ function imgui.OnDrawFrame()
 						imgui.PushItemWidth(200)
 						if imgui.InputText(u8'Имя и фамилия', pname) then
 							ini.info.name = u8:decode(pname.v)
-							inicfg.save(ini, 'Helper for MIA.ini')
+							inicfg.save(ini, 'HfMIA global settings.ini')
 						end 
 
 						if imgui.InputText(u8'Должность', prang) then
 							ini.info.rang = u8:decode(prang.v)
-							inicfg.save(ini, 'Helper for MIA.ini')
+							inicfg.save(ini, 'HfMIA global settings.ini')
 						end
 						if imgui.InputText(u8'Подразделение', pfrac) then
 							ini.info.frac = u8:decode(pfrac.v)
-							inicfg.save(ini, 'Helper for MIA.ini')
+							inicfg.save(ini, 'HfMIA global settings.ini')
 						end
 						if imgui.InputText(u8'Личный номер', pnumber) then
 							ini.info.number = u8:decode(pnumber.v)
-							inicfg.save(ini, 'Helper for MIA.ini')
+							inicfg.save(ini, 'HfMIA global settings.ini')
 						end
 						if imgui.InputText(u8'Префикс в основную рацию', rteg) then
 							ini.info.rteg = u8:decode(rteg.v)
-							inicfg.save(ini, 'Helper for MIA.ini')
+							inicfg.save(ini, 'HfMIA global settings.ini')
 						end
 						if imgui.InputText(u8'Префикс в общую волну', fteg) then
 							ini.info.fteg = u8:decode(fteg.v)
-							inicfg.save(ini, 'Helper for MIA.ini')
+							inicfg.save(ini, 'HfMIA global settings.ini')
 						end
 					
 						imgui.Text('')
@@ -2933,7 +3037,7 @@ function imgui.OnDrawFrame()
 									local input = string.format('%s | %s', u8:decode(passpass.v), gkey)
 									
 									pass.server[path] = input
-									inicfg.save(pass, 'password.ini')
+									inicfg.save(pass, 'HfMIA servers and passwords.ini')
 									
 									pushMessage('Данные о аккаунте были добавлены (обновлены).', 3, 4)
 								else
@@ -3288,7 +3392,7 @@ function draw_another_settings()
 	imgui.PushItemWidth(200)
 	if imgui.SliderInt('##ITEM', pdelay_rk, 0, 30) then
 		ini.set.delay_rk = pdelay_rk.v
-		inicfg.save(ini, 'Helper for MIA.ini')
+		inicfg.save(ini, 'HfMIA global settings.ini')
 	end
 	
 	imgui.SameLine(220)
@@ -3296,7 +3400,7 @@ function draw_another_settings()
 	
 	if imgui.InputText(u8'Ссылка на чёрный список', url_bl) then
 		ini.set.blacklist = url_bl.v
-		inicfg.save(ini, 'Helper for MIA.ini') 
+		inicfg.save(ini, 'HfMIA global settings.ini') 
 	end
 	
 	toggleButton('Сообщение в рацию при использовании мегафона (погоня / пешая погоня)', 'set', 'message_megafon')
@@ -3312,14 +3416,14 @@ function draw_settings_rpweapon()
 			if imgui.Button(u8'ПОЛУАВТОМАТИЧЕСКИЕ ОТЫГРОВКИ ОРУЖИЯ', imgui.ImVec2(350, 20)) then
 				ini.set.halfrpweapon = false
 				ini.set.autorpweapon = true
-				inicfg.save(ini, 'Helper for MIA.ini') 
+				inicfg.save(ini, 'HfMIA global settings.ini') 
 			end
 			ItemPovered('Отыгровка происходит при прицеливании или нажатии специальных клавиш.')
 		else
 			if imgui.Button(u8'АВТОМАТИЧЕСКИЕ ОТЫГРОВКИ ОРУЖИЯ', imgui.ImVec2(350, 20)) then
 				ini.set.halfrpweapon = true
 				ini.set.autorpweapon = false
-				inicfg.save(ini, 'Helper for MIA.ini')
+				inicfg.save(ini, 'HfMIA global settings.ini')
 			end
 			ItemPovered('Отыгровка происходит автоматические при взятии или скрытии оружия.')
 		end imgui.SameLine()
@@ -3332,7 +3436,7 @@ function draw_settings_rpweapon()
 				
 			ini.rpweapon[wname]     = u8:decode(takeweap.v)
 			ini.rpweaponoff[wname]  = u8:decode(takeweapoff.v)
-			inicfg.save(ini, 'Helper for MIA.ini')
+			inicfg.save(ini, 'HfMIA global settings.ini')
 									
 			pushMessage('Отыгровка успешно сохранена.', 3, 4)
 		end
@@ -3455,7 +3559,7 @@ function draw_uk_list()
 				if imgui.Button(u8(name), imgui.ImVec2(450, 20)) then
 					addChat(string.format('Значение статьи для "%s" изменено на %s, количество звёзд %d.', name, uk_static.name, uk_static.stars))
 					ini.uk_set[val] = string.format('%d | %s', uk_static.stars, uk_static.name)
-					inicfg.save(ini, 'Helper for MIA.ini')
+					inicfg.save(ini, 'HfMIA global settings.ini')
 				end
 			end
 		imgui.End()
@@ -3477,14 +3581,14 @@ function draw_add_autoweapons()
 				imgui.SetCursorPosX((imgui.GetColumnOffset() + (imgui.GetColumnWidth() / 2)) - 15)
 				if imgui.ToggleButton('##' .. val[1], imgui.ImBool(ini.weapons[val[3]])) then
 					ini.weapons[val[3]] = not ini.weapons[val[3]]
-					inicfg.save(ini, 'Helper for MIA.ini')
+					inicfg.save(ini, 'HfMIA global settings.ini')
 				end imgui.NextColumn()
 				
 				if type(ini.weapons[val[4]]) == ('boolean') then
 					imgui.SetCursorPosX((imgui.GetColumnOffset() + (imgui.GetColumnWidth() / 2)) - 15)
 					if imgui.ToggleButton('##1' .. val[1], imgui.ImBool(ini.weapons[val[4]])) then
 						ini.weapons[val[4]] = not ini.weapons[val[4]]
-						inicfg.save(ini, 'Helper for MIA.ini')
+						inicfg.save(ini, 'HfMIA global settings.ini')
 					end
 				else
 					imgui.CenterColumnText('~')
@@ -3645,13 +3749,13 @@ function draw_modification()
 		imgui.PushItemWidth(200)
 		if imgui.SliderInt('##ITEM1', pslhour, 0, 23) then
 			ini.set.slhour = pslhour.v
-			inicfg.save(ini, 'Helper for MIA.ini') 
+			inicfg.save(ini, 'HfMIA global settings.ini') 
 		end
 		imgui.SameLine() imgui.Text(u8'Время включения уличных фонарей')
 		
 		if imgui.SliderInt('##ITEM2', pmslhour, 0, 23) then
 			ini.set.mslhour = pmslhour.v
-			inicfg.save(ini, 'Helper for MIA.ini') 
+			inicfg.save(ini, 'HfMIA global settings.ini') 
 		end
 		imgui.SameLine() imgui.Text(u8'Время отключения уличных фонарей')
 		
@@ -3694,7 +3798,7 @@ function draw_modification()
 					end
 					
 					addChat('Новое местоположение для логотипа было установлено.')
-					inicfg.save(ini, 'Helper for MIA.ini') 
+					inicfg.save(ini, 'HfMIA global settings.ini') 
 				end)
 			end
 		end
@@ -3722,7 +3826,7 @@ function draw_hotkey_settings()
 					end
 				
 					ini.hkey[name] = string.gsub(key, '%s,%s', '')
-					inicfg.save(ini, 'Helper for MIA.ini')
+					inicfg.save(ini, 'HfMIA global settings.ini')
 					pushMessage('Для этой команды установленно новое сочетание клавиш.', 3, 4)
 				else
 					hotkey_butt[name].key = hotkey_butt[name].last
@@ -3753,10 +3857,14 @@ function draw_head_page()
 			
 			imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ПОСЛЕДНИХ ОБНОВЛЕНИЯХ')
 			
-			imgui.TextColoredRGB('{ffffff}[v15.5] Добавлена возможность включать и отключать команды скрипта, а так же доп. команды.')
-			imgui.TextColoredRGB('{ffffff}[v15.5] Добавлен лог убийств в sampfuncs-консоли, просмотреть его можно нажав Ё (~).')
-			imgui.TextColoredRGB('{ffffff}[v15.5] Изменена система дополтнительных возможностей на более правильную.')
-			imgui.TextColoredRGB('{ffffff}[v15.5] Слегка изменена система отображения скорости автомобиля и таймера маски.')
+			imgui.TextColoredRGB('{ffffff}[v15.6] Добавлен менеджер серверов для удобного переподключения (/lserver).')
+			imgui.TextColoredRGB('{ffffff}[v15.6] Добавлен быстрый сброс оружия (/dropall) и быстрое взъятие еды (/pickeat).')
+			imgui.TextColoredRGB('{ffffff}[v15.6] Добавлен список созданных команд в доп.возмжностях, для удобного редактирования.')
+
+			imgui.TextColoredRGB('{CECECE}[v15.5] Добавлена возможность включать и отключать команды скрипта, а так же доп. команды.')
+			imgui.TextColoredRGB('{CECECE}[v15.5] Добавлен лог убийств в sampfuncs-консоли, просмотреть его можно нажав Ё (~).')
+			imgui.TextColoredRGB('{CECECE}[v15.5] Изменена система дополнительных возможностей на более правильную.')
+			imgui.TextColoredRGB('{CECECE}[v15.5] Слегка изменена система отображения скорости автомобиля и таймера маски.')
 
 			imgui.TextColoredRGB('{CECECE}[v15.4] Добавлена возможность получить оружие в любом департамента (/pickweap).')
 			imgui.TextColoredRGB('{CECECE}[v15.3] Изменено отбражаение таймера маски на более удобное.')
@@ -3839,7 +3947,7 @@ function getStateCommand(name)
 				return 'КОМАНДА НЕ НАЙДЕНА, ВОЗМОЖНО СОЗДАТЬ НОВУЮ', 1 -- {CD5C5C}
 			end
 		else
-			return 'КОМАНДА ИСПОЛЬЗУЕТСЯ СКРИПТОМ', 1
+			return 'КОМАНДА ИСПОЛЬЗУЕТСЯ СКРИПТОМ', false
 		end
 	else
 		return 'ОЖИДАНИЕ ВВОДА КОМАНДЫ', false -- {FFD700}
@@ -3875,7 +3983,7 @@ function draw_another_custom_command()
 				
 					if ini.customCommands[name_cmd.v] == nil then
 						ini.customCommands[name_cmd.v] = true
-						inicfg.save(ini, 'Helper for MIA.ini')
+						inicfg.save(ini, 'HfMIA global settings.ini')
 
 						sampUnregisterChatCommand(name_cmd.v)
 						sampRegisterChatCommand(name_cmd.v, function(input)
@@ -3964,7 +4072,7 @@ function draw_another_custom_command()
 
 						sampUnregisterChatCommand(name_cmd.v)
 						ini.customCommands[name_cmd.v] = nil
-						inicfg.save(ini, 'Helper for MIA.ini')
+						inicfg.save(ini, 'HfMIA global settings.ini')
 					else
 						pushMessage('Для начала нужно найти или создать команду.', 3, 3)	
 					end
@@ -4008,7 +4116,53 @@ function draw_another_custom_command()
 		end
 	else
 		imgui.Text('')
-		imgui.CenterTextColoredRGB('Для начала редактирования откройте любую команду.')
+		imgui.CenterTextColoredRGB('Для начала редактирования откройте любую команду выбрав её в списке, либо введя её название.')
+
+		imgui.BeginChild('##blook', imgui.ImVec2(610, 390), true, imgui.WindowFlags.VerticalScrollbar)
+			imgui.Columns(3)
+			imgui.Separator()
+			imgui.SetColumnWidth(-1, 140) imgui.CenterColumnText(u8'ДЕЙСТВИЕ') imgui.NextColumn()
+			imgui.SetColumnWidth(-1, 140) imgui.CenterColumnText(u8'СОСТОЯНИЕ') imgui.NextColumn()
+			imgui.SetColumnWidth(-1, 320) imgui.CenterColumnText(u8'НАЗВАНИЕ КОМАНДЫ') imgui.NextColumn()
+
+			for name, value in pairs(ini.customCommands) do
+				imgui.Separator()
+
+				if imgui.Button(u8'ОТКРЫТЬ##' .. name, imgui.ImVec2(130, 20)) then
+					name_cmd.v = name
+
+					local path = string.format('moonloader//helper//commands//%s.txt', u8:decode(name_cmd.v))
+					
+					if doesFileExist(path) then
+						local cmd_text = ''
+						for line in io.lines(path) do
+							if string.match(line, '{param = (%d+)}') then
+								param_cmd = tonumber(string.match(line, '{param = (%d+)}'))
+							else 
+								cmd_text = string.format('%s%s\n', cmd_text, u8(line))
+							end
+						end
+
+						text_cmd.v = cmd_text
+						command_open = path
+					
+						pushMessage('Команда найдена и открыта для настройки', 3, 4)
+					else
+						pushMessage('Возникла ошибка, такой команды не существует', 3, 3)
+					end
+				end imgui.NextColumn()
+
+				if value then
+					imgui.SetCursorPosX((imgui.GetColumnOffset() + (imgui.GetColumnWidth() / 2)) - 27)
+					imgui.TextColoredRGB('{90EE90}АКТИВНА')
+				else
+					imgui.SetCursorPosX((imgui.GetColumnOffset() + (imgui.GetColumnWidth() / 2)) - 35)
+					imgui.TextColoredRGB('{CD5C5C}НЕАКТИВНА')
+				end imgui.NextColumn()
+
+				imgui.CenterColumnText(name) imgui.NextColumn()
+			end
+		imgui.End()
 	end
 end
 
@@ -4036,7 +4190,7 @@ function draw_settings_allcommands()
 					sampRegisterChatCommand(name, _G[commands[2]])
 				end
 
-				inicfg.save(ini, 'Helper for MIA.ini')
+				inicfg.save(ini, 'HfMIA global settings.ini')
 			end imgui.NextColumn()
 
 			imgui.CenterColumnText(u8(name)) imgui.NextColumn()
@@ -4065,7 +4219,7 @@ function draw_settings_allcommands()
 					end)
 				end
 
-				inicfg.save(ini, 'Helper for MIA.ini')
+				inicfg.save(ini, 'HfMIA global settings.ini')
 			end imgui.NextColumn()
 
 			imgui.CenterColumnText(u8(name)) imgui.NextColumn()
@@ -4091,7 +4245,7 @@ function draw_new_custom_hotkey()
 								end
 								
 								ini.custom_hkey[val.name] = string.gsub(key, '%s,%s', '')
-								inicfg.save(ini, 'Helper for MIA.ini')
+								inicfg.save(ini, 'HfMIA global settings.ini')
 								pushMessage('Для этой команды установленно новое сочетание клавиш.', 3, 4)
 							else
 								hotkey_cust_butt[id].key = hotkey_cust_butt[id].last
@@ -4115,7 +4269,7 @@ function draw_new_custom_hotkey()
 						end
 					end)
 					
-					inicfg.save(ini, 'Helper for MIA.ini')
+					inicfg.save(ini, 'HfMIA global settings.ini')
 				else
 					pushMessage('Команда не должна быть на русском языке.', 3, 3)
 				end
@@ -4136,7 +4290,7 @@ function draw_customization()
 	imgui.Text('')
 	
 	if imgui.Button(u8'СОХРАНИТЬ И ПРИМЕНИТЬ НОВЫЕ ЗНАЧЕНИЯ', imgui.ImVec2(615, 20)) then
-		inicfg.save(ini, 'Helper for MIA.ini')
+		inicfg.save(ini, 'HfMIA global settings.ini')
 		apply_custom_style()
 	end
 	
@@ -5840,6 +5994,22 @@ function sampGetMonthName()
 	end
 end
 
+function sampGetPickupHandleByCoords(model, x, y, z)
+	for name, value in pairs(getAllPickups()) do
+		if getPickupModel(value) == model then
+			if z == nil then
+				return value
+			else
+				local pX, pY, pZ = getPickupCoordinates(value)
+				
+				if pX == x and pY == y and pZ == z then
+					return value
+				end
+			end
+		end
+	end
+end
+
 function getColorRang(nrang)
 	if nrang ~= nil then
 		if tonumber(nrang) > 2 then return '{CD5C5C}'
@@ -5855,7 +6025,7 @@ function sampev.onServerMessage(color, text)
 		local text, name, number = text:match('(.+)[%s+].[%s+]Отправил[%s+](%S+).[%d+].[%s+].тел.[%s+](%d+).')
 		name = string.gsub(name, '%[', '')
 		ini.number[name] = number
-		inicfg.save(ini, 'Helper for MIA.ini')
+		inicfg.save(ini, 'HfMIA global settings.ini')
 		
 		if not ini.set.stopad then return false end
 	end
@@ -5982,7 +6152,7 @@ function sampev.onServerMessage(color, text)
 		--local pname = sampGetPlayerName(id)
 		
 		ini.number[name] = number
-		inicfg.save(ini, 'Helper for MIA.ini')
+		inicfg.save(ini, 'HfMIA global settings.ini')
 		last_sms = number
 		
 		if sampGetBlackList(name) then
@@ -5994,13 +6164,13 @@ function sampev.onServerMessage(color, text)
 	if text:match('SMS.[%s](.+)[%s].[%s]Получатель.[%s](.+)[%s].т.(%d+).') then
 		local ftext, name, number = text:match('SMS.[%s](.+)[%s].[%s]Получатель.[%s](.+)[%s].т.(%d+).')
 		ini.number[name] = number
-		inicfg.save(ini, 'Helper for MIA.ini')
+		inicfg.save(ini, 'HfMIA global settings.ini')
 	end
 	
 	if text:match('Входящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Вызывает[%s](.+)') then
 		local number, name = text:match('Входящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Вызывает[%s](.+)')
 		ini.number[name] = number
-		inicfg.save(ini, 'Helper for MIA.ini')
+		inicfg.save(ini, 'HfMIA global settings.ini')
 		
 		if sampGetBlackList(name) then
 			bl_call = true
@@ -6013,7 +6183,7 @@ function sampev.onServerMessage(color, text)
 	if text:match('Исходящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Ожидание[%s]ответа[%s]от[%s](.+)...') then
 		local number, name = text:match('Исходящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Ожидание[%s]ответа[%s]от[%s](.+)...')
 		ini.number[name] = number
-		inicfg.save(ini, 'Helper for MIA.ini')
+		inicfg.save(ini, 'HfMIA global settings.ini')
 	end
 	
 	if text:match('Используйте {00CC00}/p {FFFFFF}чтобы ответить или {FF6600}/h {FFFFFF}чтобы отклонить вызов') then
@@ -6444,6 +6614,14 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 			end
 		end
 	end
+
+	if dropAll then
+		if string.find(title, 'Какое оружие выбросить?') then
+			sampSendDialogResponse(dialogId, 1, 0, -1)
+			dropAll = false
+			return false
+		end
+	end
 end
 
 function sampev.onPlayerChatBubble(id, color, dis, dur, mess)
@@ -6782,7 +6960,7 @@ function onWindowMessage(msg, wparam, lparam)
 				if show_uk_edit.v or show_help.v then
 					show_uk_edit.v, show_help.v = false, false
 				else
-					show_menu.v, fastMenu.v, show_suspect.v, show_uk_list.v, show_ak_list.v, show_ticket.v, show_notification.v = false, false, false, false, false, false, false
+					show_menu.v, fastMenu.v, show_suspect.v, show_uk_list.v, show_ak_list.v, show_ticket.v, show_notification.v, show_server.v = false, false, false, false, false, false, false, false
 				end
 			end
 		end

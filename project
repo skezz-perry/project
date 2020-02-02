@@ -1,5 +1,5 @@
 script_name('helper-for-mia')
-script_version(15.6)
+script_version(15.7)
 --script_properties('work-in-pause')
 
 require 'lib.moonloader'
@@ -23,6 +23,12 @@ imgui.HotKey            = require('imgui_addons').HotKey
 imgui.ToggleButton      = require('imgui_addons').ToggleButton
 encoding.default        = 'CP1251'
 u8                      = encoding.UTF8
+
+-- ШРИФТЫ
+font_logo = renderCreateFont('Calibri', 15, font_flag.BOLD)
+font_logo_lil = renderCreateFont('Calibri', 8, font_flag.BOLD)
+font_t = renderCreateFont('Calibri', 14, font_flag.BOLD)
+--
 
 local tCarsName = {"Landstalker", "Bravura", "Buffalo", "Linerunner", "Perrenial", "Sentinel", "Dumper", "Firetruck", "Trashmaster", "Stretch", "Manana", "Infernus",
 	"Voodoo", "Pony", "Mule", "Cheetah", "Ambulance", "Leviathan", "Moonbeam", "Esperanto", "Taxi", "Washington", "Bobcat", "Whoopee", "BFInjection", "Hunter",
@@ -1029,8 +1035,6 @@ function logotyp()
 		if sampIsLocalPlayerSpawned() then
 			if ini.set.new_logo then
 				if not draw_new_logo then
-					font_logo = renderCreateFont('Calibri', 15, font_flag.BOLD)
-					font_logo_lil = renderCreateFont('Calibri', 8, font_flag.BOLD)
 					logo_texture = renderLoadTextureFromFileInMemory(memory.strptr(logotype_texture), 4096)
 					text_logo = 'ADVANCE'
 					draw_new_logo = true
@@ -2422,7 +2426,6 @@ function CheckPlayersOfBlackList(name, tab)
 end
 
 function show_flymode()
-	local font_t = renderCreateFont('Century Gothic', 14, font_flag.BOLD)
 	local type_vision = 0
 	
 	while true do
@@ -3853,19 +3856,21 @@ function draw_head_page()
 	if not communication_page then
 		imgui.Text('')
 		
-		imgui.BeginChild('##Update_Info', imgui.ImVec2(610, 410), true)
+		imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ПОСЛЕДНИХ ОБНОВЛЕНИЯХ')
+
+		imgui.BeginChild('##Update_Info', imgui.ImVec2(610, 390), true)
 			
-			imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ПОСЛЕДНИХ ОБНОВЛЕНИЯХ')
-			
-			imgui.TextColoredRGB('{ffffff}[v15.6] Добавлен менеджер серверов для удобного переподключения (/lserver).')
-			imgui.TextColoredRGB('{ffffff}[v15.6] Добавлен быстрый сброс оружия (/dropall) и быстрое взъятие еды (/pickeat).')
-			imgui.TextColoredRGB('{ffffff}[v15.6] Добавлен список созданных команд в доп.возмжностях, для удобного редактирования.')
+			imgui.TextColoredRGB('{ffffff}[v15.7] Менеджер паролей был улучшен и теперь работает на любом сервере.')
+			imgui.TextColoredRGB('{ffffff}[v15.7] Добавлен перенос строк для обычного чата, /me и /do.')
+
+			imgui.TextColoredRGB('{CECECE}[v15.6] Добавлен менеджер серверов для удобного переподключения (/lserver).')
+			imgui.TextColoredRGB('{CECECE}[v15.6] Добавлен быстрый сброс оружия (/dropall) и быстрое взъятие еды (/pickeat).')
+			imgui.TextColoredRGB('{CECECE}[v15.6] Добавлен список созданных команд в доп.возмжностях, для удобного редактирования.')
 
 			imgui.TextColoredRGB('{CECECE}[v15.5] Добавлена возможность включать и отключать команды скрипта, а так же доп. команды.')
 			imgui.TextColoredRGB('{CECECE}[v15.5] Добавлен лог убийств в sampfuncs-консоли, просмотреть его можно нажав Ё (~).')
 			imgui.TextColoredRGB('{CECECE}[v15.5] Изменена система дополнительных возможностей на более правильную.')
 			imgui.TextColoredRGB('{CECECE}[v15.5] Слегка изменена система отображения скорости автомобиля и таймера маски.')
-
 			imgui.TextColoredRGB('{CECECE}[v15.4] Добавлена возможность получить оружие в любом департамента (/pickweap).')
 			imgui.TextColoredRGB('{CECECE}[v15.3] Изменено отбражаение таймера маски на более удобное.')
 			imgui.TextColoredRGB('{CECECE}[v14.9] Добавлено удобное отображение скорости автомобиля при включённых стробоскопах.')
@@ -6322,8 +6327,8 @@ function sampev.onServerMessage(color, text)
 end
 
 function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
-	if string.find(title, '{66CCFF}Авторизация') and dialogId == 1 then
-		if not text:find('Неверный пароль! Осталось попыток') then
+	if string.match(title, 'Авторизация') then
+		if not text:match('Неверный пароль') then
 			local res, id = sampGetPlayerIdByCharHandle(playerPed)
 			if res then
 				local name = sampGetPlayerName(id)
@@ -6333,6 +6338,7 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 				if pass.server[dd] ~= nil then
 					local pass = pass.server[dd]:match('(.+)[%s]%|[%s][%S+]')
 					sampSendDialogResponse(dialogId, 1, 1, pass)
+
 					return false
 				end
 			end
@@ -6671,21 +6677,37 @@ function sampev.onSendDeathNotification(reason, playerId)
 	end
 end
 
---[[function sampev.onSendCommand(param)
-	if string.match(param, '(%S+)[%s](%S+)') then file, val = string.match(param, '(%S+)[%s](.+)') else file, val = param, nil end
+function sampev.onSendChat(text)
+	if string.len(text) > 90 then
+		sampSendChat(string.sub(text, 0, 87) .. ' ..')
+		sampSendChat('.. ' .. string.sub(text, 88, string.len(text)))
+		return false
+	end
+end
 
-	if not sampIsChatCommandDefined(file) then
-		local namefile = string.format('moonloader//helper/commands//%s.txt', file)
+local longCommand = {
+	['me'] = {90, true},
+	['do'] = {75}
+}
 
-		if doesFileExist(namefile) then
-			if last_command ~= file then
-				last_command = file
-				process_command(file, val)
-				return false
+function sampev.onSendCommand(parametrs)
+	local command, value = string.match(parametrs, '/(%S+)[%s](.+)')
+
+	if longCommand[command] then
+		local longValue = string.len(value)
+
+		if longCommand[command][1] < longValue then
+			sampSendChat('/' .. command .. ' ' .. string.sub(value, 0, longCommand[command][1] - 3) .. ' ..')
+
+			if longCommand[command][2] then
+				sampSendChat('/do .. ' .. string.sub(value, longCommand[command][1] - 2, longValue) .. '.')
+			else
+				sampSendChat('/' .. command .. ' .. ' .. string.sub(value, longCommand[command][1] - 2, longValue))
 			end
+			return false
 		end
 	end
-end]]
+end
 
 function onGetTableCommand(p)
 	local tab = {}
@@ -6760,6 +6782,8 @@ function process_command(file, input)
 						if type(_G[_function]) == ('function') then
 							_G[_function]()
 						end
+					elseif string.match(val, 'pickPickup%((.+)%)') then
+						sampSendPickedUpPickup(string.match(val, 'pickPickup%((.+)%)'))
 					else
 						print(string.format('Неизвестная линия: %s', val))
 						printStringNow(string.format('~r~An error was detected in one of the lines [%d]. Check the console.', linen), 2500)

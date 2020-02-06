@@ -1,5 +1,12 @@
+--    _   _    _____   _       _____    _____   _____         _____   _____    _____         _     _    _     ______
+--   | | / |  |  __/  | |     |  __ \  |  __/  |  __ \       |  ___| /  _  \  |  __ \       | \   / |  / |   /  _   |
+--   | |_| |  | |_    | |     | |__| | | |_    | |__| |      | |__   | / \ |  | |__| |      |  \_/  |  | |  |  / |  |
+--   |  _  |  |  _|   | |     |  ___/  |  _|   |    _/       |  _/   | | | |  |    _/       |       |  | |  | |  |  |
+--   | | | |  | |_    | |___  | |      | |_    | |\ \        | |     | |_| |  | |\ \        | |\_/| |  | |  |  \_|  |
+--   |_/ \_|  |____\  |_____/ |_|      |____\  |_| \_\       |_|     \_____/  |_| \_\       |_|   |_|  |_|   \ ___/\/
+
 script_name('helper-for-mia')
-script_version(15.7)
+script_version(15.8)
 --script_properties('work-in-pause')
 
 require 'lib.moonloader'
@@ -343,77 +350,77 @@ local ini = inicfg.load({
 		Text                 = 4294967295
 	},
 	hkey = {
-		eat = '2, 49',
-		open = '2, 50',
-		onvec_m = '2, 51',
-		onfoot_m = '2, 52',
-		smart_su = '2, 53',
-		lock = '76',
-		menu = '99',
-		fast_menu = '90',
-		camera = '123',
-		camhack_on = '67, 49',
-		camhack_off = '67, 50',
-		strob_right = false,
-		strob_left = false
+		eat                  = '2, 49',
+		open                 = '2, 50',
+		onvec_m              = '2, 51',
+		onfoot_m             = '2, 52',
+		smart_su             = '2, 53',
+		lock                 = '76',
+		menu                 = '99',
+		fast_menu            = '90',
+		camera               = '123',
+		camhack_on           = '67, 49',
+		camhack_off          = '67, 50',
+		strob_right          = false,
+		strob_left           = false
 	},
 	defaultCommands = {
-		r = true,
-		rn = true,
-		f = true,
-		fn = true,
-		cuff = true,
-		uncuff = true,
-		arrest = true,
-		pull = true,
-		su = true,
-		skip = true,
-		clear = true,
-		hold = true,
-		ticket = true,
-		takelic = true,
-		putpl = true,
-		rights = true,
-		search = true,
-		follow = true,
-		hack = true,
-		invite = true,
-		uninvite = true,
-		rang = true,
-		changeskin = true,
-		ud = true,
-		pas = true,
-		rep = true,
-		uk = true,
-		ak = true,
-		code = true,
-		ustav = true,
-		sw = true,
-		st = true,
-		sskin = true,
-		history = true,
-		asms = true,
-		gov = true,
-		addbl = true,
-		delbl = true,
-		pay = true,
-		users = true,
-		rkinfo = true,
-		sms = true,
-		open = true,
-		bl = true,
-		blname = true,
-		rec = true,
-		recn = true,
-		recd = true,
-		rtag = true,
-		push = true,
-		mh = true,
-		strobes = true,
-		pickweap = true,
-		lserver = true,
-		pickeat = true,
-		dropall = true
+		r                    = true,
+		rn                   = true,
+		f                    = true,
+		fn                   = true,
+		cuff                 = true,
+		uncuff               = true,
+		arrest               = true,
+		pull                 = true,
+		su                   = true,
+		skip                 = true,
+		clear                = true,
+		hold                 = true,
+		ticket               = true,
+		takelic              = true,
+		putpl                = true,
+		rights               = true,
+		search               = true,
+		follow               = true,
+		hack                 = true,
+		invite               = true,
+		uninvite             = true,
+		rang                 = true,
+		changeskin           = true,
+		ud                   = true,
+		pas                  = true,
+		rep                  = true,
+		uk                   = true,
+		ak                   = true,
+		code                 = true,
+		ustav                = true,
+		sw                   = true,
+		st                   = true,
+		sskin                = true,
+		history              = true,
+		asms                 = true,
+		gov                  = true,
+		addbl                = true,
+		delbl                = true,
+		pay                  = true,
+		users                = true,
+		rkinfo               = true,
+		sms                  = true,
+		open                 = true,
+		bl                   = true,
+		blname               = true,
+		rec                  = true,
+		recn                 = true,
+		recd                 = true,
+		rtag                 = true,
+		push                 = true,
+		mh                   = true,
+		strobes              = true,
+		pickweap             = true,
+		lserver              = true,
+		pickeat              = true,
+		dropall              = true
 	},
 	customCommands = {
 	},
@@ -425,76 +432,76 @@ local ini = inicfg.load({
 
 local scriptCommands = {
 	default = {
-		r = {true, 'command_r'},
-		rn = {true, 'command_rn'},
-		f = {true, 'command_f'},
-		fn = {true, 'command_fn'},
-		cuff = {true, 'command_cuff'},
-		uncuff = {true, 'command_uncuff'},
-		arrest = {true, 'command_arrest'},
-		pull = {true, 'command_pull'},
-		su = {true, 'command_su'},
-		skip = {true, 'command_skip'},
-		clear = {true, 'command_clear'},
-		hold = {true, 'command_hold'},
-		ticket = {true, 'command_ticket'}, 
-		takelic = {true, 'command_takelic'},
-		putpl = {true, 'command_putpl'},
-		rights = {true, 'command_rights'},
-		search = {true, 'command_search'},
-		follow = {true, 'command_follow'},
-		hack = {true, 'command_hack'},
-		invite = {true, 'command_invite'},
-		uninvite = {true, 'command_uninvite'},
-		rang = {true, 'command_rang'},
-		changeskin = {true, 'command_changeskin'},
-		ud = {true, 'command_ud'},
-		pas = {true, 'command_pas'},
-		rep = {true, 'command_report'},
-		uk = {true, 'command_uk'},
-		ak = {true, 'command_ak'},
-		code = {true, 'command_code'},
-		ustav = {true, 'command_ustav'},
-		sw = {true, 'command_setweather'},
-		st = {true, 'command_settime'},
-		sskin = {true, 'command_setskin'},
-		history = {true, 'command_history'},
-		asms = {true, 'command_asms'},
-		gov = {true, 'command_gov'},
-		addbl = {true, 'command_addbl'},
-		delbl = {true, 'command_delbl'},
-		pay = {true, 'command_apay'},
-		users = {true, 'command_users'},
-		rkinfo = {true, 'command_rkinfo'},
-		sms = {true, 'command_sms'},
-		open = {true, 'command_open'},
-		bl = {true, 'command_bl'},
-		blname = {true, 'command_namebl'},
-		rec = {true, 'command_reconnect'},
-		recn = {true, 'command_reconnectwithchange'},
-		recd = {true, 'command_reconnectwithchangeip'},
-		rtag = {true, 'command_radiotag'},
-		push = {true, 'command_push'},
-		mh = {true, 'command_menu'},
-		strobes = {true, 'command_strobes'},
-		pickweap = {true, 'command_pickweapon'},
-		lserver = {true, 'command_server'},
-		pickeat = {true, 'command_pickeat'},
-		dropall = {true, 'command_dropall'}
+		r                    = {true, 'command_r'},
+		rn                   = {true, 'command_rn'},
+		f                    = {true, 'command_f'},
+		fn                   = {true, 'command_fn'},
+		cuff                 = {true, 'command_cuff'},
+		uncuff               = {true, 'command_uncuff'},
+		arrest               = {true, 'command_arrest'},
+		pull                 = {true, 'command_pull'},
+		su                   = {true, 'command_su'},
+		skip                 = {true, 'command_skip'},
+		clear                = {true, 'command_clear'},
+		hold                 = {true, 'command_hold'},
+		ticket               = {true, 'command_ticket'}, 
+		takelic              = {true, 'command_takelic'},
+		putpl                = {true, 'command_putpl'},
+		rights               = {true, 'command_rights'},
+		search               = {true, 'command_search'},
+		follow               = {true, 'command_follow'},
+		hack                 = {true, 'command_hack'},
+		invite               = {true, 'command_invite'},
+		uninvite             = {true, 'command_uninvite'},
+		rang                 = {true, 'command_rang'},
+		changeskin           = {true, 'command_changeskin'},
+		ud                   = {true, 'command_ud'},
+		pas                  = {true, 'command_pas'},
+		rep                  = {true, 'command_report'},
+		uk                   = {true, 'command_uk'},
+		ak                   = {true, 'command_ak'},
+		code                 = {true, 'command_code'},
+		ustav                = {true, 'command_ustav'},
+		sw                   = {true, 'command_setweather'},
+		st                   = {true, 'command_settime'},
+		sskin                = {true, 'command_setskin'},
+		history              = {true, 'command_history'},
+		asms                 = {true, 'command_asms'},
+		gov                  = {true, 'command_gov'},
+		addbl                = {true, 'command_addbl'},
+		delbl                = {true, 'command_delbl'},
+		pay                  = {true, 'command_apay'},
+		users                = {true, 'command_users'},
+		rkinfo               = {true, 'command_rkinfo'},
+		sms                  = {true, 'command_sms'},
+		open                 = {true, 'command_upopen'},
+		bl                   = {true, 'command_bl'},
+		blname               = {true, 'command_namebl'},
+		rec                  = {true, 'command_reconnect'},
+		recn                 = {true, 'command_reconnectwithchange'},
+		recd                 = {true, 'command_reconnectwithchangeip'},
+		rtag                 = {true, 'command_radiotag'},
+		push                 = {true, 'command_push'},
+		mh                   = {true, 'command_menu'},
+		strobes              = {true, 'command_strobes'},
+		pickweap             = {true, 'command_pickweapon'},
+		lserver              = {true, 'command_server'},
+		pickeat              = {true, 'command_pickeat'},
+		dropall              = {true, 'command_dropall'}
 	}
 }
 
 local hotkey_butt = {
-	eat = {key = {v = {}}, last = {}, bind = -1, name = 'Использоние еды (/eat)'},
-	open = {key = {v = {}}, last = {}, bind = -1, name = 'Открытие шлагбаума (/open)'},
-	lock = {key = {v = {}}, last = {}, bind = -1, name = 'Открыть или закрыть машину (/lock)'},
-	menu = {key = {v = {}}, last = {}, bind = -1, name = 'Открыть или закрыть основное меню'},
-	fast_menu = {key = {v = {}}, last = {}, bind = -1, name = 'Открыть или закрыть быстрое меню'},
-	camera = {key = {v = {}}, last = {}, bind = -1, name = 'Клавиша для использования RP-камеры'},
-	onvec_m = {key = {v = {}}, last = {}, bind = -1, name = 'Использование мегафона в машине'},
-	onfoot_m = {key = {v = {}}, last = {}, bind = -1, name = 'Сообщение о погоне в рацию'},
-	smart_su = {key = {v = {}}, last = {}, bind = -1, name = 'Использование быстрого розыска'},
-	camhack_on = {key = {v = {}}, last = {}, bind = -1, name = 'Включить CamHack'},
+	eat         = {key = {v = {}}, last = {}, bind = -1, name = 'Использоние еды (/eat)'},
+	open        = {key = {v = {}}, last = {}, bind = -1, name = 'Открытие шлагбаума (/open)'},
+	lock        = {key = {v = {}}, last = {}, bind = -1, name = 'Открыть или закрыть машину (/lock)'},
+	menu        = {key = {v = {}}, last = {}, bind = -1, name = 'Открыть или закрыть основное меню'},
+	fast_menu   = {key = {v = {}}, last = {}, bind = -1, name = 'Открыть или закрыть быстрое меню'},
+	camera      = {key = {v = {}}, last = {}, bind = -1, name = 'Клавиша для использования RP-камеры'},
+	onvec_m     = {key = {v = {}}, last = {}, bind = -1, name = 'Использование мегафона в машине'},
+	onfoot_m    = {key = {v = {}}, last = {}, bind = -1, name = 'Сообщение о погоне в рацию'},
+	smart_su    = {key = {v = {}}, last = {}, bind = -1, name = 'Использование быстрого розыска'},
+	camhack_on  = {key = {v = {}}, last = {}, bind = -1, name = 'Включить CamHack'},
 	camhack_off = {key = {v = {}}, last = {}, bind = -1, name = 'Выключить CamHack'}
 }
 
@@ -600,12 +607,6 @@ function main()
 			scriptCommands.default[name][1] = ini.defaultCommands[name]
 		end
 	end inicfg.save(ini, 'HfMIA global settings.ini')
-
-	--[[for name, bool in pairs(ini.defaultCommands) do
-		if scriptCommands.default[name] then
-			scriptCommands.default[name][1] = bool
-		end
-	end]]
 
 	local numberCommands, registerCommands = 0, 0
 	for command, _function in pairs(scriptCommands.default) do
@@ -1028,24 +1029,31 @@ end
 
 function logotyp()
 	local server_name = {'RED', 'GREEN', '', '', 'BLUE'}
+	local serverName
 
-	while true do
+	if string.match(sampGetCurrentServerAddress(), '5.254.104.13(%d+)') then
+		local id = string.match(sampGetCurrentServerAddress(), '5.254.104.13(%d+)')
+		serverName = server_name[tonumber(id)]
+	end
+
+	while true and serverName do
 		wait(0)
 		
+		if destroyLogototyp then 
+			destroyLogototyp = false 
+			break 
+		end
+
 		if sampIsLocalPlayerSpawned() then
 			if ini.set.new_logo then
 				if not draw_new_logo then
 					logo_texture = renderLoadTextureFromFileInMemory(memory.strptr(logotype_texture), 4096)
-					text_logo = 'ADVANCE'
 					draw_new_logo = true
 				else
-					if string.match(sampGetCurrentServerAddress(), '5.254.104.13(%d+)') then
-						local id = string.match(sampGetCurrentServerAddress(), '5.254.104.13(%d+)')
-						text_logo_lil = 'ROLE PLAY ' .. server_name[tonumber(id)]
-						renderFontDrawText(font_logo, text_logo, ini.set.logo_x + 65, ini.set.logo_y + 15, 0xFFFFFFFF)
-						renderFontDrawText(font_logo_lil, text_logo_lil, ini.set.logo_x + 65, ini.set.logo_y + 33, 0xFFFFFFFF)
-						renderDrawTexture(logo_texture, ini.set.logo_x, ini.set.logo_y, 60, 60, 0, 0xFFFFFFFF)
-					end
+					text_logo_lil = 'ROLE PLAY ' .. serverName
+					renderFontDrawText(font_logo, 'ADVANCE', ini.set.logo_x + 65, ini.set.logo_y + 15, 0xFFFFFFFF)
+					renderFontDrawText(font_logo_lil, text_logo_lil, ini.set.logo_x + 65, ini.set.logo_y + 33, 0xFFFFFFFF)
+					renderDrawTexture(logo_texture, ini.set.logo_x, ini.set.logo_y, 60, 60, 0, 0xFFFFFFFF)
 				end
 			end
 		end
@@ -1279,6 +1287,9 @@ function command_reconnectwithchangeip(parametrs)
 		if string.match(ip, '(%S+):(%d+)') then
 			sampSetLocalPlayerName(name)
 			reconnect(1, ip)
+
+			destroyLogototyp = true
+			lua_thread.create(logotyp)
 		else
 			addChat('IP-адресс сервера должен быть в формате IP:PORT (например: 5.254.104.132:7777).')
 		end
@@ -1287,6 +1298,9 @@ function command_reconnectwithchangeip(parametrs)
 		if string.match(ip, '(%S+):(%d+)') then
 			sampSetLocalPlayerName(name)
 			reconnect(1, ip)
+
+			destroyLogototyp = true
+			lua_thread.create(logotyp)
 		else
 			addChat('IP-адресс сервера должен быть в формате IP:PORT (например: 5.254.104.132:7777).')
 		end
@@ -1545,8 +1559,8 @@ end
 
 function command_setskin(param)
 	if player_status > 1 then
-		if string.match(param, '(%d+) (%d+) (%d+)') then
-			local id, skin, state = string.match(param, '(%d+) (%d+) (%d+)')
+		if string.match(param, '(%d+) (%d+)') then
+			local id, skin, state = string.match(param, '(%d+) (%d+)')
 			if IPC(id) then
 				if sampGetDistanceToPlayer(id) < 200 then
 					local BS = raknetNewBitStream()
@@ -1556,12 +1570,26 @@ function command_setskin(param)
 					raknetDeleteBitStream(BS)
 					
 					local name = string.gsub(sampGetPlayerName(id),'_',' ')
-					if tonumber(state) ~= 1 then addChat('Вы установили визуальный скин ({FFCD00}' .. skin .. '{ffffff}) для игрока ' .. name .. '[' .. id .. ']') end
+					addChat('Вы установили визуальный скин ({FFCD00}' .. skin .. '{ffffff}) для игрока ' .. name .. '[' .. id .. '].')
 				else
 					addChat('Данный игрок находится слишком далеко от Вас.')
 				end
 			else
 				addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+			end
+		elseif string.match(param, '(%d+)') then
+			local skin = string.match(param, '(%d+)')
+			local result, id = sampGetPlayerIdByCharHandle(playerPed)
+
+			if result then
+				local BS = raknetNewBitStream()
+				raknetBitStreamWriteInt32(BS, id)
+				raknetBitStreamWriteInt32(BS, skin)
+				raknetEmulRpcReceiveBitStream(153, BS)
+				raknetDeleteBitStream(BS)
+				addChat('На Вас был установлен визуальный скин {FFCD00}' .. skin .. '{ffffff}.')
+			else
+				addChat('Произошла ошибка при попытке выдачи скина.')
 			end
 		else
 			addChat('Используйте команду /sskin [ид игрока] [ид скина] [0 или 1].')
@@ -2236,7 +2264,7 @@ function command_su(param)
 		if IPC(id) then
 			if sampGetPlayerColor(id) ~= 2236962 then
 				lua_thread.create(function()
-					if sampGetCharHandleBySampPlayerId(id) then
+					if sampGetDistanceToPlayer(id) <= 65 then
 						if not ini.info.male then
 							sampSendChat('/me сняв тангету с плеча, передал диспетчеру информацию о подозреваемом')
 						else
@@ -3092,142 +3120,7 @@ function imgui.OnDrawFrame()
 				
 				if show_item.v == 7 then
 					imgui.BeginChild('##another_block', imgui.ImVec2(630, 520), true, imgui.WindowFlags.HorizontalScrollbar)
-						imgui.CenterTextColoredRGB('ГОСУДАРСТВЕННЫЕ НОВОСТИ')
-					
-						imgui.Text('')
-					
-						imgui.Text(u8'ID-новости ')
-					
-						imgui.SameLine()
-					
-						imgui.PushItemWidth(80)
-						imgui.InputText('##id_news', idnews)
-						ItemPovered('Введите в это окно ID новости, которую хотите найти или создать.')
-					
-						imgui.SameLine()
-					
-						if imgui.Button(u8'НАЙТИ', imgui.ImVec2(149, 20)) then
-							if string.match(idnews.v, '(%d+)') then
-								if doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
-									pushMessage('Новость найдена и открыта для настройки', 3, 4)
-							
-									for val in io.lines(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) do
-										if string.match(val, 'type=(%d+)') then
-											local ntype = string.match(val, 'type=(%d+)')
-											if tonumber(ntype) == 3 then three_or_one_line = true else three_or_one_line = false end
-										elseif string.match(val, 'line(%d+)=(.+)') then
-											local line, text = string.match(val, 'line(%d+)=(.+)')
-											if tonumber(line) <= 3 then
-												if tonumber(line) == 1 then govermentNews.lineOne.v = u8(text) end
-												if tonumber(line) == 2 then govermentNews.lineTwo.v = u8(text) end
-												if tonumber(line) == 3 then govermentNews.lineThree.v = u8(text) end
-											elseif tonumber(line) == 4 then
-												govermentNews.lineAlone.v = u8(text)
-											end
-										end
-									end
-								else
-									pushMessage('Новости с данным ID не существует', 3, 3)
-								end
-							else
-								pushMessage('Не указан ID-новости или он некорректен', 3, 3)
-							end
-						end
-						ItemPovered('С помощь этой кнопки вы можете найти уже созданную гос. новость.')
-					
-						imgui.SameLine()
-					
-						if imgui.Button(u8'СОЗДАТЬ', imgui.ImVec2(148, 20)) then
-							if string.match(idnews.v, '(%d+)') then
-								if not doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
-									pushMessage('Новость создана и открыта для настройки', 3, 4)
-								
-									local file = string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)
-									local filew = io.open(file, 'w')
-									filew:write('type=1')
-									filew:close()
-								
-									three_or_one_line = false
-								end
-							else
-								pushMessage('Не указан ID-новости или он некорректен', 3, 3)
-							end
-						end
-						ItemPovered('С помощь этой кнопки вы можете создать новую гос. новость.')
-					
-						imgui.SameLine()
-					
-						if imgui.Button(u8'СОХРАНИТЬ', imgui.ImVec2(148, 20)) then
-							if string.match(idnews.v, '(%d+)') then
-								if doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
-									local file = string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)
-									local filew = io.open(file, 'w')
-									if three_or_one_line then
-										filew:write(string.format('type=3\nline1=%s\nline2=%s\nline3=%s', u8:decode(govermentNews.lineOne.v), u8:decode(govermentNews.lineTwo.v), u8:decode(govermentNews.lineThree.v)))
-									else
-										filew:write(string.format('type=1\nline4=%s', u8:decode(govermentNews.lineAlone.v)))
-									end
-									filew:close()
-								
-									pushMessage('Новость успешно сохранена', 3, 4)
-								else
-									pushMessage('Новости с данным ID не существует', 3, 3)
-								end
-							else
-								pushMessage('Не указан ID-новости или он некорректен', 3, 3)
-							end
-						end
-						ItemPovered('С помощь этой кнопки вы можете сохранить созданую гос. новость.')
-					
-						if three_or_one_line then
-							if imgui.Button(u8'ИЗМЕНИТЬ НА 1 СТРОКУ', imgui.ImVec2(610, 20)) then three_or_one_line = not three_or_one_line end
-						else
-							if imgui.Button(u8'ИЗМЕНИТЬ НА 3 СТРОКИ', imgui.ImVec2(610, 20)) then three_or_one_line = not three_or_one_line end
-						end
-						ItemPovered('С помощью этой кнопки вы сможете выбрать сколько строк будет в гос. новости.')
-					
-						imgui.Text('')
-					
-						imgui.Separator()
-					
-						imgui.Text('')
-					
-						imgui.CenterTextColoredRGB('НАСТРОЙКА СТРОК ГОС. НОВОСТИ')
-					
-						imgui.Text('')
-					
-						imgui.PushItemWidth(540)
-						if three_or_one_line then
-							imgui.InputText(u8'1-я строка ##gnews1', govermentNews.lineOne)
-							imgui.InputText(u8'2-я строка ##gnews2', govermentNews.lineTwo)
-							imgui.InputText(u8'3-я строка ##gnews3', govermentNews.lineThree)
-						else
-							imgui.InputText(u8'Строка ##gnews1', govermentNews.lineAlone)
-						end
-						
-						if three_or_one_line then
-							if govermentNews.lineOne.v ~= '' or govermentNews.lineTwo.v ~= '' or govermentNews.lineThree.v ~= '' then
-								imgui.Text('')
-								imgui.Separator()
-								imgui.Text('')
-								imgui.CenterTextColoredRGB('РЕЗУЛЬТАТ')
-								imgui.Text('')
-
-								imgui.TextColoredRGB(string.format('{4466CC}Гос. новости: Ringo[0]: %s', u8:decode(govermentNews.lineOne.v)))
-								imgui.TextColoredRGB(string.format('{4466CC}Гос. новости: Ringo[0]: %s', u8:decode(govermentNews.lineTwo.v)))
-								imgui.TextColoredRGB(string.format('{4466CC}Гос. новости: Ringo[0]: %s', u8:decode(govermentNews.lineThree.v)))
-							end
-						else
-							if govermentNews.lineAlone.v ~= '' then
-								imgui.Text('')
-								imgui.Separator()
-								imgui.Text('')
-								imgui.CenterTextColoredRGB('РЕЗУЛЬТАТ')
-								imgui.Text('')
-
-								imgui.TextColoredRGB(string.format('{4466CC}Гос. новости: Ringo[0]: %s', u8:decode(govermentNews.lineAlone.v)))
-							end
-						end
+						draw_leader_panel()
 					imgui.EndChild()
 				end
 			end
@@ -3382,6 +3275,278 @@ test_table = {
 		['ALLOW'] = function() sampSendChat(string.format('/allow %d', target_id)) end
 	}
 }
+
+function getStateGoverment(id)
+	if tonumber(id) then
+		local path = string.format('moonloader//helper//gnews//news-%d.txt', id)
+
+		if doesFileExist(path) then
+			if govermentOpen and govermentOpen == path then
+				return 'ГОС.НОВОСТЬ ОТКРЫТА ДЛЯ РЕДАКТИРОВАНИЯ', 3 -- {32CD32}
+			else 
+				return 'ГОС.НОВОСТЬ НАЙДЕНА И МОЖЕТ БЫТЬ ОТКРЫТА', 2 -- {FFD700}
+			end
+		else
+			return 'ГОС.НОВОСТЬ НЕ НАЙДЕНА, ВОЗМОЖНО СОЗДАТЬ НОВУЮ', 1 -- {CD5C5C}
+		end
+	else
+		return 'ОЖИДАНИЕ ВВОДА ID ГОС.НОВОСТИ', false -- {FFD700}
+	end
+end
+
+function draw_leader_panel()
+	imgui.CenterTextColoredRGB('ГОСУДАРСТВЕННЫЕ НОВОСТИ')
+					
+	imgui.Text('')
+					
+	imgui.SetCursorPosX(37) imgui.Text(u8'ID новости') 
+	imgui.SameLine(176) imgui.Text(u8'Действие')
+	imgui.SameLine(415) imgui.Text(u8'Состояние')
+	
+	imgui.PushItemWidth(120)
+	if imgui.InputText('##id_news', idnews) then
+		if tonumber(idnews.v) then
+			local path = string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)
+			if govermentOpen ~= path then govermentOpen = '' end
+		else
+			govermentOpen = ''
+		end
+	end
+	ItemPovered('Введите в это окно ID новости, которую хотите найти или создать.') imgui.SameLine(144)
+
+	local goverment, result = getStateGoverment(idnews.v)
+
+	if result == 1 then
+		if imgui.Button(u8'СОЗДАТЬ', imgui.ImVec2(124, 20)) then
+			local file = string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)
+
+			if not doesFileExist(file) then
+				pushMessage('Новость создана и открыта для настройки', 3, 4)
+				local filew = io.open(file, 'w')
+				filew:write('type=1')
+				filew:close()
+		
+				govermentOpen = file
+				govermentNews.lineOne.v = ''
+				govermentNews.lineTwo.v = ''
+				govermentNews.lineThree.v = ''
+				govermentNews.lineAlone.v = ''
+				three_or_one_line = false
+			else
+				pushMessage('Произошла ошибка при попытке создать гос. новость', 3, 3)
+			end
+		end
+	elseif result == 2 then
+		if imgui.Button(u8'ОТКРЫТЬ', imgui.ImVec2(124, 20)) then
+			local file = string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)
+
+			if doesFileExist(file) then
+				pushMessage('Новость найдена и открыта для настройки', 3, 4)
+
+				for val in io.lines(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) do
+					if string.match(val, 'type=(%d+)') then
+						local ntype = string.match(val, 'type=(%d+)')
+						if tonumber(ntype) == 3 then three_or_one_line = true else three_or_one_line = false end
+					elseif string.match(val, 'line(%d+)=(.+)') then
+						local line, text = string.match(val, 'line(%d+)=(.+)')
+						if tonumber(line) <= 3 then
+							if tonumber(line) == 1 then govermentNews.lineOne.v = u8(text) end
+							if tonumber(line) == 2 then govermentNews.lineTwo.v = u8(text) end
+							if tonumber(line) == 3 then govermentNews.lineThree.v = u8(text) end
+						elseif tonumber(line) == 4 then
+							govermentNews.lineAlone.v = u8(text)
+						end
+					end
+				end
+
+				govermentOpen = file
+			else
+				pushMessage('Произошла ошибка при попытке открыть гос. новость', 3, 3)
+			end
+		end
+	elseif result == 3 then
+		if imgui.Button(u8'УДАЛИТЬ', imgui.ImVec2(124, 20)) then
+			local file = string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)
+
+			if doesFileExist(file) then
+				pushMessage('Новость была успешно удалена', 3, 4)
+
+				govermentNews.lineOne.v = ''
+				govermentNews.lineTwo.v = ''
+				govermentNews.lineThree.v = ''
+				govermentNews.lineAlone.v = ''
+
+				os.remove(file)
+			else
+				pushMessage('Произошла ошибка при попытке удалить гос. новость', 3, 3)
+			end
+		end
+	else
+		imgui.Button(u8'НЕДОСТУПНО', imgui.ImVec2(124, 20))
+	end
+
+	imgui.SameLine(283) imgui.Button(u8(goverment), imgui.ImVec2(335, 20))
+
+	if result ~= 3 then
+		imgui.Text('')
+		imgui.CenterTextColoredRGB('Для начала редактирования гос. новости откройте её или создайте новую.')
+	else
+		if three_or_one_line then
+			if imgui.Button(u8'ИЗМЕНИТЬ НА 1 СТРОКУ', imgui.ImVec2(305, 20)) then three_or_one_line = not three_or_one_line end
+		else
+			if imgui.Button(u8'ИЗМЕНИТЬ НА 3 СТРОКИ', imgui.ImVec2(305, 20)) then three_or_one_line = not three_or_one_line end
+		end
+		ItemPovered('С помощью этой кнопки вы сможете выбрать сколько строк будет в гос. новости.')
+		
+		imgui.SameLine()
+
+		if imgui.Button(u8'СОХРАНИТЬ', imgui.ImVec2(300, 20)) then
+			if tonumber(idnews.v) then
+				local file = string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)
+
+				if doesFileExist(file) then
+					local filew = io.open(file, 'w')
+					if three_or_one_line then
+						filew:write(string.format('type=3\nline1=%s\nline2=%s\nline3=%s', u8:decode(govermentNews.lineOne.v), u8:decode(govermentNews.lineTwo.v), u8:decode(govermentNews.lineThree.v)))
+					else
+						filew:write(string.format('type=1\nline4=%s', u8:decode(govermentNews.lineAlone.v)))
+					end
+					filew:close()
+		
+					pushMessage('Новость успешно сохранена', 3, 4)
+				else
+					pushMessage('Новости с данным ID не существует', 3, 3)
+				end
+			else
+				pushMessage('Не указан ID-новости или он некорректен', 3, 3)
+			end
+		end
+		ItemPovered('С помощь этой кнопки вы можете сохранить созданую гос. новость.')
+
+		imgui.Text('')
+					
+		imgui.CenterTextColoredRGB('НАСТРОЙКА СТРОК ГОС. НОВОСТИ') imgui.Text('')
+					
+		imgui.PushItemWidth(610)
+		if three_or_one_line then
+			imgui.InputText('##gnews1', govermentNews.lineOne) ItemPovered('В данное поле введите содержание 1-й строки гос. новости')
+			imgui.InputText('##gnews2', govermentNews.lineTwo)  ItemPovered('В данное поле введите содержание 2-й строки гос. новости')
+			imgui.InputText('##gnews3', govermentNews.lineThree)  ItemPovered('В данное поле введите содержание 3-й строки гос. новости')
+		else
+			imgui.InputText('##gnews11', govermentNews.lineAlone)  ItemPovered('В данное поле введите содержание строки гос. новости')
+		end
+						
+		if three_or_one_line then
+			if govermentNews.lineOne.v ~= '' or govermentNews.lineTwo.v ~= '' or govermentNews.lineThree.v ~= '' then
+				imgui.Text('')
+				imgui.CenterTextColoredRGB('РЕЗУЛЬТАТ')
+
+				imgui.TextColoredRGB(string.format('{4466CC}Гос. новости: Ringo[0]: %s', u8:decode(govermentNews.lineOne.v)))
+				imgui.TextColoredRGB(string.format('{4466CC}Гос. новости: Ringo[0]: %s', u8:decode(govermentNews.lineTwo.v)))
+				imgui.TextColoredRGB(string.format('{4466CC}Гос. новости: Ringo[0]: %s', u8:decode(govermentNews.lineThree.v)))
+			end
+		else
+			if govermentNews.lineAlone.v ~= '' then
+				imgui.Text('')
+				imgui.CenterTextColoredRGB('РЕЗУЛЬТАТ')
+
+				imgui.TextColoredRGB(string.format('{4466CC}Гос. новости: Ringo[0]: %s', u8:decode(govermentNews.lineAlone.v)))
+			end
+		end
+	end
+
+	--[[imgui.SameLine()
+
+	if imgui.Button(u8'ОТКРЫТЬ ИЛИ СОЗДАТЬ', imgui.ImVec2(149, 20)) then
+		if string.match(idnews.v, '(%d+)') then
+			if doesFileExist(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) then
+				pushMessage('Новость найдена и открыта для настройки', 3, 4)
+	
+				for val in io.lines(string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)) do
+					if string.match(val, 'type=(%d+)') then
+						local ntype = string.match(val, 'type=(%d+)')
+						if tonumber(ntype) == 3 then three_or_one_line = true else three_or_one_line = false end
+					elseif string.match(val, 'line(%d+)=(.+)') then
+						local line, text = string.match(val, 'line(%d+)=(.+)')
+						if tonumber(line) <= 3 then
+							if tonumber(line) == 1 then govermentNews.lineOne.v = u8(text) end
+							if tonumber(line) == 2 then govermentNews.lineTwo.v = u8(text) end
+							if tonumber(line) == 3 then govermentNews.lineThree.v = u8(text) end
+												elseif tonumber(line) == 4 then
+							govermentNews.lineAlone.v = u8(text)
+						end
+					end
+				end
+			else
+				pushMessage('Новость создана и открыта для настройки', 3, 4)
+		
+				local file = string.format('moonloader//helper//gnews//news-%d.txt', idnews.v)
+				local filew = io.open(file, 'w')
+				filew:write('type=1')
+				filew:close()
+		
+				three_or_one_line = false
+			end
+		else
+			pushMessage('Не указан ID-новости или он некорректен', 3, 3)
+		end
+	end
+	ItemPovered('С помощь этой кнопки вы можете открыть, уже созданную, или создать новую гос. новость')
+					
+	imgui.SameLine()
+	
+	imgui.Button(u8())
+					
+	if three_or_one_line then
+		if imgui.Button(u8'ИЗМЕНИТЬ НА 1 СТРОКУ', imgui.ImVec2(610, 20)) then three_or_one_line = not three_or_one_line end
+	else
+		if imgui.Button(u8'ИЗМЕНИТЬ НА 3 СТРОКИ', imgui.ImVec2(610, 20)) then three_or_one_line = not three_or_one_line end
+	end
+	ItemPovered('С помощью этой кнопки вы сможете выбрать сколько строк будет в гос. новости.')
+					
+	imgui.Text('')
+					
+	imgui.Separator()
+					
+	imgui.Text('')
+					
+	imgui.CenterTextColoredRGB('НАСТРОЙКА СТРОК ГОС. НОВОСТИ')
+					
+	imgui.Text('')
+					
+	imgui.PushItemWidth(540)
+	if three_or_one_line then
+		imgui.InputText(u8'1-я строка ##gnews1', govermentNews.lineOne)
+		imgui.InputText(u8'2-я строка ##gnews2', govermentNews.lineTwo)
+		imgui.InputText(u8'3-я строка ##gnews3', govermentNews.lineThree)
+	else
+		imgui.InputText(u8'Строка ##gnews1', govermentNews.lineAlone)
+	end
+						
+	if three_or_one_line then
+		if govermentNews.lineOne.v ~= '' or govermentNews.lineTwo.v ~= '' or govermentNews.lineThree.v ~= '' then
+			imgui.Text('')
+			imgui.Separator()
+			imgui.Text('')
+			imgui.CenterTextColoredRGB('РЕЗУЛЬТАТ')
+			imgui.Text('')
+
+			imgui.TextColoredRGB(string.format('{4466CC}Гос. новости: Ringo[0]: %s', u8:decode(govermentNews.lineOne.v)))
+			imgui.TextColoredRGB(string.format('{4466CC}Гос. новости: Ringo[0]: %s', u8:decode(govermentNews.lineTwo.v)))
+			imgui.TextColoredRGB(string.format('{4466CC}Гос. новости: Ringo[0]: %s', u8:decode(govermentNews.lineThree.v)))
+		end
+	else
+		if govermentNews.lineAlone.v ~= '' then
+			imgui.Text('')
+			imgui.Separator()
+			imgui.Text('')
+			imgui.CenterTextColoredRGB('РЕЗУЛЬТАТ')
+			imgui.Text('')
+
+			imgui.TextColoredRGB(string.format('{4466CC}Гос. новости: Ringo[0]: %s', u8:decode(govermentNews.lineAlone.v)))
+		end
+	end]]
+end
 
 function draw_new_dialog()
 	toggleButton('Улучшенный диалог списка лидеров (/leaders)', 'set', 'new_leaders')
@@ -3860,13 +4025,16 @@ function draw_head_page()
 
 		imgui.BeginChild('##Update_Info', imgui.ImVec2(610, 390), true)
 			
-			imgui.TextColoredRGB('{ffffff}[v15.7] Менеджер паролей был улучшен и теперь работает на любом сервере.')
-			imgui.TextColoredRGB('{ffffff}[v15.7] Добавлен перенос строк для обычного чата, /me и /do.')
+			imgui.TextColoredRGB('{ffffff}[v15.8] Обновлена панель лидера для редактирования гос.новостей на более удобную.')
+			imgui.TextColoredRGB('{ffffff}[v15.8] Исправлен баг с логом убийств в консоли, теперь он корректно логирует убийство.')
+			imgui.TextColoredRGB('{ffffff}[v15.8] Улучшена система отображения нового логотипа.')
+
+			imgui.TextColoredRGB('{CECECE}[v15.7] Менеджер паролей был улучшен и теперь работает на любом сервере.')
+			imgui.TextColoredRGB('{CECECE}[v15.7] Добавлен перенос строк для обычного чата, /me и /do.')
 
 			imgui.TextColoredRGB('{CECECE}[v15.6] Добавлен менеджер серверов для удобного переподключения (/lserver).')
 			imgui.TextColoredRGB('{CECECE}[v15.6] Добавлен быстрый сброс оружия (/dropall) и быстрое взъятие еды (/pickeat).')
 			imgui.TextColoredRGB('{CECECE}[v15.6] Добавлен список созданных команд в доп.возмжностях, для удобного редактирования.')
-
 			imgui.TextColoredRGB('{CECECE}[v15.5] Добавлена возможность включать и отключать команды скрипта, а так же доп. команды.')
 			imgui.TextColoredRGB('{CECECE}[v15.5] Добавлен лог убийств в sampfuncs-консоли, просмотреть его можно нажав Ё (~).')
 			imgui.TextColoredRGB('{CECECE}[v15.5] Изменена система дополнительных возможностей на более правильную.')
@@ -3943,7 +4111,7 @@ function getStateCommand(name)
 		
 		if not ini.defaultCommands[name] then
 			if doesFileExist(path) then
-				if command_open ~= nil and command_open == path then
+				if command_open and command_open == path then
 					return 'КОМАНДА ОТКРЫТА ДЛЯ РЕДАКТИРОВАНИЯ', 3 -- {32CD32}
 				else 
 					return 'КОМАНДА НАЙДЕНА И МОЖЕТ БЫТЬ ОТКРЫТА', 2 -- {FFD700}
@@ -6637,6 +6805,8 @@ function sampev.onPlayerChatBubble(id, color, dis, dur, mess)
 end
 
 function sampev.onSendTakeDamage(playerId, damage, weapon, bodypart)
+	lastDamageId = playerId
+
 	if IPC(playerId) then
 		local name = sampGetPlayerName(playerId)
 
@@ -6669,10 +6839,15 @@ end
 
 function sampev.onSendDeathNotification(reason, playerId)
 	if reason then
-		dreason = {calculateZone(), os.date('%H'), os.date('%M'), os.date('%S')}
+		if lastDamageId and IPC(lastDamageId) then
+			local playerId = lastDamageId
+			dreason = {calculateZone(), os.date('%H'), os.date('%M'), os.date('%S')}
 
-		if playerId then
-			print(('Вы были убиты игроком {%s}%s{ffffff}[%d] в %d:%d.'):format(sampGetColorByPlayer(playerId), sampGetPlayerName(playerId), playerId, os.date('%H'), os.date('%M')))
+			if playerId then
+				print(('Вы были убиты игроком {%s}%s{ffffff}[%d] в %d:%d.'):format(sampGetColorByPlayer(playerId), sampGetPlayerName(playerId), playerId, os.date('%H'), os.date('%M')))
+			end
+		else
+			print('Вы были убиты сервером или игроком, который покинул игру.')
 		end
 	end
 end

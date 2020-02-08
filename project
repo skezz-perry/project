@@ -6,7 +6,7 @@
 --   |_/ \_|  |____\  |_____/ |_|      |____\  |_| \_\       |_|     \_____/  |_| \_\       |_|   |_|  |_|   \ ___/\/
 
 script_name('helper-for-mia')
-script_version(15.8)
+script_version(15.9)
 --script_properties('work-in-pause')
 
 require 'lib.moonloader'
@@ -137,9 +137,9 @@ local static = {
 
 local pass = inicfg.load({
 	favourite = {
-		ADVANCE_RP_RED   = '5.254.104.131:7777',
-		ADVANCE_RP_GREEN = '5.254.104.132:7777',
-		ADVANCE_RP_BLUE  = '5.254.104.135:7777',
+		ADVANCE_RP_RED   = '54.37.142.72:7777',
+		ADVANCE_RP_GREEN = '54.37.142.73:7777',
+		ADVANCE_RP_BLUE  = '54.37.142.74:7777',
 	},
 	server = {}
 }, 'HfMIA servers and passwords.ini')
@@ -420,7 +420,8 @@ local ini = inicfg.load({
 		pickweap             = true,
 		lserver              = true,
 		pickeat              = true,
-		dropall              = true
+		dropall              = true,
+		savepass             = true
 	},
 	customCommands = {
 	},
@@ -487,7 +488,8 @@ local scriptCommands = {
 		pickweap             = {true, 'command_pickweapon'},
 		lserver              = {true, 'command_server'},
 		pickeat              = {true, 'command_pickeat'},
-		dropall              = {true, 'command_dropall'}
+		dropall              = {true, 'command_dropall'},
+		savepass             = {true, 'command_savepass'}
 	}
 }
 
@@ -1028,12 +1030,22 @@ function speedometr()
 end
 
 function logotyp()
-	local server_name = {'RED', 'GREEN', '', '', 'BLUE'}
+	local server_name = {'', 'RED', 'GREEN', 'BLUE'}
 	local serverName
 
-	if string.match(sampGetCurrentServerAddress(), '5.254.104.13(%d+)') then
-		local id = string.match(sampGetCurrentServerAddress(), '5.254.104.13(%d+)')
+	if string.match(sampGetCurrentServerAddress(), '54.37.142.7(%d)') then
+		local id = string.match(sampGetCurrentServerAddress(), '54.37.142.7(%d)')
 		serverName = server_name[tonumber(id)]
+
+		text_logo_lil = 'ROLE PLAY ' .. serverName
+
+		if serverName == 'GREEN' then
+			posLogoX = (ini.set.logo_x + 98.5) - string.len(text_logo_lil) * 2.55
+		elseif serverName == 'RED' then
+			posLogoX = (ini.set.logo_x + 98.5) - string.len(text_logo_lil) * 2.48
+		else
+			posLogoX = (ini.set.logo_x + 98.5) - string.len(text_logo_lil) * 2.53
+		end
 	end
 
 	while true and serverName do
@@ -1050,10 +1062,10 @@ function logotyp()
 					logo_texture = renderLoadTextureFromFileInMemory(memory.strptr(logotype_texture), 4096)
 					draw_new_logo = true
 				else
-					text_logo_lil = 'ROLE PLAY ' .. serverName
-					renderFontDrawText(font_logo, 'ADVANCE', ini.set.logo_x + 65, ini.set.logo_y + 15, 0xFFFFFFFF)
-					renderFontDrawText(font_logo_lil, text_logo_lil, ini.set.logo_x + 65, ini.set.logo_y + 33, 0xFFFFFFFF)
-					renderDrawTexture(logo_texture, ini.set.logo_x, ini.set.logo_y, 60, 60, 0, 0xFFFFFFFF)
+					renderFontDrawText(font_logo, 'ADVANCE', ini.set.logo_x + 57, ini.set.logo_y + 7, 0xFFFFFFFF)
+					renderFontDrawText(font_logo_lil, text_logo_lil, posLogoX, ini.set.logo_y + 25, 0xFFFFFFFF)
+
+					renderDrawTexture(logo_texture, ini.set.logo_x, ini.set.logo_y, 50, 50, 0, 0xFFFFFFFF)
 				end
 			end
 		end
@@ -1075,6 +1087,43 @@ end
 function command_strobes()
 	if isCharInAnyCar(playerPed) and ini.set.strobes  then
 		boolStrobes = not boolStrobes
+	end
+end
+
+function command_savepass()
+	if savePass and type(savePass) == ('table') then
+		local result, id = sampGetPlayerIdByCharHandle(playerPed)
+
+		if result then
+			local name = sampGetPlayerName(id)
+			local ip = sampGetCurrentServerAddress()
+			local dd = string.format('%s_%s', name, ip)
+
+			if savePass.dd == dd then
+				if pass.server[dd] == nil then
+					local newPass = savePass.pass
+
+					newData = newPass .. ' | -1'
+				else
+					local pass, seckey = pass.server[dd]:match('(.+)[%s]%|[%s](.+)')
+					local newPass = savePass.pass
+
+					newData = newPass .. ' | ' .. seckey
+				end
+
+				pass.server[dd] = newData
+				inicfg.save(pass, 'HfMIA servers and passwords.ini')
+				savePass = nil
+
+				addChat('Вы успешено сохранили новые данные в менеджере аккаунтов.')
+			else
+				addChat('В данный момент вы не можете обновить данные в менеджере аккаунтов. Ошибка #3.')
+			end
+		else
+			addChat('В данный момент вы не можете обновить данные в менеджере аккаунтов. Ошибка #2.')
+		end
+	else
+		addChat('В данный момент вы не можете обновить данные в менеджере аккаунтов. Ошибка #1.')
 	end
 end
 
@@ -1207,7 +1256,7 @@ end
 
 function command_pickweapon()
 	local corditanesPickup = {LS = {x = 258.5, y = 77.75, z = 1003.625}, SF = {x = 240.375, y = 112.75, z = 1003.125}, LV = {x = 234.25, y = 159.625, z = 1003}}
-
+	
 	for name, value in pairs(corditanesPickup) do
 		local handle = sampGetPickupHandleByCoords(1239, value.x, value.y, value.z)
 
@@ -1376,7 +1425,7 @@ function command_apay(param)
 			addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 		end
 	else
-		addChat('Используйте команду /pay [ид игрока] [сумма]')
+		addChat('Используйте команду /pay [ид игрока] [сумма].')
 	end
 end
 
@@ -1387,7 +1436,7 @@ function table_to_text(tab)
 end
 
 function command_report(text)
-	if not string.match(text, '(.+)') then
+	if not string.match(text, '(%S+)') then
 		addChat('Используйте команду /rep [текст].')
 	else
 		toReport = text
@@ -1419,7 +1468,7 @@ function command_sms(value)
 			end
 		end
 	else
-		addChat('Используйте команду /sms [номер телефона] [сообщение]')
+		addChat('Используйте команду /sms [номер телефона] [сообщение].')
 	end
 end
 
@@ -1433,7 +1482,7 @@ function command_addbl(name)
 		
 		addChat(string.format('Игрок {FFCD00}%s{ffffff} был добавлен в чёрный список.', name))
 	else
-		addChat('Используйте команду /addbl [имя игрока]')
+		addChat('Используйте команду /addbl [имя игрока].')
 	end
 end
 
@@ -1456,7 +1505,7 @@ function command_delbl(name)
 			addChat('Данного игрока нет в чёрном списке.')
 		end
 	else
-		addChat('Используйте команду /debl [имя игрока]')
+		addChat('Используйте команду /debl [имя игрока].')
 	end
 end
 
@@ -1592,7 +1641,7 @@ function command_setskin(param)
 				addChat('Произошла ошибка при попытке выдачи скина.')
 			end
 		else
-			addChat('Используйте команду /sskin [ид игрока] [ид скина] [0 или 1].')
+			addChat('Используйте команду /sskin [ид игрока (необязательно)] [ид скина].')
 		end
 	end
 end
@@ -1785,7 +1834,7 @@ function command_hack(id)
 			wait(1000); sampSendChat(string.format('/hack %d', id))
 		end)
 	else
-		addChat('Используйте команду /hack [ид дома]')
+		addChat('Используйте команду /hack [ид дома].')
 	end
 end
 
@@ -2013,7 +2062,7 @@ function command_skip(id)
 						wait(1500); sampSendChat('/me зайдя в базу данных, оформила временный пропуск на имя ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. '')
 						wait(1000); sampSendChat(string.format('/skip %d', id))
 						wait(1500); sampSendChat('/me потушила экран планшета и убрала его обратно')
-						wait(1000); command_r('Оформил временный пропуск на имя ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. '.')
+						wait(1000); command_r('Оформила временный пропуск на имя ' .. string.gsub(sampGetPlayerName(id),'_',' ') .. '.')
 					end
 				end)
 			else
@@ -2136,7 +2185,7 @@ function command_ticket(param)
 				addChat('Данный игрок находится слишком далеко от Вас.')
 			end
 		else
-			addChat('Вы ввели неверный ид игрока (игрок не авторизован)')
+			addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 		end
 	elseif string.match(param, '(%d+)') then
 		local id = string.match(param, '(%d+)')
@@ -2155,7 +2204,7 @@ function command_ticket(param)
 			addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 		end
 	else
-		addChat('Используйте команду /ticket [ид игрока] [сумма] [причина]')
+		addChat('Используйте команду /ticket [ид игрока] [сумма] [причина].')
 	end
 end
 
@@ -2178,10 +2227,10 @@ function command_takelic(param)
 				addChat('Данный игрок находится слишком далеко от Вас.')
 			end
 		else
-			addChat('Вы ввели неверный ид игрока (игрок не авторизован)')
+			addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 		end
 	else
-		addChat('Используйте команду /takelic [ид игрока] [причина]')
+		addChat('Используйте команду /takelic [ид игрока] [причина].')
 	end
 end
 
@@ -2655,17 +2704,22 @@ function imgui.OnDrawFrame()
 				
 				if imgui.Button(u8'ДОБАВИТЬ', imgui.ImVec2(130, 20)) then
 					if addNameServer.v == '' and addIpAndPortServer.v == '' then
-						pushMessage('Введите название сервера, IP-адресс и порт в нужные поля', 3, 3)
+						pushMessage('Введите название сервера, IP-адресс и порт в нужные поля.', 3, 3)
 					else
 						if string.match(addIpAndPortServer.v, '(%S+):(%d+)') then
 							local nameServer = addNameServer.v:gsub(' ', '_')
+							if pass.favourite[nameServer] == nil then
+								pushMessage('Вы добавили новый сервер в общий список.', 3, 4)
+							else
+								pushMessage('Вы обновили IP-адресс для данного сервера.', 3, 4)
+							end
+
 							pass.favourite[nameServer] = addIpAndPortServer.v
 							inicfg.save(pass, 'HfMIA servers and passwords.ini')
 							addIpAndPortServer.v = ''
 							addNameServer.v = ''
-							pushMessage('Вы добавили новый сервер в общий список', 3, 4)
 						else
-							pushMessage('IP-адресс сервера должен быть в формате IP:PORT (например: 5.254.104.132:7777)', 3, 3)
+							pushMessage('IP-адресс сервера должен быть в формате IP:PORT (например: 5.254.104.132:7777).', 3, 3)
 						end
 					end
 				end imgui.NextColumn()
@@ -2824,7 +2878,7 @@ function imgui.OnDrawFrame()
 					if imgui.Button(u8'Настройки', imgui.ImVec2(235, 20)) then show_item.v = 0 end
 					if imgui.Button(u8'Расширенные настройки', imgui.ImVec2(235, 20)) then drawAllSettings = true end
 					if imgui.Button(u8'Дополнительные возможности', imgui.ImVec2(235, 20)) then show_item.v = 4 end
-					if imgui.Button(u8'Менеджер паролей', imgui.ImVec2(235, 20)) then show_item.v = 6 end
+					if imgui.Button(u8'Менеджер аккаунтов', imgui.ImVec2(235, 20)) then show_item.v = 6 end
 					if player_status > 0 then 	
 						if imgui.Button(u8'Панель лидера', imgui.ImVec2(235, 20)) then show_item.v = 7 end
 					end
@@ -3005,7 +3059,7 @@ function imgui.OnDrawFrame()
 			
 				if show_item.v == 6 then
 					imgui.BeginChild('##another_block', imgui.ImVec2(630, 520), true)
-						imgui.CenterTextColoredRGB('МЕНЕДЖЕР ПАРОЛЕЙ')
+						imgui.CenterTextColoredRGB('МЕНЕДЖЕР АККАУНТОВ')
 					
 						imgui.Text('')
 					
@@ -3060,19 +3114,41 @@ function imgui.OnDrawFrame()
 							imgui.InputText(u8'КЛЮЧ GOOGLE AUTHENTIFICATOR', passkey)
 							ShowHelpMarker('Введите сюда ключ  Google Authentificator`a.')
 						
-							if imgui.Button(u8'СОХРАНИТЬ', imgui.ImVec2(615, 20)) then
+							if imgui.Button(u8'СОХРАНИТЬ', imgui.ImVec2(305, 20)) then
 								if u8:decode(passname.v):match('%S+') and u8:decode(passpass.v):match('%S+') and u8:decode(passip.v):match('%S+') then
 									local path = string.format('%s_%s', u8:decode(passname.v), u8:decode(passip.v))
-								
-									if u8:decode(passkey.v) == '' then gkey = '-1' else gkey = u8:decode(passkey.v) end
-									local input = string.format('%s | %s', u8:decode(passpass.v), gkey)
 									
-									pass.server[path] = input
+									if pass.server[path] == nil then
+										if u8:decode(passkey.v) == '' then gkey = '-1' else gkey = u8:decode(passkey.v) end
+										pass.server[path] = string.format('%s | %s', u8:decode(passpass.v), gkey)
+									else
+										local pass, seckey = pass.server[dd]:match('(.+)[%s]%|[%s](.+)')
+										if u8:decode(passkey.v) == '' then gkey = seckey else gkey = u8:decode(passkey.v) end
+										pass.server[path] = string.format('%s | %s', u8:decode(passpass.v), gkey)
+									end
+									
 									inicfg.save(pass, 'HfMIA servers and passwords.ini')
 									
-									pushMessage('Данные о аккаунте были добавлены (обновлены).', 3, 4)
+									pushMessage('Данные о аккаунте были сохранены.', 3, 4)
 								else
 									pushMessage('Заполните все поля ввода. Ключ указывать не обязательно.', 3, 3)
+								end
+							end imgui.SameLine()
+
+							if imgui.Button(u8'УДАЛИТЬ', imgui.ImVec2(305, 20)) then
+								if u8:decode(passname.v):match('%S+') and u8:decode(passip.v):match('%S+') then
+									local path = string.format('%s_%s', u8:decode(passname.v), u8:decode(passip.v))
+									
+									if pass.server[path] ~= nil then
+										pass.server[path] = nil
+										inicfg.save(pass, 'HfMIA servers and passwords.ini')
+
+										pushMessage('Данные о аккаунте были удалены.', 3, 4)
+									else
+										pushMessage('Данный аккаунт не был найден.', 3, 3)
+									end
+								else
+									pushMessage('Заполните все поля ввода. Ключ и пароль указывать не обязательно.', 3, 3)
 								end
 							end
 						
@@ -3685,33 +3761,39 @@ local uk_path = {['Неподчинение сотруднику полиции'
 function draw_uk_list()
 	imgui.Begin(u8'Уголовный кодекс • Helper for MIA', show_uk_list, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 		for name, val in pairs(smart_suspect.text) do
-			local named = u8(val.name)
-			if string.len(named) > 135 then
-				named = string.sub(named, 0, 135) .. '..'
-			end
+			if imgui.TreeNode(string.format(u8'СТАТЬЯ %d | %s', name, u8(val.name))) then
+				imgui.BeginChild('##DRAW' .. name, imgui.ImVec2(550, 29 * #val.st + 29), true)
+					imgui.Columns(3)
+					imgui.Separator()
 			
-			if imgui.TreeNode(string.format(u8'СТАТЬЯ %d | %s', name, named)) then
-				for i, item in ipairs(val.st) do
-					if string.match(item, '(.+) | (.+) | (.+)') then
-						local stars, reason, text = string.match(item, '(.+) | (.+) | (.+)')
-							
-						local ttext = u8(text)
-						if string.len(ttext) > 120 then
-							ttext = string.sub(ttext, 0, 120) .. '..'
-						end
+					imgui.SetColumnWidth(-1, 80) imgui.CenterColumnText(u8'СТАТЬЯ') imgui.NextColumn()
+					imgui.SetColumnWidth(-1, 80) imgui.CenterColumnText(u8'ДЕЙСТВИЕ') imgui.NextColumn()
+					imgui.SetColumnWidth(-1, 410) imgui.CenterColumnText(u8'ПОЯСНЕНИЕ') imgui.NextColumn()
 
-						if imgui.Button(string.format('%s | %d | %s', u8(reason), stars, ttext), imgui.ImVec2(540, 20)) then
-							uk_static = {stars = stars, name = reason}
-							show_uk_edit.v = not show_uk_edit.v
+					for i, item in ipairs(val.st) do
+						if string.match(item, '(.+) | (.+) | (.+)') then
+							imgui.Separator()
+
+							local stars, reason, text = string.match(item, '(.+) | (.+) | (.+)')
+							
+							imgui.CenterColumnText(u8(reason)) imgui.NextColumn()
+
+							imgui.Button(u8'РОЗЫСК##' .. reason, imgui.ImVec2(70, 20))
+							imgui.NextColumn()
+
+							local ttext = u8(text)
+							if string.len(ttext) > 100 then
+								ttext = string.sub(ttext, 0, 100) .. '..'
+							end
+							imgui.CenterColumnText(ttext)
+
+							drawInfo(reason, stars .. ' уровень розыска', text)
+							imgui.NextColumn()
+						else 
+							imgui.Text('Unexpected line.')
 						end
-						
-						if string.len(u8(text)) > 120 then
-							ItemPovered(text)
-						end
-					else 
-						imgui.Text('Unexpected line.')
 					end
-				end
+				imgui.EndChild()
 				imgui.TreePop()
 			end
 		end
@@ -3788,33 +3870,66 @@ end
 function draw_ak_list()
 	imgui.Begin(u8'Кодекс о административных правонарушениях', show_ak_list, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 		for name, val in pairs(smart_ticket.text) do
-			local named = u8(val.name)
-			if string.len(named) > 135 then
-				named = string.sub(named, 0, 135) .. '..'
-			end
-		
-			if imgui.TreeNode(string.format(u8'СТАТЬЯ %d | %s', name, named)) then
-				for i, item in ipairs(val.st) do
-					if string.match(item, '(.+) | (.+) | (.+)') then
-						local stars, reason, text = string.match(item, '(.+) | (.+) | (.+)')
-							
-						local ttext = u8(text)
-						if string.len(ttext) > 120 then
-							ttext = string.sub(ttext, 0, 120) .. '..'
+				local named = u8(val.name)
+				if string.len(named) > 135 then
+					named = string.sub(named, 0, 135) .. '..'
+				end
+			
+				if imgui.TreeNode(string.format(u8'СТАТЬЯ %d | %s', name, named)) then
+					imgui.BeginChild('##DRAW' .. name, imgui.ImVec2(550, 29 * #val.st + 29), true)
+						imgui.Columns(3)
+						imgui.Separator()
+			
+						imgui.SetColumnWidth(-1, 80) imgui.CenterColumnText(u8'СТАТЬЯ') imgui.NextColumn()
+						imgui.SetColumnWidth(-1, 80) imgui.CenterColumnText(u8'ДЕЙСТВИЕ') imgui.NextColumn()
+						imgui.SetColumnWidth(-1, 410) imgui.CenterColumnText(u8'ПОЯСНЕНИЕ') imgui.NextColumn()
+						for i, item in ipairs(val.st) do
+							if string.match(item, '(.+) | (.+) | (.+)') then
+								imgui.Separator()
+
+								local stars, reason, text = string.match(item, '(.+) | (.+) | (.+)')
+
+								imgui.CenterColumnText(u8(reason)) imgui.NextColumn()
+
+								local ttext = u8(text)
+								if string.len(ttext) > 95 then
+									ttext = string.sub(ttext, 0, 95)
+								end
+
+								if stars == '-1' then
+									imgui.Button(u8'НЕТ', imgui.ImVec2(70, 20))
+									imgui.NextColumn()
+
+									imgui.CenterColumnText(ttext)
+									drawInfo(reason, 'Не имеет наказания, либо оно указано в пояснении', text)
+								elseif stars == '-2' then
+									imgui.Button(u8'ИЗЪЯТИЕ##' .. reason, imgui.ImVec2(70, 20))
+									imgui.NextColumn()
+
+									imgui.CenterColumnText(ttext)
+									drawInfo(reason, 'Изъятие лицензии на вождение', text)
+								else
+									imgui.Button(u8'ШТРАФ##' .. reason, imgui.ImVec2(70, 20))
+									imgui.NextColumn()
+
+									imgui.CenterColumnText(ttext)
+									drawInfo(reason, stars .. '$', text)
+								end
+
+								imgui.NextColumn()
+							else 
+								imgui.Text('Unexpected line.')
+							end
 						end
 
-						imgui.Button(string.format('%s | %d | %s', u8(reason), stars, ttext), imgui.ImVec2(540, 20))
-						
-						if string.len(u8(text)) > 120 then
-							ItemPovered(text)
-						end
-					else 
-						imgui.Text('Unexpected line.')
+					imgui.EndChild()
+					imgui.TreePop()
+				else
+					if string.len(named) > 135 then
+						ItemPovered(val.name)
 					end
 				end
-				imgui.TreePop()
 			end
-		end
 	imgui.End()
 end
 
@@ -3829,37 +3944,55 @@ function draw_show_ticket()
 				end
 			
 				if imgui.TreeNode(string.format(u8'СТАТЬЯ %d | %s', name, named)) then
-					for i, item in ipairs(val.st) do
-						if string.match(item, '(.+) | (.+) | (.+)') then
-							local stars, reason, text = string.match(item, '(.+) | (.+) | (.+)')
-							
-							local ttext = u8(text)
-							if string.len(ttext) > 120 then
-								ttext = string.sub(ttext, 0, 120) .. '..'
-							end
-							
-							if imgui.Button(string.format('%s | %d | %s', u8(reason), stars, ttext), imgui.ImVec2(540, 20)) then
-								if stars == '-1' then
-									addChat('За данное нарушение не предусмотрено наказание.')
-								elseif stars == '-2' then
-									command_takelic(string.format('%d %s', id, reason))
-								else
-									if tonumber(stars) > 2000 then
-										addChat('За данное нарушение предусмотрен штраф суммой более {FFCD00}2.000${ffffff}.')
-										addChat('При желании вы можете выписать штраф ещё на {00CC66}' .. tonumber(stars) - 2000 .. '${ffffff}.')
-									end
-									
-									command_ticket(string.format('%d %d %s', id, stars, reason))
+					imgui.BeginChild('##DRAW' .. name, imgui.ImVec2(550, 29 * #val.st + 29), true)
+						imgui.Columns(3)
+						imgui.Separator()
+			
+						imgui.SetColumnWidth(-1, 80) imgui.CenterColumnText(u8'СТАТЬЯ') imgui.NextColumn()
+						imgui.SetColumnWidth(-1, 80) imgui.CenterColumnText(u8'ДЕЙСТВИЕ') imgui.NextColumn()
+						imgui.SetColumnWidth(-1, 410) imgui.CenterColumnText(u8'ПОЯСНЕНИЕ') imgui.NextColumn()
+						for i, item in ipairs(val.st) do
+							if string.match(item, '(.+) | (.+) | (.+)') then
+								imgui.Separator()
+
+								local stars, reason, text = string.match(item, '(.+) | (.+) | (.+)')
+
+								imgui.CenterColumnText(u8(reason)) imgui.NextColumn()
+
+								local ttext = u8(text)
+								if string.len(ttext) > 95 then
+									ttext = string.sub(ttext, 0, 95) .. '..'
 								end
+
+								if stars == '-1' then
+									imgui.Button(u8'НЕТ', imgui.ImVec2(70, 20))
+									imgui.NextColumn()
+
+									imgui.CenterColumnText(ttext)
+									drawInfo(reason, 'Не имеет наказания, либо оно указано в пояснении', text)
+								elseif stars == '-2' then
+									if imgui.Button(u8'ИЗЪЯТИЕ##' .. reason, imgui.ImVec2(70, 20)) then
+										command_takelic(string.format('%d %d %s', id, reason))
+									end imgui.NextColumn()
+
+									imgui.CenterColumnText(ttext)
+									drawInfo(reason, 'Изъятие лицензии на вождение', text)
+								else
+									if imgui.Button(u8'ШТРАФ##' .. reason, imgui.ImVec2(70, 20)) then
+										command_ticket(string.format('%d %d %s', id, stars, reason))
+									end imgui.NextColumn()
+
+									imgui.CenterColumnText(ttext)
+									drawInfo(reason, stars .. '$', text)
+								end
+
+								imgui.NextColumn()
+							else 
+								imgui.Text('Unexpected line.')
 							end
-							
-							if string.len(u8(text)) > 120 then
-								ItemPovered(text)
-							end
-						else 
-							imgui.Text('Unexpected line.')
 						end
-					end
+
+					imgui.EndChild()
 					imgui.TreePop()
 				else
 					if string.len(named) > 135 then
@@ -3880,26 +4013,40 @@ function draw_show_suspect()
 		imgui.Begin(string.format(u8'Объявление в розыск %s [%d]', sampGetPlayerName(id), id), show_suspect, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 			for name, val in pairs(smart_suspect.text) do
 				if imgui.TreeNode(string.format(u8'СТАТЬЯ %d | %s', name, u8(val.name))) then
-					for i, item in ipairs(val.st) do
-						if string.match(item, '(.+) | (.+) | (.+)') then
-							local stars, reason, text = string.match(item, '(.+) | (.+) | (.+)')
+					imgui.BeginChild('##DRAW' .. name, imgui.ImVec2(550, 29 * #val.st + 29), true)
+						imgui.Columns(3)
+						imgui.Separator()
+			
+						imgui.SetColumnWidth(-1, 80) imgui.CenterColumnText(u8'СТАТЬЯ') imgui.NextColumn()
+						imgui.SetColumnWidth(-1, 80) imgui.CenterColumnText(u8'ДЕЙСТВИЕ') imgui.NextColumn()
+						imgui.SetColumnWidth(-1, 410) imgui.CenterColumnText(u8'ПОЯСНЕНИЕ') imgui.NextColumn()
+
+						for i, item in ipairs(val.st) do
+							if string.match(item, '(.+) | (.+) | (.+)') then
+								imgui.Separator()
+
+								local stars, reason, text = string.match(item, '(.+) | (.+) | (.+)')
 							
-							local ttext = u8(text)
-							if string.len(ttext) > 120 then
-								ttext = string.sub(ttext, 0, 120) .. '..'
+								imgui.CenterColumnText(u8(reason)) imgui.NextColumn()
+
+								if imgui.Button(u8'РОЗЫСК##' .. reason, imgui.ImVec2(70, 20)) then
+									command_su(string.format('%d %d %s', id, stars, reason))
+								end imgui.NextColumn()
+
+								local ttext = u8(text)
+								if string.len(ttext) > 100 then
+									ttext = string.sub(ttext, 0, 100) .. '..'
+								end
+
+								imgui.CenterColumnText(ttext)
+
+								drawInfo(reason, stars .. ' уровень розыска', text)
+								imgui.NextColumn()
+							else 
+								imgui.Text('Unexpected line.')
 							end
-							
-							if imgui.Button(string.format('%s | %d | %s', u8(reason), stars, ttext), imgui.ImVec2(540, 20)) then
-								command_su(string.format('%d %d %s', id, stars, reason))
-							end
-							
-							if string.len(ttext) > 120 then
-								ItemPovered(text)
-							end
-						else 
-							imgui.Text('Unexpected line.')
 						end
-					end
+					imgui.EndChild()
 					imgui.TreePop()
 				end
 			end
@@ -3908,6 +4055,21 @@ function draw_show_suspect()
 		addChat('Подозревамый пропал из зоны видимости.')
 		show_suspect.v = not show_suspect.v
 	end
+end
+
+function drawInfo(reason, stars, text)
+	if (imgui.IsItemHovered()) then
+		local line = ' '
+		
+		for i = 0, string.len(text) / 80 do
+			line = string.format('%s\n%s', line, text:sub(i * 80, i * 80 + 79))
+		end
+		line = line:gsub(' \n', '')
+		
+		line = string.format('Статья: %s\nНаказание: %s\nПояснение: %s', reason, stars, line)
+
+        imgui.SetTooltip(u8(line))
+    end
 end
 
 function draw_modification()
@@ -4025,13 +4187,17 @@ function draw_head_page()
 
 		imgui.BeginChild('##Update_Info', imgui.ImVec2(610, 390), true)
 			
-			imgui.TextColoredRGB('{ffffff}[v15.8] Обновлена панель лидера для редактирования гос.новостей на более удобную.')
-			imgui.TextColoredRGB('{ffffff}[v15.8] Исправлен баг с логом убийств в консоли, теперь он корректно логирует убийство.')
-			imgui.TextColoredRGB('{ffffff}[v15.8] Улучшена система отображения нового логотипа.')
+			imgui.TextColoredRGB('{ffffff}[v15.9] Обновлена система умного розыска и умной выдачи штрафа.')
+			imgui.TextColoredRGB('{ffffff}[v15.9] Обновлён логотип сервера.')
+			imgui.TextColoredRGB('{ffffff}[v15.9] Обновлён менеджер серверов.')
+			imgui.TextColoredRGB('{ffffff}[v15.9] Обновлён менеджер аккаунтов на более удобный.')
+
+			imgui.TextColoredRGB('{CECECE}[v15.8] Обновлена панель лидера для редактирования гос.новостей на более удобную.')
+			imgui.TextColoredRGB('{CECECE}[v15.8] Исправлен баг с логом убийств в консоли, теперь он корректно логирует убийство.')
+			imgui.TextColoredRGB('{CECECE}[v15.8] Улучшена система отображения нового логотипа.')
 
 			imgui.TextColoredRGB('{CECECE}[v15.7] Менеджер паролей был улучшен и теперь работает на любом сервере.')
 			imgui.TextColoredRGB('{CECECE}[v15.7] Добавлен перенос строк для обычного чата, /me и /do.')
-
 			imgui.TextColoredRGB('{CECECE}[v15.6] Добавлен менеджер серверов для удобного переподключения (/lserver).')
 			imgui.TextColoredRGB('{CECECE}[v15.6] Добавлен быстрый сброс оружия (/dropall) и быстрое взъятие еды (/pickeat).')
 			imgui.TextColoredRGB('{CECECE}[v15.6] Добавлен список созданных команд в доп.возмжностях, для удобного редактирования.')
@@ -6494,8 +6660,34 @@ function sampev.onServerMessage(color, text)
 	end
 end
 
+function sampev.onSendDialogResponse(dialogId, button, listItem, input)
+	if enteredPassword then
+		if dialogId == enteredPassword then
+			local result, id = sampGetPlayerIdByCharHandle(playerPed)
+
+			if result then
+				local name = sampGetPlayerName(id)
+				local ip = sampGetCurrentServerAddress()
+				local dd = string.format('%s_%s', name, ip)
+			
+				if pass.server[dd] == nil then
+					savePass = {dd = dd, pass = input}
+					addChat('Для того, чтобы сохранить данный аккаунт в менеджере аккаунтов введите команду {00CC66}/savepass{ffffff}.')
+				else
+					if string.match(sampGetDialogText(), 'Неверный пароль') then
+						savePass = {dd = dd, pass = input}
+						addChat('Для того, чтобы обновить пароль для данного аккаунта в менеджере аккаунтов введите команду {00CC66}/savepass{ffffff}.')
+					end
+				end
+			end
+			enteredPassword = nil
+		end
+	end
+end
+
 function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 	if string.match(title, 'Авторизация') then
+		enteredPassword = dialogId
 		if not text:match('Неверный пароль') then
 			local res, id = sampGetPlayerIdByCharHandle(playerPed)
 			if res then
@@ -6548,8 +6740,14 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 	end
 
 	if string.find(title, 'Меню игрока') and toReport then
-		sampSendDialogResponse(dialogId, 1, 5, -1)
-		return false
+		if string.find(text, '6. Связь с администрацией') then
+			sampSendDialogResponse(dialogId, 1, 5, -1)
+			return false
+		else
+			toReport = nil
+			addChat('Произошла ошибка при попытке отправить сообщение администрации.')
+			return false
+		end
 	end
 	
 	if string.find(title, 'Список разыскиваемых') and ini.set.new_wanted then

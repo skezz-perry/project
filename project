@@ -6,7 +6,7 @@
 --   |_/ \_|  |____\  |_____/ |_|      |____\  |_| \_\       |_|     \_____/  |_| \_\       |_|   |_|  |_|   \ ___/\/
 
 script_name('helper-for-mia')
-script_version(15.9)
+script_version(16.1)
 --script_properties('work-in-pause')
 
 require 'lib.moonloader'
@@ -32,9 +32,9 @@ encoding.default        = 'CP1251'
 u8                      = encoding.UTF8
 
 -- ШРИФТЫ
-font_logo = renderCreateFont('Calibri', 15, font_flag.BOLD)
-font_logo_lil = renderCreateFont('Calibri', 8, font_flag.BOLD)
-font_t = renderCreateFont('Calibri', 14, font_flag.BOLD)
+local font_logo = renderCreateFont('Calibri', 15, font_flag.BOLD)
+local font_logo_lil = renderCreateFont('Calibri', 8, font_flag.BOLD)
+local font_t = renderCreateFont('Calibri', 14, font_flag.BOLD)
 --
 
 local tCarsName = {"Landstalker", "Bravura", "Buffalo", "Linerunner", "Perrenial", "Sentinel", "Dumper", "Firetruck", "Trashmaster", "Stretch", "Manana", "Infernus",
@@ -43,16 +43,16 @@ local tCarsName = {"Landstalker", "Bravura", "Buffalo", "Linerunner", "Perrenial
 	"RCBandit", "Romero","Packer", "Monster", "Admiral", "Squalo", "Seasparrow", "Pizzaboy", "Tram", "Trailer", "Turismo", "Speeder", "Reefer", "Tropic", "Flatbed",
 	"Yankee", "Caddy", "Solair", "Berkley'sRCVan", "Skimmer", "PCJ-600", "Faggio", "Freeway", "RCBaron", "RCRaider", "Glendale", "Oceanic", "Sanchez", "Sparrow",
 	"Patriot", "Quad", "Coastguard", "Dinghy", "Hermes", "Sabre", "Rustler", "ZR-350", "Walton", "Regina", "Comet", "BMX", "Burrito", "Camper", "Marquis", "Baggage",
-	"Dozer", "Maverick", "NewsChopper", "Rancher", "FBIRancher", "Virgo", "Greenwood", "Jetmax", "Hotring", "Sandking", "BlistaCompact", "PoliceMaverick",
-	"Boxvillde", "Benson", "Mesa", "RCGoblin", "HotringRacerA", "HotringRacerB", "BloodringBanger", "Rancher", "SuperGT", "Elegant", "Journey", "Bike",
-	"MountainBike", "Beagle", "Cropduster", "Stunt", "Tanker", "Roadtrain", "Nebula", "Majestic", "Buccaneer", "Shamal", "hydra", "FCR-900", "NRG-500", "HPV1000",
-	"CementTruck", "TowTruck", "Fortune", "Cadrona", "FBITruck", "Willard", "Forklift", "Tractor", "Combine", "Feltzer", "Remington", "Slamvan", "Blade", "Freight",
+	"Dozer", "Maverick", "News Chopper", "Rancher", "FBI Rancher", "Virgo", "Greenwood", "Jetmax", "Hotring", "Sandking", "Blista Compact", "Police Maverick",
+	"Boxvillde", "Benson", "Mesa", "RCGoblin", "Hotring Racer A", "Hotring Racer B", "Bloodring Banger", "Rancher", "SuperGT", "Elegant", "Journey", "Bike",
+	"Mountain Bike", "Beagle", "Cropduster", "Stunt", "Tanker", "Roadtrain", "Nebula", "Majestic", "Buccaneer", "Shamal", "hydra", "FCR-900", "NRG-500", "HPV1000",
+	"Cement Truck", "Tow Truck", "Fortune", "Cadrona", "FBI Truck", "Willard", "Forklift", "Tractor", "Combine", "Feltzer", "Remington", "Slamvan", "Blade", "Freight",
 	"Streak", "Vortex", "Vincent", "Bullet", "Clover", "Sadler", "Firetruck", "Hustler", "Intruder", "Primo", "Cargobob", "Tampa", "Sunrise", "Merit", "Utility", "Nevada",
 	"Yosemite", "Windsor", "Monster", "Monster", "Uranus", "Jester", "Sultan", "Stratum", "Elegy", "Raindance", "RCTiger", "Flash", "Tahoma", "Savanna", "Bandito",
 	"FreightFlat", "StreakCarriage", "Kart", "Mower", "Dune", "Sweeper", "Broadway", "Tornado", "AT-400", "DFT-30", "Huntley", "Stafford", "BF-400", "NewsVan",
-	"Tug", "Trailer", "Emperor", "Wayfarer", "Euros", "Hotdog", "Club", "FreightBox", "Trailer", "Andromada", "Dodo", "RCCam", "Launch", "PoliceCar", "PoliceCar",
-	"PoliceCar", "PoliceRanger", "Picador", "SWAT", "Alpha", "Phoenix", "GlendaleShit", "SadlerShit", "Luggage A", "Luggage B", "Stairs", "Boxville", "Tiller",
-	"UtilityTrailer"
+	"Tug", "Trailer", "Emperor", "Wayfarer", "Euros", "Hotdog", "Club", "FreightBox", "Trailer", "Andromada", "Dodo", "RCCam", "Launch", "Police Car", "Police Car",
+	"Police Car", "Police Ranger", "Picador", "SWAT", "Alpha", "Phoenix", "GlendaleShit", "SadlerShit", "Luggage A", "Luggage B", "Stairs", "Boxville", "Tiller",
+	"Utility Trailer"
 }
 
 local tCarsTypeName = {"Автомобиль", "Мотоцикл", "Вертолёт", "Самолёт", "Прицеп", "Лодка", "Другое", "Поезд", "Велосипед"}
@@ -188,7 +188,8 @@ local ini = inicfg.load({
 		color_line           = 0xFF4169E1,
 		idforname            = false,
 		autobuy              = false,
-		newStrobes           = true
+		newStrobes           = true,
+		normalTime           = true
 	},
 	uk_set = {
 		insubordination      = '3 | 31.2 УК', -- неподчинение
@@ -421,7 +422,8 @@ local ini = inicfg.load({
 		lserver              = true,
 		pickeat              = true,
 		dropall              = true,
-		savepass             = true
+		savepass             = true,
+		dchat                = true
 	},
 	customCommands = {
 	},
@@ -489,7 +491,8 @@ local scriptCommands = {
 		lserver              = {true, 'command_server'},
 		pickeat              = {true, 'command_pickeat'},
 		dropall              = {true, 'command_dropall'},
-		savepass             = {true, 'command_savepass'}
+		savepass             = {true, 'command_savepass'},
+		dchat                = {true, 'command_distanceChat'}
 	}
 }
 
@@ -511,7 +514,6 @@ local hotkey_cust_butt = {}
 
 local users              = ''
 local lgov               = {}
-local dreason            = {}
 local gnews              = {}
 local suspect_id         = {0, 0, '', '', -1}
 local target_id          = 0
@@ -608,7 +610,7 @@ function main()
 		else
 			scriptCommands.default[name][1] = ini.defaultCommands[name]
 		end
-	end inicfg.save(ini, 'HfMIA global settings.ini')
+	end 
 
 	local numberCommands, registerCommands = 0, 0
 	for command, _function in pairs(scriptCommands.default) do
@@ -652,6 +654,7 @@ function main()
 	lua_thread.create(logotyp)
 	lua_thread.create(speedometr)
 	lua_thread.create(notifications)
+	lua_thread.create(dynamicTime)
 	
 	apply_custom_style()
 	register_custom_hotkey()
@@ -756,10 +759,6 @@ function main()
 			local text = string.format('{FA8072}%d{ffffff} MINUTES {FA8072}%d{ffffff} SECONDS', minute, secund)
 			renderFontDrawText(font_logo_lil, text, x, y, 0xFFFFFFFF)
 		end
-
-		if set_time then
-			setTimeOfDay(set_time[1], set_time[2])
-		end
 		
 		if wasKeyPressed(KEY.VK_H) and isKeyDown(VK_RBUTTON) then
 			if ini.set.strobes then
@@ -773,15 +772,8 @@ function main()
 				local fX, fY, fZ = getOffsetFromCarInWorldCoords(vehicle, 1.2, 0.0, 0.5)
 				local x, y = convert3DCoordsToScreen(fX, fY, fZ)
 
-				if isCarSirenOn(vehicle) then
-					if math.fmod(math.floor(os.clock()), 2) == 0 then 
-						textStrobes = '{CD5C5C}STR{ffffff}O{5CACEE}BES {ffffff}| {FA8072}' .. math.ceil(getCarSpeed(vehicle) * 2.02) .. '{ffffff} KM/H'
-					else 
-						textStrobes = '{5CACEE}STR{ffffff}O{CD5C5C}BES {ffffff}| {FA8072}' .. math.ceil(getCarSpeed(vehicle) * 2.02) .. '{ffffff} KM/H'
-					end
-				else
-					textStrobes = 'STROBES {ffffff}| {FA8072}' .. math.ceil(getCarSpeed(vehicle) * 2.02) .. '{ffffff} KM/H'
-				end
+
+				textStrobes = 'STROBES {ffffff}| {FA8072}' .. math.ceil(getCarSpeed(vehicle) * 2.02) .. '{ffffff} KM/H'
 
  				renderFontDrawText(font_logo_lil, textStrobes, x, y, 0xFFFFFFFF)
 			end
@@ -977,6 +969,21 @@ function main()
 	end
 end
 
+function dynamicTime()
+	while true do
+		wait(0)
+
+		if set_time then
+			setTimeOfDay(set_time[1], set_time[2])
+		else
+			if ini.set.normalTime then
+				local hour, minutes = os.date('%H'), os.date('%M')
+				setTimeOfDay(hour, minutes)
+			end
+		end
+	end
+end
+
 function notifications()
 	while true do
 		wait(0)
@@ -1090,6 +1097,12 @@ function command_strobes()
 	end
 end
 
+function command_distanceChat()
+	if player_status > 1 then
+		distanceChat = not distanceChat
+	end
+end
+
 function command_savepass()
 	if savePass and type(savePass) == ('table') then
 		local result, id = sampGetPlayerIdByCharHandle(playerPed)
@@ -1155,12 +1168,7 @@ function command_r(text)
 		text = string.gsub(text, '%$p', string.format('%s (%s)', calculateZone(), kvadrat()))
 		text = string.format('%s %s', ini.info.rteg, text)
 		
-		if string.len(text) > 77 then
-			sampSendChat(string.format('/r %s ...', string.sub(text, 0, 77)))
-			sampSendChat(string.format('/r ... %s', string.sub(text, 78, string.len(text))))
-		else
-			sampSendChat(string.format('/r %s', text))
-		end
+		sampSendChat(string.format('/r %s', text))
 		
 		if ini.lowrp.rpradio and ini.set.lowrp then
 			lua_thread.create(function()
@@ -1209,12 +1217,7 @@ function command_f(text)
 		text = string.gsub(text, '%$p', string.format('%s (%s)', calculateZone(), kvadrat()))
 		text = string.format('%s %s', ini.info.fteg, text)
 		
-		if string.len(text) > 77 then
-			sampSendChat(string.format('/f %s ...', string.sub(text, 0, 77)))
-			sampSendChat(string.format('/f ... %s', string.sub(text, 78, string.len(text))))
-		else
-			sampSendChat(string.format('/f %s', text))
-		end
+		sampSendChat(string.format('/f %s', text))
 		
 		if ini.lowrp.rpradio then
 		
@@ -1372,7 +1375,7 @@ function reconnect(delay, ip)
 			if string.match(ip, '(%S+):(%d+)') then
 				local ipadress, port = string.match(ip, '(.+):(%d+)')
 				local port = tonumber(port)
-				local wdelay = delay * 1000
+				local wdelay = delay * 1000  
 				printStyledString(string.format('~w~reconnect with ~p~ %d ~w~ seconds delay', delay), wdelay, 4)
 				sampConnectToServer(ipadress, port)
 			end
@@ -1381,6 +1384,27 @@ function reconnect(delay, ip)
 end
 
 function command_rkinfo()
+	if dreason and type(dreason) == ('table') then
+		local alltime = ini.set.delay_rk * 60 - math.floor(os.clock() - dreason[2])
+
+		local minute = math.floor(alltime / 60)
+		local second = math.fmod(alltime, 60)
+
+		if alltime > 0 and alltime < ini.set.delay_rk * 60 then
+			if tostring(calculateZone()) == tostring(dreason[1]) then
+				addChat(string.format('[{ff5c33}WARN{ffffff}] Вы можете вернуться в район {ff5c33}%s{ffffff} через %d мин, %d сек ({FFCD00}%d{ffffff} сек).', dreason[1], minute, second, alltime))
+			else
+				addChat(string.format('Вы можете вернуться в район {ff5c33}%s{ffffff} через %d мин, %d сек ({FFCD00}%d{ffffff} сек).', dreason[1], minute, second, alltime))
+			end
+		else
+			addChat(string.format('Время вышло и вы {00cc99}можете{ffffff} вернуться в район %s.', dreason[1]))
+		end
+	else
+		addChat('Вы не умирали.')
+	end
+end
+
+--[[function command_rkinfo()
 	if dreason[1] ~= nil then
 		local timed = getTimeByPeriod(tonumber(dreason[2]), tonumber(dreason[3]), tonumber(dreason[4]), ini.set.delay_rk)
 		addChat(string.format('Вы можете вернуться в район %s в %d ч. %d мин. %d сек.', dreason[1], timed[1], timed[2], timed[3]))
@@ -1395,7 +1419,7 @@ function command_rkinfo()
 	else
 		addChat('Вы не умирали.')
 	end
-end
+end]]
 
 function command_apay(param)
 	if string.match(param, '(%d+) (%d+)') then
@@ -1687,7 +1711,13 @@ function command_settime(param)
 			addChat('Часы не должны быть больше 23 и меньше 0. Минуты не должны быть больше 59 и меньше 0.')
 		end
 	else
-		addChat('Используйте команду /st [часы] [минуты].')
+		if set_time and ini.set.normalTime then
+			set_time = nil
+			patch_samp_time_set(false)
+			addChat('Вы перешли к режиму динамического обновления времени.')
+		else
+			addChat('Используйте команду /st [часы] [минуты].')
+		end
 	end
 end
 
@@ -3644,7 +3674,7 @@ function draw_another_settings()
 	
 	if imgui.InputText(u8'Ссылка на чёрный список', url_bl) then
 		ini.set.blacklist = url_bl.v
-		inicfg.save(ini, 'HfMIA global settings.ini') 
+		 inicfg.save(ini, 'HfMIA global settings.ini')
 	end
 	
 	toggleButton('Сообщение в рацию при использовании мегафона (погоня / пешая погоня)', 'set', 'message_megafon')
@@ -3660,7 +3690,7 @@ function draw_settings_rpweapon()
 			if imgui.Button(u8'ПОЛУАВТОМАТИЧЕСКИЕ ОТЫГРОВКИ ОРУЖИЯ', imgui.ImVec2(350, 20)) then
 				ini.set.halfrpweapon = false
 				ini.set.autorpweapon = true
-				inicfg.save(ini, 'HfMIA global settings.ini') 
+				 inicfg.save(ini, 'HfMIA global settings.ini')
 			end
 			ItemPovered('Отыгровка происходит при прицеливании или нажатии специальных клавиш.')
 		else
@@ -3809,7 +3839,7 @@ function draw_uk_list()
 				if imgui.Button(u8(name), imgui.ImVec2(450, 20)) then
 					addChat(string.format('Значение статьи для "%s" изменено на %s, количество звёзд %d.', name, uk_static.name, uk_static.stars))
 					ini.uk_set[val] = string.format('%d | %s', uk_static.stars, uk_static.name)
-					inicfg.save(ini, 'HfMIA global settings.ini')
+					
 				end
 			end
 		imgui.End()
@@ -4079,17 +4109,23 @@ function draw_modification()
 		imgui.PushItemWidth(200)
 		if imgui.SliderInt('##ITEM1', pslhour, 0, 23) then
 			ini.set.slhour = pslhour.v
-			inicfg.save(ini, 'HfMIA global settings.ini') 
+			 inicfg.save(ini, 'HfMIA global settings.ini')
 		end
 		imgui.SameLine() imgui.Text(u8'Время включения уличных фонарей')
 		
 		if imgui.SliderInt('##ITEM2', pmslhour, 0, 23) then
 			ini.set.mslhour = pmslhour.v
-			inicfg.save(ini, 'HfMIA global settings.ini') 
+			 inicfg.save(ini, 'HfMIA global settings.ini')
 		end
 		imgui.SameLine() imgui.Text(u8'Время отключения уличных фонарей')
 		
 		imgui.TreePop()
+	end
+
+	if imgui.TreeNode(u8'Динамическое обновление времени') then
+		toggleButton('Включить динамическое обновление времени в зависимости от глобального.', 'set', 'normalTime')
+
+		imgui.Treedop()
 	end
 	
 	if imgui.TreeNode(u8'Модицированный CamHack') then
@@ -4123,12 +4159,13 @@ function draw_modification()
 						ini.set.logo_x, ini.set.logo_y = getCursorPos()
 						
 						if wasKeyPressed(KEY.VK_LBUTTON) then
+							inicfg.save(ini, 'HfMIA global settings.ini')
 							break
 						end
 					end
 					
 					addChat('Новое местоположение для логотипа было установлено.')
-					inicfg.save(ini, 'HfMIA global settings.ini') 
+					 
 				end)
 			end
 		end
@@ -4187,15 +4224,17 @@ function draw_head_page()
 
 		imgui.BeginChild('##Update_Info', imgui.ImVec2(610, 390), true)
 			
-			imgui.TextColoredRGB('{ffffff}[v15.9] Обновлена система умного розыска и умной выдачи штрафа.')
-			imgui.TextColoredRGB('{ffffff}[v15.9] Обновлён логотип сервера.')
-			imgui.TextColoredRGB('{ffffff}[v15.9] Обновлён менеджер серверов.')
-			imgui.TextColoredRGB('{ffffff}[v15.9] Обновлён менеджер аккаунтов на более удобный.')
+			imgui.TextColoredRGB('{ffffff}[v16.1] Добавлена модификация динамического обновления времени.')
+			imgui.TextColoredRGB('{ffffff}[v16.1] Исправлен баг с дальным отображение чата при использовании CamHack`a.')
+
+			imgui.TextColoredRGB('{CECECE}[v15.9] Обновлена система умного розыска и умной выдачи штрафа.')
+			imgui.TextColoredRGB('{CECECE}[v15.9] Обновлён логотип сервера.')
+			imgui.TextColoredRGB('{CECECE}[v15.9] Обновлён менеджер серверов.')
+			imgui.TextColoredRGB('{CECECE}[v15.9] Обновлён менеджер аккаунтов на более удобный.')
 
 			imgui.TextColoredRGB('{CECECE}[v15.8] Обновлена панель лидера для редактирования гос.новостей на более удобную.')
 			imgui.TextColoredRGB('{CECECE}[v15.8] Исправлен баг с логом убийств в консоли, теперь он корректно логирует убийство.')
 			imgui.TextColoredRGB('{CECECE}[v15.8] Улучшена система отображения нового логотипа.')
-
 			imgui.TextColoredRGB('{CECECE}[v15.7] Менеджер паролей был улучшен и теперь работает на любом сервере.')
 			imgui.TextColoredRGB('{CECECE}[v15.7] Добавлен перенос строк для обычного чата, /me и /do.')
 			imgui.TextColoredRGB('{CECECE}[v15.6] Добавлен менеджер серверов для удобного переподключения (/lserver).')
@@ -4411,6 +4450,7 @@ function draw_another_custom_command()
 
 						sampUnregisterChatCommand(name_cmd.v)
 						ini.customCommands[name_cmd.v] = nil
+						ini.custom_hkey[name_cmd.v] = nil
 						inicfg.save(ini, 'HfMIA global settings.ini')
 					else
 						pushMessage('Для начала нужно найти или создать команду.', 3, 3)	
@@ -4607,8 +4647,6 @@ function draw_new_custom_hotkey()
 							process_command(hotkey_cust_butt[#hotkey_cust_butt].name)
 						end
 					end)
-					
-					inicfg.save(ini, 'HfMIA global settings.ini')
 				else
 					pushMessage('Команда не должна быть на русском языке.', 3, 3)
 				end
@@ -4647,6 +4685,7 @@ function draw_customization()
 			if imgui.ColorEdit4(obj, color) then
 				local colors = imgui.ImColor.FromFloat4(color.v[1], color.v[2], color.v[3], color.v[4]):GetU32()
 				ini.custom[obj] = colors
+				inicfg.save(ini, 'HfMIA global settings.ini')
 			end
 			
 			if descript_f[obj] ~= nil then
@@ -5771,7 +5810,6 @@ function urlencode(str)
 end
 
 function attempToGetFileAndDir()
-	local startTime = os.clock()
 	print('Проверка целостности и актуальности данных. Заполнение основных таблиц...')
 
 	local d = {'helper', 'helper//commands', 'helper//gnews'}
@@ -6317,22 +6355,6 @@ function closeConnect()
 	raknetDeleteBitStream(bs)
 end
 
-function sampGetMonthName()
-	if os.date('%m') == '01' then return 'января'
-	elseif os.date('%m') == '02' then return 'февраля'
-	elseif os.date('%m') == '03' then return 'марта'
-	elseif os.date('%m') == '04' then return 'апреля'
-	elseif os.date('%m') == '05' then return 'мая'
-	elseif os.date('%m') == '06' then return 'июня'
-	elseif os.date('%m') == '07' then return 'июля'
-	elseif os.date('%m') == '08' then return 'августа'
-	elseif os.date('%m') == '09' then return 'сентября'
-	elseif os.date('%m') == '10' then return 'октября'
-	elseif os.date('%m') == '11' then return 'ноября'
-	elseif os.date('%m') == '12' then return 'декабря'
-	end
-end
-
 function sampGetPickupHandleByCoords(model, x, y, z)
 	for name, value in pairs(getAllPickups()) do
 		if getPickupModel(value) == model then
@@ -6359,17 +6381,74 @@ function getColorRang(nrang)
 	end
 end
 
+Angle = 6
+
+function onReceiveRpc(id,bs)
+    if id == 91 then
+        raknetBitStreamIgnoreBits(bs, 8)
+        local x, y = raknetBitStreamReadFloat(bs), raknetBitStreamReadFloat(bs)
+        if isCharInAnyCar(PLAYER_PED) then
+            local handle = storeCarCharIsInNoSave(PLAYER_PED)
+            local xx, yy = getCoordinates(getCarHeading(handle), 2)
+            local fAngle = math.deg(math.atan2(yy - y, xx - x))
+            local fAngle = tonumber(string.format("%.2f",(fAngle < 0 and 360 - math.abs(fAngle) or fAngle)))
+            local sAngle = (getCarHeading(handle) + 90)
+            local sAngle = tonumber(string.format("%.2f",(sAngle > 360 and sAngle - 360 or sAngle)))
+            if getCarSpeed(handle) > 0 then
+                if (sAngle - Angle) <= fAngle and (sAngle + Angle) >= fAngle then
+                    if isButtonPressed(PLAYER_HANDLE, 16) then
+                        return true
+                    else
+						if not isButtonPressed(PLAYER_HANDLE, 14) then
+							return false
+						end
+                    end
+                else
+                    return false
+                end
+            end
+        end
+    end
+end
+
+function getCoordinates(angle, distance)
+    atX = (distance * math.sin(math.rad(-angle)))
+    atY = (distance * math.cos(math.rad(-angle)))
+    return atX, atY
+end
+
+function scr(a,b)
+    return (a > b and a.." > "..b..") на "..(a - b) or a.." < "..b..") на "..(b - a))
+end
+
 function sampev.onServerMessage(color, text)
-	if text:match('(.+)[%s+].[%s+]Отправил[%s+](%S+).[%d+].[%s+].тел.[%s+](%d+).') then
-		local text, name, number = text:match('(.+)[%s+].[%s+]Отправил[%s+](%S+).[%d+].[%s+].тел.[%s+](%d+).')
-		name = string.gsub(name, '%[', '')
+	if text:match('(.+)%s%|%sОтправил%s(%S+)%[(%d+)%]%s%(тел%.%s(%d+)%)') then
+		local ttext, name, id, number = text:match('(.+)%s%|%sОтправил%s(%S+)%[(%d+)%]%s%(тел%.%s(%d+)%)')
 		ini.number[name] = number
-		inicfg.save(ini, 'HfMIA global settings.ini')
 		
-		if not ini.set.stopad then return false end
+		if not ini.set.stopad then
+			return false
+		else
+			return {color, text}
+		end
 	end
 
-	if text:find('  Объявление проверил сотрудник СМИ (.+)') and not ini.set.stopad then return false end
+	if text:match('  Объявление%sпроверил%sсотрудник%sСМИ%s(%S+)') then
+		if not ini.set.stopad then
+			return false
+		else
+			local name = text:match('  Объявление%sпроверил%sсотрудник%sСМИ%s(%S+)')
+			local id = sampGetPlayerIdByNickname(name)
+
+			if IPC(id) then
+				local shortName, surname = string.match(name, '(%S+)_(%S+)')
+				return {color, ('  Объявление было проверено сотрудником СМИ %s. %s[%d]'):format(string.sub(shortName, 0, 1), surname, id)}
+			else
+				local shortName, surname = string.match(name, '(%S+)_(%S+)')
+				return {color, ('  Объявление было проверено сотрудником СМИ %s. %s[OFF]'):format(string.sub(shortName, 0, 1), surname)}
+			end
+		end
+	end
 	
 	if color == 869033727 and text:find('[R]') then
 		local rang, name, surname, id, ptext = string.match(text, '%[R%]%s(.+)%s(%S+)_(%S+)%[(%d+)%]:%s(.+)')
@@ -6491,7 +6570,8 @@ function sampev.onServerMessage(color, text)
 		--local pname = sampGetPlayerName(id)
 		
 		ini.number[name] = number
-		inicfg.save(ini, 'HfMIA global settings.ini')
+		inicfg.save(ini, 'HfMIA global settings')
+		
 		last_sms = number
 		
 		if sampGetBlackList(name) then
@@ -6503,13 +6583,13 @@ function sampev.onServerMessage(color, text)
 	if text:match('SMS.[%s](.+)[%s].[%s]Получатель.[%s](.+)[%s].т.(%d+).') then
 		local ftext, name, number = text:match('SMS.[%s](.+)[%s].[%s]Получатель.[%s](.+)[%s].т.(%d+).')
 		ini.number[name] = number
-		inicfg.save(ini, 'HfMIA global settings.ini')
+		inicfg.save(ini, 'HfMIA global settings')
 	end
 	
 	if text:match('Входящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Вызывает[%s](.+)') then
 		local number, name = text:match('Входящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Вызывает[%s](.+)')
 		ini.number[name] = number
-		inicfg.save(ini, 'HfMIA global settings.ini')
+		inicfg.save(ini, 'HfMIA global settings')
 		
 		if sampGetBlackList(name) then
 			bl_call = true
@@ -6522,7 +6602,7 @@ function sampev.onServerMessage(color, text)
 	if text:match('Исходящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Ожидание[%s]ответа[%s]от[%s](.+)...') then
 		local number, name = text:match('Исходящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Ожидание[%s]ответа[%s]от[%s](.+)...')
 		ini.number[name] = number
-		inicfg.save(ini, 'HfMIA global settings.ini')
+		inicfg.save(ini, 'HfMIA global settings')
 	end
 	
 	if text:match('Используйте {00CC00}/p {FFFFFF}чтобы ответить или {FF6600}/h {FFFFFF}чтобы отклонить вызов') then
@@ -6658,6 +6738,32 @@ function sampev.onServerMessage(color, text)
 			return {color, text}
 		end
 	end
+
+	if text:match('Гос%.[%s]новости%:[%s](%S+)%[(%d+)%]%:[%s](.+)') then
+		local name, id, ttext = text:match('Гос%.[%s]новости%:[%s](%S+)%[(%d+)%]%:[%s](.+)')
+
+		if type(log) == ('table') then
+			if os.clock() - log[#log].clock < 5 then
+				if log[#log].name == name then
+					log[#log].clock = os.clock()
+					log[#log].name = name
+					table.insert(log[#log].message, ttext)
+
+					return {color, ('[GOV] %s[%d]: %s'):format(name, id, ttext)}
+				else
+					--table.insert(log, {clock = os.clock(), name = name, message = {ttext}})
+					return {color, ('[GOV] %s[%d]: %s'):format(name, id, ttext)}
+				end
+			else
+				table.insert(log, {clock = os.clock(), name = name, message = {ttext}})
+				return {color, ('[GOV] %s[%d]: %s'):format(name, id, ttext)}
+			end
+		else
+			log = {}
+			table.insert(log, {clock = os.clock(), name = name, message = {ttext}})
+			return {color, ('[GOV] %s[%d]: %s'):format(name, id, ttext)}
+		end
+	end
 end
 
 function sampev.onSendDialogResponse(dialogId, button, listItem, input)
@@ -6688,7 +6794,7 @@ end
 function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 	if string.match(title, 'Авторизация') then
 		enteredPassword = dialogId
-		if not text:match('Неверный пароль') then
+		if not text:match('Неверный пароль') and not text:match('PIN') then
 			local res, id = sampGetPlayerIdByCharHandle(playerPed)
 			if res then
 				local name = sampGetPlayerName(id)
@@ -6698,7 +6804,6 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 				if pass.server[dd] ~= nil then
 					local pass = pass.server[dd]:match('(.+)[%s]%|[%s][%S+]')
 					sampSendDialogResponse(dialogId, 1, 1, pass)
-
 					return false
 				end
 			end
@@ -6996,9 +7101,26 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 	end
 end
 
-function sampev.onPlayerChatBubble(id, color, dis, dur, mess)
+function sampev.onPlayerChatBubble(id, color, distance, dur, message)
+	if distanceChat then
+		return {id, color, 1488, dur, '[' .. id .. '] • ' .. message}
+	end
+
 	if flymode then
-		return {id, color, 1488, dur, mess}
+		if IPC(id) then
+			local result, ped = sampGetCharHandleBySampPlayerId(id)
+
+			if result then
+				local x, y, z = getCharCoordinates(ped)
+				local _distance = getDistanceBetweenCoords3d(x, y, z, posX, posY, posZ)
+
+				if _distance <= distance then
+					return {id, color, 1488, dur, message}
+				end
+			end
+		end
+
+		return true
 	end
 end
 
@@ -7037,9 +7159,10 @@ end
 
 function sampev.onSendDeathNotification(reason, playerId)
 	if reason then
+		dreason = {calculateZone(), os.clock()}
+
 		if lastDamageId and IPC(lastDamageId) then
 			local playerId = lastDamageId
-			dreason = {calculateZone(), os.date('%H'), os.date('%M'), os.date('%S')}
 
 			if playerId then
 				print(('Вы были убиты игроком {%s}%s{ffffff}[%d] в %d:%d.'):format(sampGetColorByPlayer(playerId), sampGetPlayerName(playerId), playerId, os.date('%H'), os.date('%M')))
@@ -7059,8 +7182,10 @@ function sampev.onSendChat(text)
 end
 
 local longCommand = {
-	['me'] = {90, true},
-	['do'] = {75}
+	['me']  = {90, {true, 1}},
+	['do']  = {75},
+	['r']   = {80, {true, 2}},
+	['f']   = {80, {true, 2}}
 }
 
 function sampev.onSendCommand(parametrs)
@@ -7070,11 +7195,21 @@ function sampev.onSendCommand(parametrs)
 		local longValue = string.len(value)
 
 		if longCommand[command][1] < longValue then
-			sampSendChat('/' .. command .. ' ' .. string.sub(value, 0, longCommand[command][1] - 3) .. ' ..')
-
-			if longCommand[command][2] then
-				sampSendChat('/do .. ' .. string.sub(value, longCommand[command][1] - 2, longValue) .. '.')
+			if longCommand[command][2][1] then
+				if longCommand[command][2][2] == 1 then
+					sampSendChat('/' .. command .. ' ' .. string.sub(value, 0, longCommand[command][1] - 3) .. ' ..')
+					sampSendChat('/do .. ' .. string.sub(value, longCommand[command][1] - 2, longValue) .. '.')
+				elseif longCommand[command][2][2] == 2 then
+					if string.match(value, '%(%(%s(.+)%s%)%)') then
+						sampSendChat('/' .. command .. ' ' .. string.sub(value, 0, longCommand[command][1] - 6) .. ' .. ))')
+						sampSendChat('/' .. command .. ' (( .. ' .. string.sub(value, longCommand[command][1] - 5, longValue))
+					else
+						sampSendChat('/' .. command .. ' ' .. string.sub(value, 0, longCommand[command][1] - 3) .. ' ..')
+						sampSendChat('/' .. command .. ' .. ' .. string.sub(value, longCommand[command][1] - 2, longValue))
+					end
+				end
 			else
+				sampSendChat('/' .. command .. ' ' .. string.sub(value, 0, longCommand[command][1] - 3) .. ' ..')
 				sampSendChat('/' .. command .. ' .. ' .. string.sub(value, longCommand[command][1] - 2, longValue))
 			end
 			return false
@@ -7367,6 +7502,7 @@ end
 function onScriptTerminate(script, bool)
 	if thisScript() == script then
 		if lastBlipChar then removeBlip(lastBlipChar) end
+		showCursor(false)
 	end
 end
 

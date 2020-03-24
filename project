@@ -6,7 +6,7 @@
 --   |_/ \_|  |____\  |_____/ |_|      |____\  |_| \_\       |_|     \_____/  |_| \_\       |_|   |_|  |_|   \ ___/\/
 
 script_name('helper-for-mia')
-script_version(16.2)
+script_version(16.3)
 --script_properties('work-in-pause')
 
 require 'lib.moonloader'
@@ -193,7 +193,10 @@ local ini = inicfg.load({
 		color_line           = 0xFF4169E1,
 		idforname            = false,
 		autobuy              = false,
-		normalTime           = true
+		normalTime           = true,
+		barSuspect           = false,
+		barSuspectX          = 500,
+		barSuspectY          = 500
 	},
 	uk_set = {
 		insubordination      = '3 | 31.2 УК', -- неподчинение
@@ -663,7 +666,7 @@ function main()
 	lua_thread.create(speedometr)
 	lua_thread.create(notifications)
 	lua_thread.create(dynamicTime)
-	--lua_thread.create(suspectBar)
+	lua_thread.create(suspectBar)
 	
 	apply_custom_style()
 	register_custom_hotkey()
@@ -1075,70 +1078,77 @@ function logotyp()
 	end
 end
 
---[[function suspectBar()
+function suspectBar()
 	local function renderDrawTextShadow(font, text, x, y, color)
 		local color = color or 0xFFFFFFFF
 		renderFontDrawText(font, text, x + 0.5, y + 0.5, 0x99444444)
 		renderFontDrawText(font, text, x, y, color)
 	end
-		
-	local sX, sY = getScreenResolution()
-
-	local x, y = 878, 871
 	
-	local staticName = ''
-	local name = ''
+	local _bsuspect = {name = '', staticName = ''}
 
 	while true do wait(0)
 		if suspect_id[4] ~= '' then
-			if wasKeyPressed(KEY.VK_H) then 
-				
-			end
-
-			if isKeyDown(VK_LBUTTON) then
-				x, y = getCursosrPos()
-				printStringNow(x .. ' ' .. y)
-			end
-			
-			if drawSuspectBar then
-				if suspect_id[4] ~= staticName then
-					staticName = sampGetPlayerName(suspect_id[1])
-					name = string.upper(string.gsub(sampGetPlayerName(suspect_id[1]), '_', ' '))
+			--if IPC(suspect_id[1]) then
+				if suspect_id[4] ~= _bsuspect.staticName then
+					if IPC(suspect_id[1]) then
+						_bsuspect.staticName = sampGetPlayerName(suspect_id[1])
+						_bsuspect.name = string.upper(string.gsub(sampGetPlayerName(suspect_id[1]), '_', ' '))
+					end
 				end
-						
-				local id = sampGetPlayerIdByNickname(staticName)
-				if id ~= 'OFF' then
-					result, ped = sampGetCharHandleBySampPlayerId(id)
-					
-					if result then suspectColor = 0xFF00FF00 else suspectColor = 0xFFFFFF00 end
+				
+				_bsuspect.id = sampGetPlayerIdByNickname(_bsuspect.staticName)
+				if _bsuspect.id ~= 'OFF' then
+					_bsuspect.result, _bsuspect.ped = sampGetCharHandleBySampPlayerId(_bsuspect.id)
+					if _bsuspect.result then suspectColor = 0xFF00FF00 else suspectColor = 0xFFFFFF00 end
 				else
 					suspectColor = 0xFFFF0000
 				end
 						
-				if doesCharExist(ped) then
-					if isCharSittingInAnyCar(ped) then
-						local vehicle = storeCarCharIsInNoSave(ped)
-						model = getCarModel(vehicle)
-						nameModel = string.upper(tCarsName[model - 399])
+				if doesCharExist(_bsuspect.ped) then
+					if isCharSittingInAnyCar(_bsuspect.ped) then
+						_bsuspect.vehicle = storeCarCharIsInNoSave(_bsuspect.ped)
+						_bsuspect.model = getCarModel(_bsuspect.vehicle)
+						_bsuspect.vhealth = getCarHealth(_bsuspect.vehicle)
+						_bsuspect.nameModel = string.upper(tCarsName[_bsuspect.model - 399]) .. ' (' .. _bsuspect.vhealth .. ')'
 					else
-						nameModel = 'НЕ В ТРАНСПОРТЕ'
+						_bsuspect.nameModel = 'НЕ В ТРАНСПОРТЕ'
 					end
-				else
-					nameModel = 'НЕИЗВЕСТНО'
-				end
 					
-				renderDrawTextShadow(fontSuspect1, 'XXX', x, y)
-				renderDrawTextShadow(fontSuspect3, 'КМ/Ч', x + 4, y+ 18)
+					_bsuspect.speed = math.ceil(getCharSpeed(_bsuspect.ped) * 2.02)
+				else
+					_bsuspect.speed = 'XXX'
+					_bsuspect.nameModel = 'НЕИЗВЕСТНО'
+				end
+				
+				local fix = renderGetFontDrawTextLength(fontSuspect1, tostring(_bsuspect.speed))
+				
+				renderDrawTextShadow(fontSuspect1, _bsuspect.speed, ini.set.barSuspectX + 16.4 - fix / 2, ini.set.barSuspectY)
+				renderDrawTextShadow(fontSuspect3, 'КМ/Ч', ini.set.barSuspectX + 4, ini.set.barSuspectY + 18)
 
-				renderDrawBox(x + 40, y, 3, 30, 0xAAFFFFFF)
+				renderDrawBox(ini.set.barSuspectX + 40, ini.set.barSuspectY, 3, 30, 0xAAFFFFFF)
 
-				renderDrawTextShadow(fontSuspect2, name, x + 53, y)
-				renderDrawTextShadow(fontSuspect3, '•', x + 53, y + 15, suspectColor)
-				renderDrawTextShadow(fontSuspect3, ' ' .. nameModel, x + 59.5, y + 15)
-			end
+				renderDrawTextShadow(fontSuspect2, _bsuspect.name, ini.set.barSuspectX + 53, ini.set.barSuspectY)
+				renderDrawTextShadow(fontSuspect3, '•', ini.set.barSuspectX + 53, ini.set.barSuspectY + 15, suspectColor)
+				renderDrawTextShadow(fontSuspect3, ' ' .. _bsuspect.nameModel, ini.set.barSuspectX + 59.5, ini.set.barSuspectY + 15)
+				
+				if isKeyDown(VK_RBUTTON) then
+					if _bsuspect.id ~= 'OFF' then
+						local line = string.format('ID (%d) LEVEL (%d) PING (%d)', _bsuspect.id, sampGetPlayerScore(_bsuspect.id), sampGetPlayerPing(_bsuspect.id))
+						renderDrawTextShadow(fontSuspect3, line, ini.set.barSuspectX + 53, ini.set.barSuspectY + 30, 0xFFFFFFFF)
+						renderDrawTextShadow(fontSuspect3, 'ДЛЯ СКРЫТИЯ ИНФОРМАЦИИ НАЖМИТЕ {FFFF00}N', ini.set.barSuspectX + 53, ini.set.barSuspectY + 40, 0xFFFFFFFF)
+					else
+						renderDrawTextShadow(fontSuspect3, 'ДЛЯ СКРЫТИЯ ИНФОРМАЦИИ НАЖМИТЕ {FFFF00}N', ini.set.barSuspectX + 53, ini.set.barSuspectY + 30, 0xFFFFFFFF)
+					end
+				
+					if wasKeyPressed(KEY.VK_N) then
+						suspect_id = {0, 0, '', '', -1}
+					end
+				end
+			--end
 		end
 	end
-end]]
+end
 
 function command_menu()
 	show_menu.v = not show_menu.v
@@ -4320,6 +4330,35 @@ function draw_modification()
 		
 		imgui.TreePop()
 	end
+	
+	if imgui.TreeNode(u8'Информация о подозреваемом') then
+		toggleButton('Включить отображение информации о подозреваемом.', 'set', 'barSuspect')
+		
+		if ini.set.new_logo then
+			if imgui.Button(u8'Изменить местоположение информации') then
+				addChat('С помощью мыши установите логотип в нужное место. По завершению нажмите ЛКМ.')
+				lua_thread.create(function()
+					local _, id = sampGetPlayerIdByCharHandle(playerPed)
+					suspect_id = {id, '', '', sampGetPlayerName(id)}
+				
+					while show_menu.v do
+						wait(0)
+						
+						ini.set.barSuspectX, ini.set.barSuspectY = getCursorPos()
+						
+						if wasKeyPressed(KEY.VK_LBUTTON) then
+							inicfg.save(ini, 'HfMIA global settings.ini')
+							break
+						end
+					end
+					
+					addChat('Новое местоположение для информации о подозреваемом было установлено.')
+				end)
+			end
+		end
+		
+		imgui.TreePop()
+	end
 end
 
 function draw_hotkey_settings()
@@ -4371,6 +4410,8 @@ function draw_head_page()
 		imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ПОСЛЕДНИХ ОБНОВЛЕНИЯХ')
 
 		imgui.BeginChild('##Update_Info', imgui.ImVec2(610, 390), true)
+			
+			imgui.TextColoredRGB('{e6e6fa}[v16.3] Добавлена модификация отображения информации о подозреваемом.')
 			
 			imgui.TextColoredRGB('{e6e6fa}[v16.1] Добавлена модификация динамического обновления времени.')
 			imgui.TextColoredRGB('{e6e6fa}[v16.1] Исправлен баг с дальным отображение чата при использовании CamHack`a.')
@@ -4968,7 +5009,7 @@ function add_new_hotkey()
 					sampSendChat('/m В случае неподчинения будет открыт огонь на поражение!')
 					if ini.set.message_megafon then
 						wait(1000)
-						command_r(string.format('$m to DISP, 10-57 V за %s с номером %d, 10-20 %s (%s), CODE: 3, nRFR, over **', tCarsName[id - 399], pid, z, k))
+						command_r(string.format('$m to DISP, 10-57 V за %s с N-%d, 10-20 %s (%s), CODE: 3, nRFR, over **', tCarsName[id - 399], pid, z, k))
 					end
 					
 					local stars, reason = tonumber(ini.uk_set.insubordination:match('(%d+)[%s]|.+')), ini.uk_set.insubordination:match('[%d+][%s]|[%s](.+)')
@@ -6697,7 +6738,7 @@ function sampev.onServerMessage(color, text)
 		if IPC(id) then
 			local stars, reason = tonumber(ini.uk_set.insubordination:match('(%d+)[%s]|.+')), ini.uk_set.insubordination:match('[%d+][%s]|[%s](.+)')
 			addChat(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', sampGetPlayerName(id), id, reason))
-			suspect_id = {id, stars, reason, sampGetPlayerName(pid), -1}
+			suspect_id = {id, stars, reason, sampGetPlayerName(id), -1}
 		end
 	end
 	
@@ -6708,7 +6749,7 @@ function sampev.onServerMessage(color, text)
 		if IPC(id) then
 			local stars, reason = tonumber(ini.uk_set.cancel_ticket:match('(%d+)[%s]|.+')), ini.uk_set.cancel_ticket:match('[%d+][%s]|[%s](.+)')
 			addChat(string.format('Чтобы объявить %s[%d] в розыск по статье %s нажмите сочетание клавиш ПКМ + 5.', name, id, reason))
-			suspect_id = {id, stars, reason, sampGetPlayerName(pid), -1}
+			suspect_id = {id, stars, reason, sampGetPlayerName(id), -1}
 		end
 	end
 	

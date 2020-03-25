@@ -6,7 +6,7 @@
 --   |_/ \_|  |____\  |_____/ |_|      |____\  |_| \_\       |_|     \_____/  |_| \_\       |_|   |_|  |_|   \ ___/\/
 
 script_name('helper-for-mia')
-script_version(16.3)
+script_version(16.4)
 --script_properties('work-in-pause')
 
 require 'lib.moonloader'
@@ -6601,8 +6601,8 @@ function onReceiveRpc(id,bs)
 end
 
 function getCoordinates(angle, distance)
-    atX = (distance * math.sin(math.rad(-angle)))
-    atY = (distance * math.cos(math.rad(-angle)))
+    local atX = (distance * math.sin(math.rad(-angle)))
+    local atY = (distance * math.cos(math.rad(-angle)))
     return atX, atY
 end
 
@@ -6625,17 +6625,6 @@ function sampev.onServerMessage(color, text)
 	if text:match('  Объявление%sпроверил%sсотрудник%sСМИ%s(%S+)') then
 		if not ini.set.stopad then
 			return false
-		else
-			local name = text:match('  Объявление%sпроверил%sсотрудник%sСМИ%s(%S+)')
-			local id = sampGetPlayerIdByNickname(name)
-
-			if IPC(id) then
-				local shortName, surname = string.match(name, '(%S+)_(%S+)')
-				return {color, ('  Объявление было проверено сотрудником СМИ %s. %s[%d]'):format(string.sub(shortName, 0, 1), surname, id)}
-			else
-				local shortName, surname = string.match(name, '(%S+)_(%S+)')
-				return {color, ('  Объявление было проверено сотрудником СМИ %s. %s[OFF]'):format(string.sub(shortName, 0, 1), surname)}
-			end
 		end
 	end
 	

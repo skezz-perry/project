@@ -6,7 +6,7 @@
 --   |_/ \_|  |____\  |_____/ |_|      |____\  |_| \_\       |_|     \_____/  |_| \_\       |_|   |_|  |_|   \ ___/\/
 
 script_name('helper-for-mia')
-script_version(16.5)
+script_version(16.6)
 --script_properties('work-in-pause')
 
 require 'lib.moonloader'
@@ -200,7 +200,8 @@ local ini = inicfg.load({
 		normalTime           = true,
 		barSuspect           = false,
 		barSuspectX          = 500,
-		barSuspectY          = 500
+		barSuspectY          = 500,
+		stylemes             = false
 	},
 	uk_set = {
 		insubordination      = '3 | 31.2 УК', -- неподчинение
@@ -429,16 +430,17 @@ local ini = inicfg.load({
 		push                 = true,
 		mh                   = true,
 		strobes              = true,
-		pickweap             = true,
 		lserver              = true,
-		pickeat              = true,
 		dropall              = true,
 		savepass             = true,
 		dchat                = true,
 		suspect              = true,
 		admins               = true,
 		infred               = true,
-		nigvis               = true
+		nigvis               = true,
+		gate                 = true,
+		id                   = true,
+		c                    = true
 	},
 	customCommands = {
 	},
@@ -502,16 +504,17 @@ local scriptCommands = {
 		push                 = {true, 'command_push'},
 		mh                   = {true, 'command_menu'},
 		strobes              = {true, 'command_strobes'},
-		pickweap             = {true, 'command_pickweapon'},
 		lserver              = {true, 'command_server'},
-		pickeat              = {true, 'command_pickeat'},
 		dropall              = {true, 'command_dropall'},
 		savepass             = {true, 'command_savepass'},
 		dchat                = {true, 'command_distanceChat'},
 		suspect              = {true, 'command_suspect'},
 		admins               = {true, 'command_admins'},
 		infred               = {true, 'command_infrared'},
-		nigvis               = {true, 'command_nightvision'}
+		nigvis               = {true, 'command_nightvision'},
+		gate                 = {true, 'command_gate'},
+		id                   = {true, 'command_id'},
+		c                    = {true, 'command_call'}
 	}
 }
 
@@ -554,7 +557,7 @@ local flymode            = false
 local autopass           = false
 local follow_state       = false
 local timerActive        = false
-local openbar            = false
+local openBarrier         = false
 local successful_login   = false
 local player_status      = 0
 local player_a_status    = 0
@@ -1102,9 +1105,21 @@ function suspectBar()
 				_bsuspect.id = sampGetPlayerIdByNickname(_bsuspect.staticName)
 				if _bsuspect.id ~= 'OFF' then
 					_bsuspect.result, _bsuspect.ped = sampGetCharHandleBySampPlayerId(_bsuspect.id)
-					if _bsuspect.result then suspectColor = 0xFF00FF00 else suspectColor = 0xFFFFFF00 end
+					if _bsuspect.result then
+						if sampIsPlayerPaused(_bsuspect.id) then
+							if math.fmod(math.floor(os.clock()), 2) == 0 then 
+								suspectColor = 0xFF7CCD7C
+							else
+								suspectColor = 0xFFB22222
+							end
+						else
+							suspectColor = 0xFF00CD66
+						end
+					else
+						suspectColor = 0xFFFFFF00 
+					end
 				else
-					suspectColor = 0xFFFF0000
+					suspectColor = 0xFFB22222
 				end
 						
 				if doesCharExist(_bsuspect.ped) then
@@ -1131,17 +1146,16 @@ function suspectBar()
 				renderDrawBox(ini.set.barSuspectX + 40, ini.set.barSuspectY, 3, 30, 0xAAFFFFFF)
 
 				renderDrawTextShadow(fontSuspect2, _bsuspect.name, ini.set.barSuspectX + 53, ini.set.barSuspectY)
-				renderDrawTextShadow(fontSuspect3, '•', ini.set.barSuspectX + 53, ini.set.barSuspectY + 15, suspectColor)
+				renderDrawTextShadow(fontSuspect3, '•', ini.set.barSuspectX + 54, ini.set.barSuspectY + 15, suspectColor)
 				renderDrawTextShadow(fontSuspect3, ' ' .. _bsuspect.nameModel, ini.set.barSuspectX + 59.5, ini.set.barSuspectY + 15)
 				
 				if isKeyDown(VK_RBUTTON) then
 					if _bsuspect.id ~= 'OFF' then
-						local afk = sampIsPlayerPaused(_bsuspect.id) and 'AFK' or ''
-						local line = string.format('ID (%d) LEVEL (%d) PING (%d) {FF0000}%s', _bsuspect.id, sampGetPlayerScore(_bsuspect.id), sampGetPlayerPing(_bsuspect.id), afk)
+						local line = string.format('ID (%d) LEVEL (%d) PING (%d)', _bsuspect.id, sampGetPlayerScore(_bsuspect.id), sampGetPlayerPing(_bsuspect.id))
 						renderDrawTextShadow(fontSuspect3, line, ini.set.barSuspectX + 53, ini.set.barSuspectY + 30, 0xFFFFFFFF)
-						renderDrawTextShadow(fontSuspect3, 'ДЛЯ СКРЫТИЯ ИНФОРМАЦИИ НАЖМИТЕ {FFFF00}N', ini.set.barSuspectX + 53, ini.set.barSuspectY + 40, 0xFFFFFFFF)
+						renderDrawTextShadow(fontSuspect3, 'ДЛЯ СКРЫТИЯ ИНФОРМАЦИИ НАЖМИТЕ {7CCD7C}N', ini.set.barSuspectX + 53, ini.set.barSuspectY + 40, 0xFFFFFFFF)
 					else
-						renderDrawTextShadow(fontSuspect3, 'ДЛЯ СКРЫТИЯ ИНФОРМАЦИИ НАЖМИТЕ {FFFF00}N', ini.set.barSuspectX + 53, ini.set.barSuspectY + 30, 0xFFFFFFFF)
+						renderDrawTextShadow(fontSuspect3, 'ДЛЯ СКРЫТИЯ ИНФОРМАЦИИ НАЖМИТЕ {7CCD7C}N', ini.set.barSuspectX + 53, ini.set.barSuspectY + 30, 0xFFFFFFFF)
 					end
 				
 					if wasKeyPressed(KEY.VK_N) then
@@ -1219,17 +1233,18 @@ function command_r(text)
 	else
 		local mark = sampGetMarkCharByVehicle(playerPed)
 		
-		local tab = {['cod 11'] = '$m to DISP, занимаю маркировку $m, CODE: 1-1, RFR, over **',
-			['cod 13'] = '$m to DISP, освобождаю маркировку $m, CODE: 1-3, nRFR, over **',
-			['cod 14'] = '$m to DISP, доставляю подозреваемого в департамент, CODE: 1-4, nRFR, over **',
-			['tf 55'] = '$m to DISP, провожу 10-55, CODE: 4, 10-20 $p, nRFR, over **', 
-			['tf 66'] = '$m to DISP, провожу 10-66, CODE: 3, 10-20 $p, nRFR, over **',
-			['tf 9957v'] = '$m to DISP, 10-99 по 10-57 V, RFR, over **',
-			['tf 9957f'] = '$m to DISP, 10-99 по 10-57 F, RFR, over **',
-			['tf 995'] = '$m to DISP, 10-99 по 10-55, RFR, over **',
-			['tf 996'] = '$m to DISP, 10-99 по 10-66, RFR, over **',
-			['cod 0'] = '$m to DISP, CODE: 0, требуется срочная помощь!, 10-20 $p, nRFR, over **',
-			['cod 1'] = '$m to DISP, CODE: 1, требуется помощь!, 10-20 $p, nRFR, over **',
+		local tab = {
+			['cod 11'] = '$m to DISP, занимаю маркировку $m, CODE: 1-1, доступен.',
+			['cod 13'] = '$m to DISP, освобождаю маркировку $m, CODE: 1-3, недоступен.',
+			['cod 14'] = '$m to DISP, доставляю подозреваемого в департамент, CODE: 1-4, недоступен.',
+			['tf 55'] = '$m to DISP, провожу 10-55, CODE: 4, 10-20 $p, недоступен.', 
+			['tf 66'] = '$m to DISP, провожу 10-66, CODE: 3, 10-20 $p, недоступен.',
+			['tf 9957v'] = '$m to DISP, 10-99 по 10-57 V, доступен.',
+			['tf 9957f'] = '$m to DISP, 10-99 по 10-57 F, доступен.',
+			['tf 995'] = '$m to DISP, 10-99 по 10-55, доступен.',
+			['tf 996'] = '$m to DISP, 10-99 по 10-66, доступен.',
+			['cod 0'] = '$m to DISP, CODE: 0, требуется срочная помощь! 10-20 $p, недоступен.',
+			['cod 1'] = '$m to DISP, CODE: 1, требуется помощь! 10-20 $p, недоступен.',
 		}
 		
 		for name, value in pairs(tab) do
@@ -1239,7 +1254,7 @@ function command_r(text)
 		end
 		
 		text = string.gsub(text, '%$m', mark)
-		text = string.gsub(text, '%$p', string.format('%s (%s)', calculateZone(), kvadrat()))
+		text = string.gsub(text, '%$p', calculateZone())
 		text = string.format('%s %s', ini.info.rteg, text)
 		
 		sampSendChat(string.format('/r %s', text))
@@ -1268,17 +1283,18 @@ function command_f(text)
 	else 
 		local mark = sampGetMarkCharByVehicle(playerPed)
 		
-		local tab = {['cod 11'] = '$m to DISP, занимаю маркировку $m, CODE: 1-1, RFR, over **',
-			['cod 13'] = '$m to DISP, освобождаю маркировку $m, CODE: 1-3, nRFR, over **',
-			['cod 14'] = '$m to DISP, доставляю подозреваемого в департамент, CODE: 1-4, nRFR, over **',
-			['tf 55'] = '$m to DISP, провожу 10-55, CODE: 4, 10-20 $p, nRFR, over **', 
-			['tf 66'] = '$m to DISP, провожу 10-66, CODE: 3, 10-20 $p, nRFR, over **',
-			['tf 9957v'] = '$m to DISP, 10-99 по 10-57 V, RFR, over **',
-			['tf 9957f'] = '$m to DISP, 10-99 по 10-57 F, RFR, over **',
-			['tf 995'] = '$m to DISP, 10-99 по 10-55, RFR, over **',
-			['tf 996'] = '$m to DISP, 10-99 по 10-66, RFR, over **',
-			['cod 0'] = '$m to DISP, CODE: 0, требуется срочная помощь!, 10-20 $p, nRFR, over **',
-			['cod 1'] = '$m to DISP, CODE: 1, требуется помощь!, 10-20 $p, nRFR, over **',
+		local tab = {
+			['cod 11'] = '$m to DISP, занимаю маркировку $m, CODE: 1-1, доступен.',
+			['cod 13'] = '$m to DISP, освобождаю маркировку $m, CODE: 1-3, недоступен.',
+			['cod 14'] = '$m to DISP, доставляю подозреваемого в департамент, CODE: 1-4, недоступен.',
+			['tf 55'] = '$m to DISP, провожу 10-55, CODE: 4, 10-20 $p, недоступен.', 
+			['tf 66'] = '$m to DISP, провожу 10-66, CODE: 3, 10-20 $p, недоступен.',
+			['tf 9957v'] = '$m to DISP, 10-99 по 10-57 V, доступен.',
+			['tf 9957f'] = '$m to DISP, 10-99 по 10-57 F, доступен.',
+			['tf 995'] = '$m to DISP, 10-99 по 10-55, доступен.',
+			['tf 996'] = '$m to DISP, 10-99 по 10-66, доступен.',
+			['cod 0'] = '$m to DISP, CODE: 0, требуется срочная помощь! 10-20 $p, недоступен.',
+			['cod 1'] = '$m to DISP, CODE: 1, требуется помощь! 10-20 $p, недоступен.',
 		}
 		
 		for name, value in pairs(tab) do
@@ -1288,7 +1304,7 @@ function command_f(text)
 		end
 		
 		text = string.gsub(text, '%$m', mark)
-		text = string.gsub(text, '%$p', string.format('%s (%s)', calculateZone(), kvadrat()))
+		text = string.gsub(text, '%$p', calculateZone())
 		text = string.format('%s %s', ini.info.fteg, text)
 		
 		sampSendChat(string.format('/f %s', text))
@@ -1301,7 +1317,7 @@ function command_f(text)
 				if not ini.info.male then
 					sampSendChat('/me снял тангету с плеча, зажал кнопку PTT и что-то произнёс по рации')
 				else
-					sampSendChat('/me снял тангету с плеча, зажала кнопку PTT и что-то произнесла по рации')
+					sampSendChat('/me сняла тангету с плеча, зажала кнопку PTT и что-то произнесла по рации')
 				end
 			end)
 		end
@@ -1313,22 +1329,82 @@ function command_fn(text)
 end
 
 function command_radiotag()
-	local text = ''
-	text = string.format('%s\n{00CC66}cod 11\t\t{e6e6fa}$m to DISP, занимаю маркировку $m, CODE: 1-1, RFR, over **', text)
-	text = string.format('%s\n{00CC66}cod 13\t\t{e6e6fa}$m to DISP, освобождаю маркировку $m, CODE: 1-3, nRFR, over **', text)
-	text = string.format('%s\n{00CC66}cod 14\t\t{e6e6fa}$m to DISP, доставляю подозреваемого в департамент, CODE: 1-4, nRFR, over **', text)
-	text = string.format('%s\n{00CC66}tf 55\t\t{e6e6fa}$m to DISP, Провожу 10-55, CODE: 4, 10-20 $p, nRFR, over **', text)
-	text = string.format('%s\n{00CC66}tf 66\t\t{e6e6fa}$m to DISP, Провожу 10-66, CODE: 3, 10-20 $p, nRFR, over **', text)
-	text = string.format('%s\n{00CC66}tf 9957v\t\t{e6e6fa}$m to DISP, 10-99 по 10-57 V, RFR, over **', text)
-	text = string.format('%s\n{00CC66}tf 9957f\t\t{e6e6fa}$m to DISP, 10-99 по 10-57 F, RFR, over **', text)
-	text = string.format('%s\n{00CC66}tf 995\t\t{e6e6fa}$m to DISP, 10-99 по 10-55, RFR, over **', text)
-	text = string.format('%s\n{00CC66}tf 996\t\t{e6e6fa}$m to DISP, 10-99 по 10-66, RFR, over **', text)
-	text = string.format('%s\n{00CC66}cod 0\t\t{e6e6fa}$m to DISP, CODE: 0, требуется срочная помощь!, 10-20 $p, nRFR, over **', text)
-	text = string.format('%s\n{00CC66}cod 1\t\t{e6e6fa}$m to DISP, CODE: 1, требуется помощь!, 10-20 $p, nRFR, over **', text)
-	text = string.format('%s\n{00CC66}$m\t\t{e6e6fa}Маркировка автомобиля', text)
-	text = string.format('%s\n{00CC66}$p\t\t{e6e6fa}Местоположение (Район / Квадрат)', text)
+	local tab = {
+		['cod 11'] = '$m to DISP, занимаю маркировку $m, CODE 1-1, доступен.',
+		['cod 13'] = '$m to DISP, освобождаю маркировку $m, CODE 1-3, недоступен.',
+		['cod 14'] = '$m to DISP, доставляю подозреваемого в департамент, CODE 1-4, недоступен.',
+		['tf 55'] = '$m to DISP, провожу 10-55, CODE 4, 10-20 $p, недоступен.', 
+		['tf 66'] = '$m to DISP, провожу 10-66, CODE 3, 10-20 $p, недоступен.',
+		['tf 9957v'] = '$m to DISP, 10-99 по 10-57 V, доступен.',
+		['tf 9957f'] = '$m to DISP, 10-99 по 10-57 F, доступен.',
+		['tf 995'] = '$m to DISP, 10-99 по 10-55, доступен.',
+		['tf 996'] = '$m to DISP, 10-99 по 10-66, доступен.',
+		['cod 0'] = '$m to DISP, CODE 0, требуется срочная помощь! 10-20 $p, недоступен.',
+		['cod 1'] = '$m to DISP, CODE 1, требуется помощь! 10-20 $p, недоступен.',
+	}
+
+	local text = '{e6e6fa}Код\t\t{00CC66}Маркировка{e6e6fa}, {FFCD00}местоположение{e6e6fa} и содержание.'
+	for index, value in pairs(tab) do
+		text = string.format('%s\n{FFCD00}%s{e6e6fa}\t\t%s', text, index, value)
+	end
 	
-	sampShowDialog(1005, '{FFCD00}Список радио-тэгов для рации', text, 'Закрыть', '', 2)
+	local text = string.gsub(text, '%$m', '{00CC66}' .. sampGetMarkCharByVehicle(playerPed) .. '{e6e6fa}')
+	local text = string.gsub(text, '%$p', string.format('{FFCD00}%s (%s){e6e6fa}', calculateZone(), kvadrat()))
+
+	sampShowDialog(1005, '{FFCD00}Список радио-тэгов для рации', text, 'Закрыть', '', 5)
+end
+
+function command_id(parametrs)
+	if string.match(parametrs, '(%S+)') then
+		if tonumber(parametrs) then
+			local id = tonumber(parametrs)
+			local name = sampGetPlayerNickname(id)
+			
+			if ini.number[name] then
+				addChat(string.format('{%s}%s{} id {00CC66}%d{}, телефонный номер {00CC66}%d{}.', sampGetColorByPlayer(id), name, id, ini.number[name]))
+			else
+				addChat(string.format('{%s}%s{} id {00CC66}%d{}.', sampGetColorByPlayer(id), name, id))
+			end
+		else
+			local found = {0, {}}
+			for id = 0, 1000 do
+				if IPC(id) then
+					local name = sampGetPlayerNickname(id)
+					if string.match(string.upper(name), string.upper(parametrs)) then
+						found[1] = found[1] + 1
+						table.insert(found[2], {id, name})
+					end
+				end
+			end
+			
+			if found[1] > 0 then
+				if found[1] > 5 then
+					for i = 1, 5 do
+						local name, id = found[2][i][2], found[2][i][1]
+						if ini.number[name] then
+							addChat(string.format('%d. {%s}%s{} id {00CC66}%d{}, телефонный номер {00CC66}%d{}.', i, sampGetColorByPlayer(id), name, id, ini.number[name]))
+						else
+							addChat(string.format('%d. {%s}%s{} id {00CC66}%d{}.', i, sampGetColorByPlayer(id), name, id))
+						end
+					end
+					addChat(string.format('Показаны первые {00CC66}5{} из {00CC66}%d{} совпадений.', found[1]))
+				else
+					for index, name in ipairs(found[2]) do
+						local _name, id = name[2], name[1]
+						if ini.number[_name] then
+							addChat(string.format('%d. {%s}%s{} id {00CC66}%d{}, телефонный номер {00CC66}%d{}.', index, sampGetColorByPlayer(id), _name, id, ini.number[_name]))
+						else
+							addChat(string.format('%d. {%s}%s{} id {00CC66}%d{}.', index, sampGetColorByPlayer(id), _name, id))
+						end
+					end
+				end
+			else
+				addChat('Игроков с подобным никнейном или частью никнейма не найдено.')
+			end
+		end
+	else
+		addError('Введите необходимые параметры для /id [ид игрока / никнейм или часть никнейма].')
+	end
 end
 
 function command_suspect(id, bool)
@@ -1348,27 +1424,6 @@ function command_suspect(id, bool)
 		else
 			addError('Введите необходимые параметры для /suspect [ид игрока].')
 		end
-	end
-end
-
-function command_pickweapon()
-	local corditanesPickup = {LS = {x = 258.5, y = 77.75, z = 1003.625}, SF = {x = 240.375, y = 112.75, z = 1003.125}, LV = {x = 234.25, y = 159.625, z = 1003}}
-	
-	for name, value in pairs(corditanesPickup) do
-		local handle = sampGetPickupHandleByCoords(1239, value.x, value.y, value.z)
-
-		if handle then
-			local id = sampGetPickupSampIdByHandle(handle)
-			sampSendPickedUpPickup(id)
-		end
-	end
-end
-
-function command_pickeat()
-	local handle = sampGetPickupHandleByCoords(2821)
-	if handle then
-		local id = sampGetPickupSampIdByHandle(handle)
-		sampSendPickedUpPickup(id)
 	end
 end
 
@@ -1405,28 +1460,6 @@ function command_reconnectwithchange(parametrs)
 	end
 end
 
---[[function command_reconnectwithchangeip(parametrs)
-	if string.match(parametrs, '(%d+) (%S+)') then
-		local id, name = string.match(parametrs, '(%d+) (.+)')
-		local id = tonumber(id)
-		if id >= 1 and id <= 9 then
-			sampSetLocalPlayerName(name)
-			reconnect(1, string.format('5.254.104.13%d:7777', id))
-		else
-			addChat('Номер сервера не должен быть менее 1 и более 9.')
-		end
-	elseif string.match(parametrs, '(%d+)') then
-		local id = tonumber(parametrs)
-		if id >= 1 and id <= 9 then
-			reconnect(1, string.format('5.254.104.13%d:7777', id))
-		else
-			addChat('Номер сервера не должен быть менее 1 и более 9.')
-		end
-	else
-		addError('Введите необходимые параметры для /recd [ip-адресс сервера] [никнейм (необязательно)]')
-	end
-end]]
-
 function command_reconnectwithchangeip(parametrs)
 	if string.match(parametrs, '(%S+) (%S+)') then
 		local ip, name = string.match(parametrs, '(%S+) (%S+)')
@@ -1437,7 +1470,7 @@ function command_reconnectwithchangeip(parametrs)
 			destroyLogototyp = true
 			lua_thread.create(logotyp)
 		else
-			addChat('IP-адресс сервера должен быть в формате IP:PORT (например: 5.254.104.132:7777).')
+			addChat('IP-адресс сервера должен быть в формате {00CC66}IP:PORT{} (например: {00CC66}5.254.104.132:7777{}).')
 		end
 	elseif string.match(parametrs, '(%S+)') then
 		local ip = parametrs
@@ -1448,7 +1481,7 @@ function command_reconnectwithchangeip(parametrs)
 			destroyLogototyp = true
 			lua_thread.create(logotyp)
 		else
-			addChat('IP-адресс сервера должен быть в формате IP:PORT (например: 5.254.104.132:7777).')
+			addChat('IP-адресс сервера должен быть в формате {00CC66}IP:PORT{} (например: {00CC66}5.254.104.132:7777{}).')
 		end
 	else
 		addError('Введите необходимые параметры для /recd [IP-адресс сервера] [никнейм (необязательно)].')
@@ -1486,12 +1519,12 @@ function command_rkinfo()
 
 		if alltime > 0 and alltime < ini.set.delay_rk * 60 then
 			if tostring(calculateZone()) == tostring(dreason[1]) then
-				addChat(string.format('[{ff5c33}WARN{e6e6fa}] Вы можете вернуться в район {ff5c33}%s{e6e6fa} через %d мин, %d сек ({00CC66}%d{e6e6fa} сек).', dreason[1], minute, second, alltime))
+				addChat(string.format('[{ff5c33}WARN{}] Вы можете вернуться в район {ff5c33}%s{} через %d мин, %d сек ({00CC66}%d{} сек).', dreason[1], minute, second, alltime))
 			else
-				addChat(string.format('Вы можете вернуться в район {ff5c33}%s{e6e6fa} через %d мин, %d сек ({00CC66}%d{e6e6fa} сек).', dreason[1], minute, second, alltime))
+				addChat(string.format('Вы можете вернуться в район {ff5c33}%s{} через %d мин, %d сек ({00CC66}%d{} сек).', dreason[1], minute, second, alltime))
 			end
 		else
-			addChat(string.format('Время вышло и вы {00cc99}можете{e6e6fa} вернуться в район %s.', dreason[1]))
+			addChat(string.format('Время вышло и вы {00cc99}можете{} вернуться в район %s.', dreason[1]))
 		end
 	else
 		addChat('Информация о Вашем RK будет доступна после того, как ваш персонаж погибнет.')
@@ -1503,11 +1536,11 @@ end
 		local timed = getTimeByPeriod(tonumber(dreason[2]), tonumber(dreason[3]), tonumber(dreason[4]), ini.set.delay_rk)
 		addChat(string.format('Вы можете вернуться в район %s в %d ч. %d мин. %d сек.', dreason[1], timed[1], timed[2], timed[3]))
 		if sampGetPassedTimeByPeriod(tonumber(dreason[2]), tonumber(dreason[3]), tonumber(dreason[4]), ini.set.delay_rk) then
-			addChat(string.format('Время вышло и вы уже {00cc99}можете{e6e6fa} вернуться в район %s.', dreason[1]))
+			addChat(string.format('Время вышло и вы уже {00cc99}можете{} вернуться в район %s.', dreason[1]))
 		else
-			addChat(string.format('В данный момент Вы {ff5c33}не можете{e6e6fa} вернуться в район %s.', dreason[1]))
+			addChat(string.format('В данный момент Вы {ff5c33}не можете{} вернуться в район %s.', dreason[1]))
 			if tostring(calculateZone()) == tostring(dreason[1]) then
-				addChat(string.format(' {ff5c33}[ПРЕДУПРЕЖДЕНИЕ] {e6e6fa}Вы находитесь в запрещённом для Вас районе %s.', dreason[1]))
+				addChat(string.format(' {ff5c33}[ПРЕДУПРЕЖДЕНИЕ] {}Вы находитесь в запрещённом для Вас районе %s.', dreason[1]))
 			end
 		end
 	else
@@ -1569,10 +1602,10 @@ function command_sms(value)
 		
 		if IPC(number) then
 			local name = sampGetPlayerName(number)
-			if ini.number[name] ~= nil then
+			if ini.number[name] then
 				number = ini.number[name]
 			else
-				addChat('Номер не найден в базе данных.')
+				addChat('Номер игрока не найден в базе данных.')
 				found = true
 			end
 		end
@@ -1586,7 +1619,28 @@ function command_sms(value)
 			end
 		end
 	else
-		addError('Введите необходимые параметры для /sms [номер телефона] [сообщение].')
+		addError('Введите необходимые параметры для /sms [номер телефона или ид игрока] [сообщение].')
+	end
+end
+
+function command_call(parametrs)
+	if string.match(parametrs, '(%d+) 1') then
+		local id = string.match(parametrs, '(%d+) 1')
+		if IPC(id) then
+			local name = sampGetPlayerName(id)
+			if ini.number[name] then
+				local number = ini.number[name]
+				sampSendChat(string.format('/c %d', number))
+			else
+				addChat('Номер игрока не найден в базе данных.')
+			end
+		else
+			addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+		end
+	elseif tonumber(parametrs) then
+		sampSendChat(string.format('/c %d', parametrs))
+	else
+		addError('Введите необходимые параметры для /c [номер телефона или ид игрока] [тип (1 - если использован ид игрока)].')
 	end
 end
 
@@ -1598,7 +1652,7 @@ function command_addbl(name)
 		filew:write(name)
 		filew:close()
 		
-		addChat(string.format('Игрок {00CC66}%s{e6e6fa} был добавлен в чёрный список.', name))
+		addChat(string.format('Игрок {00CC66}%s{} был добавлен в чёрный список.', name))
 	else
 		addError('Введите необходимые параметры для /addbl [имя игрока].')
 	end
@@ -1618,7 +1672,7 @@ function command_delbl(name)
 			filew:write(text)
 			filew:close()
 			
-			addChat(string.format('Игрок {00CC66}%s{e6e6fa} был удалён из чёрного списка.', name))
+			addChat(string.format('Игрок {00CC66}%s{} был удалён из чёрного списка.', name))
 		else
 			addChat('Данного игрока нет в чёрном списке.')
 		end
@@ -1647,7 +1701,7 @@ function command_gov(id)
 				if sampGetPassedTimeByPeriod(tonumber(gnews[1]), tonumber(gnews[2]), tonumber(gnews[3]), 5) then
 					send_gnews(id)
 				else
-					addChat(string.format('В данный момент Вы {ff5c33}не можете{e6e6fa} отправить гос. новость.', gnews[1]))
+					addChat(string.format('В данный момент Вы {ff5c33}не можете{} отправить гос. новость.', gnews[1]))
 				end
 			else
 				send_gnews(id)
@@ -1656,13 +1710,13 @@ function command_gov(id)
 			if gnews[1] ~= nil then
 				local timed = getTimeByPeriod(tonumber(gnews[1]), tonumber(gnews[2]), tonumber(gnews[3]), 5)
 				if sampGetPassedTimeByPeriod(tonumber(gnews[1]), tonumber(gnews[2]), tonumber(gnews[3]), 5) then
-					addError('Введите необходимые параметры для /gov [ид новости]. Вы {00cc99}можете{e6e6fa} отправить гос. новость.')
+					addError('Введите необходимые параметры для /gov [ид новости]. Вы {00cc99}можете{} отправить гос. новость.')
 				else
-					addError('Введите необходимые параметры для /gov [ид новости]. Вы {ff5c33}не можете{e6e6fa} отправить гос. новость.')
+					addError('Введите необходимые параметры для /gov [ид новости]. Вы {ff5c33}не можете{} отправить гос. новость.')
 					addChat(string.format('Вы сможете отправить гос. новость в %d ч. %d мин. %d сек.', timed[1], timed[2], timed[3]))
 				end
 			else
-				addError('Введите необходимые параметры для /gov [ид новости]. Вы {00cc99}можете{e6e6fa} отправить гос. новость.')
+				addError('Введите необходимые параметры для /gov [ид новости]. Вы {00cc99}можете{} отправить гос. новость.')
 			end
 		end
 	else
@@ -1737,7 +1791,7 @@ function command_setskin(param)
 					raknetDeleteBitStream(BS)
 					
 					local name = string.gsub(sampGetPlayerName(id),'_',' ')
-					addChat('Вы установили визуальный скин ({00CC66}' .. skin .. '{e6e6fa}) для игрока ' .. name .. '[' .. id .. '].')
+					addChat('Вы установили визуальный скин ({00CC66}' .. skin .. '{}) для игрока ' .. name .. '[' .. id .. '].')
 				else
 					addChat('Данный игрок находится слишком далеко от Вас.')
 				end
@@ -1754,7 +1808,7 @@ function command_setskin(param)
 				raknetBitStreamWriteInt32(BS, skin)
 				raknetEmulRpcReceiveBitStream(153, BS)
 				raknetDeleteBitStream(BS)
-				addChat('На Вашего персонажа был установлен визуальный скин {00CC66}' .. skin .. '{e6e6fa}.')
+				addChat('На Вашего персонажа был установлен визуальный скин {00CC66}' .. skin .. '{}.')
 			else
 				addChat('Произошла ошибка при попытке выдачи скина.')
 			end
@@ -1783,7 +1837,7 @@ function command_setweather(id)
 		local id = string.match(id, '(%d+)')
 		if tonumber(id) > 0 and tonumber(id) <= 45 then
 			forceWeatherNow(id)
-			addChat('Вы изменили игровую погоду на {00CC66}' .. id .. '{e6e6fa} ID.')
+			addChat('Вы изменили игровую погоду на {00CC66}' .. id .. '{} ID.')
 		else
 			addChat('ID погоды не должен быть больше 45 и меньше 1.')
 		end
@@ -1798,7 +1852,7 @@ function command_settime(param)
 		if tonumber(hour) >= 0 and tonumber(hour) <= 23 and tonumber(min) >= 0 and tonumber(min) < 60 then
 			patch_samp_time_set(true)
 			set_time = {hour, min}
-			addChat('Вы изменили игровое время на {00CC66}' .. hour .. '{e6e6fa} часов, {00CC66}' .. min .. '{e6e6fa} минут.')
+			addChat('Вы изменили игровое время на {00CC66}' .. hour .. '{} часов, {00CC66}' .. min .. '{} минут.')
 		else
 			patch_samp_time_set(false)
 			set_time = nil
@@ -1808,7 +1862,7 @@ function command_settime(param)
 		if set_time and ini.set.normalTime then
 			set_time = nil
 			patch_samp_time_set(false)
-			addChat('Вы перешли к режиму {00CC66}динамического обновления времени{e6e6fa}.')
+			addChat('Вы перешли к режиму {00CC66}динамического обновления времени{}.')
 		else
 			addError('Введите необходимые параметры для /st [часы] [минуты].')
 		end
@@ -1855,9 +1909,9 @@ function command_infrared()
 	if not _nightvision then
 		_infrared = not _infrared
 		setInfraredVision(_infrared)
-		addChat('Вы изменили состояние отображения эффекта {00CC66}тепловизора{e6e6fa}.')
+		addChat('Вы изменили состояние отображения эффекта {00CC66}тепловизора{}.')
 	else
-		addChat('Отключите отображение эффекта {00CC66}прибора ночного видения{e6e6fa}.')
+		addChat('Отключите отображение эффекта {00CC66}прибора ночного видения{}.')
 	end
 end
 
@@ -1865,9 +1919,9 @@ function command_nightvision()
 	if not _infrared then
 		_nightvision = not _nightvision
 		setNightVision(_nightvision)
-		addChat('Вы изменили состояние отображения эффекта {00CC66}прибора ночного виденья{e6e6fa}.')
+		addChat('Вы изменили состояние отображения эффекта {00CC66}прибора ночного виденья{}.')
 	else
-		addChat('Отключите отображение эффекта {00CC66}тепловизора{e6e6fa}.')
+		addChat('Отключите отображение эффекта {00CC66}тепловизора{}.')
 	end
 end
 
@@ -2223,9 +2277,18 @@ end
 function command_upopen()
 	lua_thread.create(function()
 		sampSendChat('/open')
-		openbar = true
+		openBarrier = true
 		wait(150)
-		openbar = false
+		openBarrier = false
+	end)
+end
+
+function command_gate()
+	lua_thread.create(function()
+		sampSendChat('/gate')
+		openBarrier = true
+		wait(150)
+		openBarrier = false
 	end)
 end
 
@@ -2635,9 +2698,9 @@ function command_namebl(param)
 				function(response)
 				
 				if u8:decode(response.text):find(name) or u8:decode(response.text):find(string.gsub(name, '_', ' ')) then
-					addChat(string.format('%s {ff5c33}находится{e6e6fa} в чёрном списке.', name))
+					addChat(string.format('%s {ff5c33}находится{} в чёрном списке.', name))
 				else
-					addChat(string.format('%s {00cc99}не находится{e6e6fa} в чёрном списке.', name))
+					addChat(string.format('%s {00cc99}не находится{} в чёрном списке.', name))
 				end
 				addChat('Не забывайте указывать актуальную ссылку на чёрный список в Расширенные настройки > Дополнительно > Ссылка на ЧС.')
 			end)
@@ -2650,9 +2713,9 @@ function command_namebl(param)
 			function(response)
 			
 			if u8:decode(response.text):find(param) or u8:decode(response.text):find(string.gsub(param, '_', ' ')) then
-				addChat(string.format('%s {ff5c33}находится{e6e6fa} в чёрном списке.', param))
+				addChat(string.format('%s {ff5c33}находится{} в чёрном списке.', param))
 			else
-				addChat(string.format('%s {00cc99}не находится{e6e6fa} в чёрном списке.', param))
+				addChat(string.format('%s {00cc99}не находится{} в чёрном списке.', param))
 			end
 			addChat('Не забывайте указывать актуальную ссылку на чёрный список в Расширенные настройки > Дополнительно > Ссылка на ЧС.')
 		end)
@@ -2670,14 +2733,14 @@ function CheckPlayersOfBlackList(name, tab)
 			
 			for i, val in pairs(tab) do
 				if u8:decode(response.text):find(val) or u8:decode(response.text):find(string.gsub(val, '_', ' ')) then
-					addChat(string.format('%s {ff5c33}находится{e6e6fa} в чёрном списке под именем %s.', name, val))
+					addChat(string.format('%s {ff5c33}находится{} в чёрном списке под именем %s.', name, val))
 					blfound = true
 					break
 				end
 			end
 			
 			if not blfound then
-				addChat(string.format('%s {00cc99}не находится{e6e6fa} в чёрном списке.', name))
+				addChat(string.format('%s {00cc99}не находится{} в чёрном списке.', name))
 			end
 			addChat('Не забывайте указывать актуальную ссылку на чёрный список в Расширенные настройки > Дополнительно > Ссылка на ЧС.')
 		end)
@@ -3511,6 +3574,7 @@ test_table = {
 			['UNCUFF'] = function() command_uncuff(target_id) end
 		},
 		['HOLD'] = function() command_hold(target_id) end,
+		['SEARCH'] = function() command_search(target_id) end,
 		['PUTPL'] = function() command_putpl(target_id) end,
 		['ARREST'] = function() command_arrest(target_id) end,
 		['RIGHTS'] = function() command_rights() end
@@ -4188,7 +4252,7 @@ function draw_show_ticket()
 											command_ticket(string.format('%d %d %s', id, stars, reason))
 										else
 											local money = tonumber(stars) - 2000
-											addChat('Штраф по данной статье превышает {FFCD00}2.000${e6e6fa}, вы можете выписать ещё один штраф на сумму {00CC66}' ..  money .. '$')
+											addChat('Штраф по данной статье превышает {FFCD00}2.000${}, вы можете выписать ещё один штраф на сумму {00CC66}' ..  money .. '$')
 											command_ticket(string.format('%d 2000 %s', id, reason))
 										end
 									end imgui.NextColumn()
@@ -4354,6 +4418,12 @@ function draw_modification()
 		imgui.TreePop()
 	end
 	
+	if imgui.TreeNode(u8'Стиль сообщений скрипта') then
+		toggleButton('Изменяет стиль сообщений скрипта на аналогичный сообщениям Advance RP.', 'set', 'stylemes')
+		
+		imgui.TreePop()
+	end
+	
 	if imgui.TreeNode(u8'Информация о подозреваемом') then
 		toggleButton('Включить отображение информации о подозреваемом.', 'set', 'barSuspect')
 		
@@ -4433,12 +4503,16 @@ function draw_head_page()
 		imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ПОСЛЕДНИХ ОБНОВЛЕНИЯХ')
 
 		imgui.BeginChild('##Update_Info', imgui.ImVec2(610, 390), true)
+			imgui.TextColoredRGB('{e6e6fa}[v16.6] Добавлена команда /c и /id.')
+			imgui.TextColoredRGB('{e6e6fa}[v16.6] Добавлена модификация изменения стиля сообщений скрипта.')
+			imgui.TextColoredRGB('{e6e6fa}[v16.6] Исправлен баг с невозможностью выдать розыск при наличии звёзд у подозреваемого.')
+			imgui.TextColoredRGB('{e6e6fa}[v16.6] Обновлёно отображение информации о подозреваемом.')
+		
 			imgui.TextColoredRGB('{e6e6fa}[v16.5] Добавлен эффект ПНВ и тепловизора. Команды /infred, /nigvis.')
 			imgui.TextColoredRGB('{e6e6fa}[v16.5] Команда /asms изменена на /lsms.')
 			imgui.TextColoredRGB('{e6e6fa}[v16.5] Изменены сообщения в чат на более удобные.')
 			
-			imgui.TextColoredRGB('{e6e6fa}[v16.3] Добавлена модификация отображения информации о подозреваемом.')
-			
+			imgui.TextColoredRGB('{CECECE}[v16.3] Добавлена модификация отображения информации о подозреваемом.')
 			imgui.TextColoredRGB('{CECECE}[v16.1] Добавлена модификация динамического обновления времени.')
 			imgui.TextColoredRGB('{CECECE}[v16.1] Исправлен баг с дальным отображение чата при использовании CamHack`a.')
 			imgui.TextColoredRGB('{CECECE}[v15.9] Обновлена система умного розыска и умной выдачи штрафа.')
@@ -4586,7 +4660,12 @@ function draw_another_custom_command()
 						local cmd_text = ''
 						for line in io.lines(path) do
 							if string.match(line, '{param = (%d+)}') then
-								param_cmd = tonumber(string.match(line, '{param = (%d+)}'))
+								if string.match(line, '{param[%s]=[%s](%d+)}[%s](.+)') then
+									param_cmd, param_name = string.match(line, '{param[%s]=[%s](%d+)}[%s](.+)')
+									param_cmd = tonumber(param_cmd)
+								else
+									param_cmd = tonumber(string.match(line, '{param = (%d+)}'))
+								end
 							else 
 								cmd_text = string.format('%s%s\n', cmd_text, u8(line))
 							end
@@ -4991,7 +5070,7 @@ function add_new_hotkey()
 	hotkey_butt['camera'].bind = rkeys.registerHotKey(hotkey_butt['camera'].key.v, true, function()
 		if ini.set.camera then
 			cameraActive = not cameraActive
-			sampSendChat('/do На плечевой стропе установлена камера видеофиксации, камера активна.') 
+			sampSendChat('/do На плечевой стропе установлена камера видеофиксации, камера ' .. (cameraActive and 'активна' or 'неактивна') .. '.') 
 		end
 	end)
 	
@@ -5012,7 +5091,7 @@ function add_new_hotkey()
 	
 	hotkey_butt['onfoot_m'].bind = rkeys.registerHotKey(hotkey_butt['onfoot_m'].key.v, true, function()
 		if ini.set.message_megafon then
-			command_r(string.format('$m to DISP 10-57 F, 10-20 %s (%s), CODE: 3, nRFR, over **', calculateZone(), kvadrat()))
+			command_r(string.format('$m to DISP, 10-57 F, 10-20 %s, CODE: 3, недоступен.', calculateZone()))
 		else
 			addChat('Для работы данной функции включите её в расширенных настройках.')
 		end
@@ -5023,7 +5102,7 @@ function add_new_hotkey()
 			local pid, id = sampGetNearestDriver()
 			if id ~= -1 then
 				local fId = id - 399
-				local z, k = calculateZone(), kvadrat()
+				local z = calculateZone()
 					
 				sampSendChat('/m Водитель ' .. normalCarsTypeName[1][tCarsType[fId]] .. ' ' .. tCarsName[fId] .. ' с госномером ' .. pid .. '.')
 				wait(1500)
@@ -5034,7 +5113,7 @@ function add_new_hotkey()
 					sampSendChat('/m В случае неподчинения будет открыт огонь на поражение.')
 					if ini.set.message_megafon then
 						wait(1000)
-						command_r(string.format('$m to DISP, 10-57 V за %s %s с N-%d, 10-20 %s (%s), CODE: 3, nRFR, over **', normalCarsTypeName[2][tCarsType[fId]], tCarsName[fId], pid, z, k))
+						command_r(string.format('$m to DISP, 10-57 V за %s %s с N-%d, 10-20 %s, CODE: 3, недоступен.', normalCarsTypeName[2][tCarsType[fId]], tCarsName[fId], pid, z))
 					end
 					
 					local stars, reason = tonumber(ini.uk_set.insubordination:match('(%d+)[%s]|.+')), ini.uk_set.insubordination:match('[%d+][%s]|[%s](.+)')
@@ -6356,13 +6435,27 @@ function sampGetBlackList(name)
 end
 
 function addChat(text)
-	sampAddChatMessage(('Helper for MIA • {e6e6fa}%s'):format(tostring(text)), ini.set.color_line)
+	if not ini.set.stylemes then
+		if string.match(text, '{}') then text = string.gsub(text, '{}', '{e6e6fa}') end
+		sampAddChatMessage(('Helper for MIA • {e6e6fa}%s'):format(tostring(text)), ini.set.color_line)
+	else
+		if string.match(text, '{}') then text = string.gsub(text, '{}', '{CECECE}') end
+		sampAddChatMessage(tostring(text), 0xFFCECECE)
+	end
 end
 
-function addError(text)
-	local text = string.gsub(text, '%[', '%[{00CC66}')
-	local text = string.gsub(text, '%]', '{e6e6fa}%]')
-	sampAddChatMessage(('Helper for MIA • {e6e6fa}%s'):format(tostring(text)), ini.set.color_line)
+function addError(text, bool)
+	if not ini.set.stylemes then
+		if string.match(text, '{}') then text = string.gsub(text, '{}', '{e6e6fa}') end
+		local text = string.gsub(text, '%[', '%[{00CC66}')
+		local text = string.gsub(text, '%]', '{e6e6fa}%]')
+		sampAddChatMessage(('Helper for MIA • {e6e6fa}%s'):format(tostring(text)), ini.set.color_line)
+	else
+		if string.match(text, '{}') then text = string.gsub(text, '{}', '{CECECE}') end
+		local text = string.gsub(text, '%[', '%[{00CC66}')
+		local text = string.gsub(text, '%]', '{CECECE}%]')
+		sampAddChatMessage(tostring(text), 0xFFCECECE)
+	end
 end
 
 function ItemPovered(text)
@@ -6576,22 +6669,6 @@ function closeConnect()
 	raknetDeleteBitStream(bs)
 end
 
-function sampGetPickupHandleByCoords(model, x, y, z)
-	for name, value in pairs(getAllPickups()) do
-		if getPickupModel(value) == model then
-			if z == nil then
-				return value
-			else
-				local pX, pY, pZ = getPickupCoordinates(value)
-				
-				if pX == x and pY == y and pZ == z then
-					return value
-				end
-			end
-		end
-	end
-end
-
 function getColorRang(nrang)
 	if nrang ~= nil then
 		if tonumber(nrang) > 2 then return '{CD5C5C}'
@@ -6730,7 +6807,26 @@ function sampev.onServerMessage(color, text)
 			return {color, ctext}
 		end
 	end
-
+	
+	if lastParametersSu then
+		if text:match('Сейчас у игрока (%d) уровень розыска. Вы можете его увеличить на (%d)') then
+			local lstars, nstars = text:match('Сейчас у игрока (%d) уровень розыска. Вы можете его увеличить на (%d)')
+			
+			lua_thread.create(function()
+				wait(1000)
+				sampSendChat(string.format('/su %d %d %s', lastParametersSu[1], nstars, lastParametersSu[3]))
+				lastParametersSu = nil
+			end)
+			
+			return false
+		end
+		
+		if text:match('У этого игрока сейчас максимальный уровень розыска') then
+			lastParametersSu = nil
+			return true
+		end
+	end
+	
 	if text:find('Вы оглушили (.+) на 15 секунд') then
 		lua_thread.create(function()
 			wait(150)
@@ -6995,11 +7091,11 @@ function sampev.onSendDialogResponse(dialogId, button, listItem, input)
 			
 				if pass.server[dd] == nil then
 					savePass = {dd = dd, pass = input}
-					addChat('Для того, чтобы сохранить данный аккаунт в менеджере аккаунтов введите команду {00CC66}/savepass{e6e6fa}.')
+					addChat('Для того, чтобы сохранить данный аккаунт в менеджере аккаунтов введите команду {00CC66}/savepass{}.')
 				else
 					if string.match(sampGetDialogText(), 'Неверный пароль') then
 						savePass = {dd = dd, pass = input}
-						addChat('Для того, чтобы обновить пароль для данного аккаунта в менеджере аккаунтов введите команду {00CC66}/savepass{e6e6fa}.')
+						addChat('Для того, чтобы обновить пароль для данного аккаунта в менеджере аккаунтов введите команду {00CC66}/savepass{}.')
 					end
 				end
 			end
@@ -7092,9 +7188,9 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 						
 							if name == suspectName then
 								if wantedAssistant[2] then
-									addChat(string.format('Подозреваемый {%s}%s{e6e6fa}[%d] находится в федеральном розыске | {B22222}%d уровень розыска{e6e6fa}.', sampGetColorByPlayer(id), name, id, stars))
+									addChat(string.format('Подозреваемый {%s}%s{}[%d] находится в федеральном розыске | {B22222}%d уровень розыска{}.', sampGetColorByPlayer(id), name, id, stars))
 								else
-									addChat(string.format('В вашем районе был обнаружен подозреваемый {%s}%s{e6e6fa}[%d] | {B22222}%d уровень розыска{e6e6fa}.', sampGetColorByPlayer(id), name, id, stars))
+									addChat(string.format('В вашем районе был обнаружен подозреваемый {%s}%s{}[%d] | {B22222}%d уровень розыска{}.', sampGetColorByPlayer(id), name, id, stars))
 								end
 
 								wantedAssistant = nil
@@ -7109,7 +7205,7 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 							return false
 						else
 							if wantedAssistant[2] then
-								addChat(string.format('Гражданин {%s}%s{e6e6fa}[%d] не находится в федеральном розыске.', sampGetColorByPlayer(wantedAssistant[1]), suspectName, wantedAssistant[1]))
+								addChat(string.format('Гражданин {%s}%s{}[%d] не находится в федеральном розыске.', sampGetColorByPlayer(wantedAssistant[1]), suspectName, wantedAssistant[1]))
 							end
 
 							wantedAssistant = nil
@@ -7337,6 +7433,12 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 		if dialogId == 175 then
 			return false
 		end
+	else
+		if dialogId == 175 then
+			if string.find(title, 'Тюрьма') or string.find(title, 'ФБР') or string.find(title, 'Управление полиции') or string.find(title, 'Взять что') then
+				return {dialogId, style, title, button1, button2, text .. '\n10. Снайперская винтовка\t20 шт.\tс 6 ранга'}
+			end
+		end
 	end
 
 	if ini.set.autobuy then
@@ -7370,7 +7472,7 @@ end
 
 function sampev.onPlayerChatBubble(id, color, distance, dur, message)
 	if distanceChat then
-		return {id, color, 1488, dur, '[' .. id .. '] • ' .. message}
+		return {id, color, 1488, dur, '[' .. id .. '] ' .. message}
 	end
 
 	if flymode then
@@ -7482,6 +7584,11 @@ function sampev.onSendCommand(parametrs)
 			return false
 		end
 	end
+	
+	if command == 'su' then
+		local id, stars, reason = string.match(parametrs, '(%d+) (%d+) (.+)')
+		lastParametersSu = {id, stars, reason}
+	end
 end
 
 function onGetTableCommand(p)
@@ -7498,6 +7605,42 @@ function onGetTableCommand(p)
 	return tab
 end
 
+local function process_error_command(file, input, n_param, name_param)
+	if n_param > 0 then
+		parametr = true
+			
+		local parametrs_name = {}
+		if name_param and name_param ~= '' then
+			if string.match(name_param, '{(.+)}') then
+				local value = string.match(name_param, '{(.+)}')
+
+				for parametrs in string.gmatch(value, '[^%s]+') do
+					local parametrs = string.gsub(parametrs, '_', ' ')
+					table.insert(parametrs_name, parametrs)
+				end
+			end
+		end
+								
+		local parametrs_regular, parametrs_error = ' ', ' '
+		for i = 1, n_param do
+			parametrs_regular = string.format('%s (%%S+)', parametrs_regular)
+			parametrs_error = string.format('%s [%s]', parametrs_error, (parametrs_name[i] and parametrs_name[i] or 'параметр ' .. i))
+		end
+		parametrs_regular = string.gsub(parametrs_regular, '  ', '')
+		parametrs_error = string.gsub(parametrs_error, '  ', '')
+								
+		if input == nil or not string.match(input, parametrs_regular) then
+			addError(string.format('Введите необходимые параметры для /%s %s.', file, parametrs_error))
+			return nil
+		end
+								
+		n_param, name_param = nil, nil
+		return onGetTableCommand(input)
+	else
+		return true
+	end
+end
+
 function process_command(file, input)
 	--if not sampIsChatCommandDefined(file) then
 		local namefile = string.format('moonloader//helper/commands//%s.txt', file)
@@ -7511,24 +7654,15 @@ function process_command(file, input)
 					wait(0)
 					
 					if string.match(val, '{param[%s]=[%s](%d+)}') and linen == 0 then
-						local n_param = tonumber(string.match(val, '{param[%s]=[%s](%d+)}'))
-						if n_param > 0 then
-							parametr = true
-							
-							local parametrs_regular, parametrs_error = ' ', ' '
-							for i = 1, n_param do
-								parametrs_regular = string.format('%s (%%S+)', parametrs_regular)
-								parametrs_error = string.format('%s [параметр %d]', parametrs_error, i)
-							end
-							parametrs_regular = string.gsub(parametrs_regular, '  ', '')
-							parametrs_error = string.gsub(parametrs_error, '  ', '')
-							
-							if input == nil or not string.match(input, parametrs_regular) then
-								addChat(string.format('Введите необходимые параметры для команды /%s %s.', file, parametrs_error))
-								break
-							end
-							
-							parametrs_table = onGetTableCommand(input)
+						if string.match(val, '{param[%s]=[%s](%d+)}[%s](.+)') then
+							local n_param, name_param = string.match(val, '{param[%s]=[%s](%d+)}[%s](.+)')
+							local n_param = tonumber(n_param)
+							parametrs_table = process_error_command(file, input, n_param, name_param)
+							if parametrs_table == nil then break end
+						else
+							local n_param = tonumber(string.match(val, '{param[%s]=[%s](%d+)}'))
+							parametrs_table = process_error_command(file, input, n_param, name_param)
+							if parametrs_table == nil then break end
 						end
 					elseif string.match(val, 'sendChat.(%S+).') then
 						sampSendChat(func_to_text(string.match(val, 'sendChat.(.+).'), parametrs_table))
@@ -7557,8 +7691,6 @@ function process_command(file, input)
 						if type(_G[_function]) == ('function') then
 							_G[_function]()
 						end
-					elseif string.match(val, 'pickPickup%((.+)%)') then
-						sampSendPickedUpPickup(string.match(val, 'pickPickup%((.+)%)'))
 					else
 						print(string.format('Неизвестная линия: %s', val))
 						printStringNow(string.format('~r~An error was detected in one of the lines [%d]. Check the console.', linen), 2500)
@@ -7773,43 +7905,24 @@ function onScriptTerminate(script, bool)
 	end
 end
 
-function sampev.onMoveObject(id, pos, npos, speed, rot)
-	if getObjectModel(sampGetObjectHandleBySampId(id)) == 968 and openbar then
-		if ini.set.lowrp and ini.lowrp.rpbar then
-			lua_thread.create(function()
-				wait(1000)
-				if rot.y == 0 then
-					if not ini.info.male then
-						if isCharInAnyCar(playerPed) then
-							sampSendChat('/me не отпуская руль, нажал на кнопку открытия шлагбаума, расположенную на руле')
-						else
-							sampSendChat('/me нажал на кнопку открытия шлагбаума, расположенную на часах')
-						end
-					else
-						if isCharInAnyCar(playerPed) then
-							sampSendChat('/me не отпуская руль, нажала на кнопку открытия шлагбаума, расположенную на руле')
-						else
-							sampSendChat('/me нажала на кнопку открытия шлагбаума, расположенную на часах')
-						end
-					end
-				else
-					if not ini.info.male then
-						if isCharInAnyCar(playerPed) then
-							sampSendChat('/me не отпуская руль, нажал на кнопку закрытия шлагбаума, расположенную на руле')
-						else
-							sampSendChat('/me нажал на кнопку закрытия шлагбаума, расположенную на часах')
-						end
-					else
-						if isCharInAnyCar(playerPed) then
-							sampSendChat('/me не отпуская руль, нажала на кнопку закрытия шлагбаума, расположенную на руле')
-						else
-							sampSendChat('/me нажала на кнопку закрытия шлагбаума, расположенную на часах')
-						end
-					end
+function sampev.onMoveObject(id, fposition, dposition, speed, rotation)
+	if openBarrier then
+		if getObjectModel(sampGetObjectHandleBySampId(id)) == 968 then
+			if rotation.y == 0 then
+				printStyledString('~g~BARRIER OPEN', 3000, 4)
+				if ini.set.lowrp and ini.lowrp.rpbar then
+					lua_thread.create(function() wait(850)
+						sampSendChat('/me ' .. (ini.info.male and 'нажала' or 'нажал') ..' на кнопку открытия шлагбаума, расположенную на часах')
+					end)
 				end
-				
-				openbar = false
-			end)
+			else
+				printStyledString('~r~BARRIER CLOSE', 3000, 4)
+				if ini.set.lowrp and ini.lowrp.rpbar then
+					lua_thread.create(function() wait(850)
+						sampSendChat('/me ' .. (ini.info.male and 'нажала' or 'нажал') ..' на кнопку закрытия шлагбаума, расположенную на часах')
+					end)
+				end
+			end
 		end
 	end
 end
@@ -7881,7 +7994,7 @@ function getUsers()
 						local result, lastDay = checkValiditySubscription(date)
 
 						if result then
-							addChat(('На вашем профиле действует подписка, она будет активна до {00CC66}%s{e6e6fa} ({00CC66}%d дней{e6e6fa}).'):format(date, lastDay))
+							addChat(('На вашем профиле действует подписка, она будет активна до {00CC66}%s{} ({00CC66}%d дней{}).'):format(date, lastDay))
 							pushMessage(string.format('Вы авторизовались как %s', u8:decode(rang)), 5, 2)
 							player_status = tonumber(nrang)
 							player_a_status = 1

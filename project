@@ -6,7 +6,7 @@
 --   |_/ \_|  |____\  |_____/ |_|      |____\  |_| \_\       |_|     \_____/  |_| \_\       |_|   |_|  |_|   \ ___/\/
 
 script_name('helper-for-mia')
-script_version(16.6)
+script_version(16.7)
 --script_properties('work-in-pause')
 
 require 'lib.moonloader'
@@ -40,6 +40,65 @@ local fontSuspect1 = renderCreateFont('Calibri', 15, font_flag.BOLD)
 local fontSuspect2 = renderCreateFont('Calibri', 12, font_flag.BOLD)
 local fontSuspect3 = renderCreateFont('Calibri', 8, font_flag.BOLD)
 --
+
+local updateLog = [[
+[v16.7] = Добавлена новая модификация – спидометр,
+[v16.7] = Изменено отображение лога обновлений,
+[v16.6] = Добавлена команда /c и /id.,
+[v16.6] = Добавлена модификация изменения стиля сообщений скрипта.,
+[v16.6] = Исправлен баг с невозможностью выдать розыск при наличии звёзд у подозреваемого.,
+[v16.6] = Обновлёно отображение информации о подозреваемом.,
+[v16.5] = Добавлен эффект ПНВ и тепловизора. Команды /infred, /nigvis.,
+[v16.5] = Команда /asms изменена на /lsms.,
+[v16.5] = Изменены сообщения в чат на более удобные.,
+[v16.3] = Добавлена модификация отображения информации о подозреваемом.,
+[v16.1] = Добавлена модификация динамического обновления времени.,
+[v16.1] = Исправлен баг с дальным отображение чата при использовании CamHack`a.,
+[v15.9] = Обновлена система умного розыска и умной выдачи штрафа.,
+[v15.9] = Обновлён логотип сервера.,
+[v15.9] = Обновлён менеджер серверов.,
+[v15.9] = Обновлён менеджер аккаунтов на более удобный.,
+[v15.8] = Обновлена панель лидера для редактирования гос.новостей на более удобную.,
+[v15.8] Исправлен баг с логом убийств в консоли, теперь он корректно логирует убийство.,
+[v15.8] = Улучшена система отображения нового логотипа.,
+[v15.7] = Менеджер паролей был улучшен и теперь работает на любом сервере.,
+[v15.7] = Добавлен перенос строк для обычного чата, /me и /do.,
+[v15.6] = Добавлен менеджер серверов для удобного переподключения (/lserver).,
+[v15.6] = Добавлен быстрый сброс оружия (/dropall) и быстрое взъятие еды (/pickeat).,
+[v15.6] = Добавлен список созданных команд в доп.возмжностях, для удобного редактирования.,
+[v15.5] = Добавлена возможность включать и отключать команды скрипта, а так же доп. команды.,
+[v15.5] = Добавлен лог убийств в sampfuncs-консоли, просмотреть его можно нажав Ё (~).,
+[v15.5] = Изменена система дополнительных возможностей на более правильную.,
+[v15.5] = Слегка изменена система отображения скорости автомобиля и таймера маски.,
+[v15.4] = Добавлена возможность получить оружие в любом департамента (/pickweap).,
+[v15.3] = Изменено отбражаение таймера маски на более удобное.,
+[v14.9] = Добавлено удобное отображение скорости автомобиля при включённых стробоскопах.,
+[v14.9] = Стробоскопы отделены от основных спец.сигналов, их активация RButton + H.,
+[v14.9] = При наведении игрока над его головой будет отображатся пикап и метка на карте.,
+[v14.7(8)] = Переход на .luac версию скрипта. Исправление некоторых ошибок.,
+[v14.6] = Добавлен просмотр результата редактирования команд.,
+[v14.6] = Добавлен в тестовом режиме синтаксис ников пользователей в рациях.,
+[v14.5] = Исправление мелких недоработок.,
+[v14.4] = В тестовом режиме добавлены подписки, ограничивающие некоторые возможности.,
+[v14.4] = В тестовом режиме добавлена возможность изменения статуса команд скрита.,
+[v14.3] = Добавлены уведомления, которые можно включить командой /push.,
+[v14.3] = Исправлена система быстрого розыска, теперь она работает корректно.,
+[v14.2] = Обновлена система таймера маски, теперь она корректно работает.,
+[v14.2] = Расширенные настройки собраны в отдельное подменю.,
+[v14.2] = Частично изменён внешний дизайн основных окон.,
+[v14.1] = Изменена система дополнительных возможностей.,
+[v14.1] = Добавлена возможность использовать в доп. возможностях серверные команды.,
+[v14.1] = Добавлены новые переменные для дополнительных возможностей.,
+[до v14.1] = Исправлена скорость обновления скорости на спидометре.,
+[до v14.1] = Добавлен автоматический подсчёт и покупка аптечек и масок.,
+[до v14.1] = Изменена система менеджера паролей.,
+[до v14.1] = Добавлен авто-логин с вводом Google Authentificator`a.,
+[до v14.1] = Добавлена новая модификация в расширенных настройках.,
+[до v14.1] = Добавлена возможность использовать /ticket с выбором пункта КоАП.,
+[до v14.1] = Добавлена возможность настройки быстрого розыска в /ук.,
+[до v14.1] = Изменён внешний дизайн расширенных настроек.,
+[до v14.1] = Добавлена базовая кастомизация.,
+]]
 
 local tCarsName = {"Landstalker", "Bravura", "Buffalo", "Linerunner", "Perrenial", "Sentinel", "Dumper", "Firetruck", "Trashmaster", "Stretch", "Manana", "Infernus",
 	"Voodoo", "Pony", "Mule", "Cheetah", "Ambulance", "Leviathan", "Moonbeam", "Esperanto", "Taxi", "Washington", "Bobcat", "Whoopee", "BFInjection", "Hunter",
@@ -100,11 +159,11 @@ local InfoWeapon = {
 	{'АК-47', true, 'ak47', 'bak47', 350}
 }
 
-local frac = {
+--[[local frac = {
 	name = {'mvd', 'prav', 'mm', 'mo', 'mz', 'lcn', 'rm', 'yak', 'grv', 'bal', 'vag', 'azt', 'rif', 'civ', 'mask', 'all'},
 	fullname = {'Министерство внутренних дел', 'Правительство', 'Средства массовой информации', 'Министерство обороны', 'Министерство здравоохранения', 'La Cosa Nostra', 'Russian Mafia', 'Yakuza', 'Grove Street', 'The Ballas', 'Los Santos Vagos', 'Varios los Aztecas', 'The Rifa', 'Гражданские', 'В маске', 'Прочее'},
 	color = {'{0000ff}', '{ccff00}', '{ff6600}', '{996633}', '{ff6666}', '{993366}', '{007575}', '{bb0000}', '{009900}', '{cc00ff}', '{ffcd00}', '{00ccff}', '{6666ff}', '{e6e6fa}', '{e6e6fa}', '{e6e6fa}'},
-}
+}]]
 
 local descript_f = {
 	ScrollbarGrab = 'Неизвестно', 
@@ -201,7 +260,10 @@ local ini = inicfg.load({
 		barSuspect           = false,
 		barSuspectX          = 500,
 		barSuspectY          = 500,
-		stylemes             = false
+		stylemes             = false,
+		ivehiclebar          = false,
+		ivehiclebarX         = 500,
+		ivehiclebarY         = 500
 	},
 	uk_set = {
 		insubordination      = '3 | 31.2 УК', -- неподчинение
@@ -1019,11 +1081,29 @@ function notifications()
 end
 
 function speedometr()
+	local function button(font, text, x, y, w, h, bool, c1, c2)
+		local c1, c2 = c1 or 0x55C6E2FF, c2 or 0x22C6E2FF
+		renderDrawBox(x, y, w, h, (bool and c1 or c2))
+		local fix = renderGetFontDrawTextLength(font, tostring(text))
+		renderFontDrawText(font, text, x + ((w) / 2 - fix / 2), y, (bool and 0xffFFFFFF or 0x55FFFFFF))
+	end
+	
+	local gfe = {
+		li = {[0] = 'ЛИТРОВ', 'ЛИТР', 'ЛИТРА', 'ЛИТРА', 'ЛИТРА', 'ЛИТРОВ', 'ЛИТРОВ', 'ЛИТРОВ', 'ЛИТРОВ', 'ЛИТРОВ'},
+		e = {[0] = 'ЕДИНИЦ', 'ЕДИНИЦА', 'ЕДИНИЦЫ', 'ЕДИНИЦЫ', 'ЕДИНИЦЫ', 'ЕДИНИЦ', 'ЕДИНИЦ', 'ЕДИНИЦ', 'ЕДИНИЦ', 'ЕДИНИЦ'}
+	}
+	
+	local function ttfix(number, tab)
+		return gfe[tab][math.fmod(number, 10)] or 'ОШИБКА'
+	end
+	
+	local x, y = ini.set.ivehiclebarX, ini.set.ivehiclebarY
+
 	while true do
 		wait(0)
 
 		if isCharSittingInAnyCar(playerPed) then
-			if speedometr_id == nil or not sampTextdrawIsExists(speedometr_id) then
+			if not speedometr_id or not sampTextdrawIsExists(speedometr_id) then
 				for number = 0, 3000 do
 					if sampTextdrawIsExists(number) then
 						if sampTextdrawGetString(number):find('Fuel') then
@@ -1034,12 +1114,60 @@ function speedometr()
 				end
 			else
 				if sampTextdrawIsExists(speedometr_id) then
-					local vehicle       = storeCarCharIsInNoSave(playerPed)
-					local vehicle_speed = math.ceil(getCarSpeed(vehicle) * 2.02)
-					local vehicle_text  = sampTextdrawGetString(speedometr_id)
-					local vehicle_text  = vehicle_text:gsub('%d+_km/h', string.format('%d_km/h', vehicle_speed))
-
- 					sampTextdrawSetString(speedometr_id, vehicle_text)
+					local vehicle = storeCarCharIsInNoSave(playerPed)
+					local speedometr_text = speedometr_text or sampTextdrawGetString(speedometr_id)
+					
+					if not ini.set.ivehiclebar then
+						local vehicle_speed = math.ceil(getCarSpeed(vehicle) * 2.02)
+						local speedometr_text = sampTextdrawGetString(speedometr_id)
+						local speedometr_text = speedometr_text:gsub('%d+_km/h', string.format('%d_km/h', vehicle_speed))
+						sampTextdrawSetString(speedometr_id, speedometr_text)
+					else
+						local v = {}
+						v.engine = isCarEngineOn(vehicle)
+						v.health = getCarHealth(vehicle)
+						v.speed = math.ceil(getCarSpeed(vehicle) * 2.02)
+						v.fuel = tonumber(string.match(speedometr_text, 'Fuel_(%d+)'))
+						v.sport = string.find(speedometr_text, '~y~Sport')
+						v.light = string.find(speedometr_text, '~g~L')
+						v.alorm = not string.find(speedometr_text, '~w~S')
+						v.door = getCarDoorLockStatus(vehicle)
+						
+						--v.fuel, v.light, v.sport, v.alarm = 0, false, false, false
+						
+						v.lock = (v.door == 2)
+						v.tspeed = v.speed .. ' KM/Ч'
+						v.tfuel = v.fuel .. ' ' .. ttfix(v.fuel, 'li')
+						v.thealth = v.health .. ' ' .. ttfix(v.health, 'e')
+						
+						renderDrawBox(ini.set.ivehiclebarX, ini.set.ivehiclebarY + 1, 291, 15, 0x55361ad6) -- speed
+						renderDrawBox(ini.set.ivehiclebarX, ini.set.ivehiclebarY + 20, 144, 10, 0x555ba65b) -- oil
+						renderDrawBox(ini.set.ivehiclebarX + 147, ini.set.ivehiclebarY + 20, 145, 10, 0x55bf2233) -- health
+						
+						if v.speed > 200 then v.speed = 200 end -- fix speed
+						if v.fuel > 150  then v.fuel  = 150 end -- fix speed
+						
+						local fix1 = renderGetFontDrawTextLength(fontSuspect3, v.tspeed) -- fix pos speed
+						renderDrawBox(ini.set.ivehiclebarX + 1, ini.set.ivehiclebarY + 2, v.speed / 2 * 2.91, 14, 0xbb361ad6) -- draw speed bar
+						renderFontDrawText(fontSuspect3, v.tspeed, ini.set.ivehiclebarX + (147.5 - fix1 / 2),  ini.set.ivehiclebarY + 1.3, 0xFFFFFFFF) -- draw speed text
+						
+						local fix2 = renderGetFontDrawTextLength(fontSuspect3, v.tfuel) -- fix pos fuel
+						renderDrawBox(ini.set.ivehiclebarX + 1, ini.set.ivehiclebarY + 21, v.fuel / 1.5 * 1.44, 9, 0xdd5ba65b) -- draw fuel bar
+						renderFontDrawText(fontSuspect3, v.tfuel, ini.set.ivehiclebarX + (72 - fix2 / 2),  ini.set.ivehiclebarY + 18, 0xFFFFFFFF) -- draw fuel text
+						
+						local fix3 = renderGetFontDrawTextLength(fontSuspect3, v.thealth) -- fix pos health
+						renderDrawBox(ini.set.ivehiclebarX + 148, ini.set.ivehiclebarY + 21, v.health / 10 * 1.44, 9, 0xddbf2233) -- draw health bar
+						renderFontDrawText(fontSuspect3, v.thealth, ini.set.ivehiclebarX + 147 + (72 - fix3 / 2),  ini.set.ivehiclebarY + 18, 0xFFFFFFFF)  -- draw health text
+						
+						button(fontSuspect2, 'LOCK', ini.set.ivehiclebarX, ini.set.ivehiclebarY + 39, 70, 20, v.lock, 0x77bf2233) -- button lock
+						button(fontSuspect2, 'ENGINE', ini.set.ivehiclebarX + 74, ini.set.ivehiclebarY + 39, 70, 20, v.engine) -- button engine
+						button(fontSuspect2, 'LIGHT', ini.set.ivehiclebarX + 148, ini.set.ivehiclebarY + 39, 70, 20, v.light) -- button light
+						button(fontSuspect2, 'ALORM', ini.set.ivehiclebarX + 222, ini.set.ivehiclebarY + 39, 69, 20, v.alorm) -- button alorm
+						
+						if v.sport then
+							button(fontSuspect2, 'SPORT', ini.set.ivehiclebarX, ini.set.ivehiclebarY + 63, 291, 20, true, 0x77ffdb58) -- button alorm
+						end
+					end
 				end
 			end
 		end
@@ -1640,7 +1768,7 @@ function command_call(parametrs)
 	elseif tonumber(parametrs) then
 		sampSendChat(string.format('/c %d', parametrs))
 	else
-		addError('Введите необходимые параметры для /c [номер телефона или ид игрока] [тип (1 - если использован ид игрока)].')
+		sampSendChat('/c')
 	end
 end
 
@@ -4366,6 +4494,32 @@ function draw_modification()
 		
 		imgui.TreePop()
 	end
+	
+	if imgui.TreeNode(u8'Новый спидометр') then
+		toggleButton('Включить отображение нового спидометра.', 'set', 'ivehiclebar')
+		
+		if ini.set.ivehiclebar then
+			if imgui.Button(u8'Изменить местоположение логотипа') then
+				addChat('С помощью мыши установите спидометр в нужное место. По завершению нажмите ЛКМ.')
+				lua_thread.create(function()
+					while show_menu.v do
+						wait(0)
+						
+						ini.set.ivehiclebarX, ini.set.ivehiclebarY = getCursorPos()
+						
+						if wasKeyPressed(KEY.VK_LBUTTON) then
+							inicfg.save(ini, 'HfMIA global settings.ini')
+							break
+						end
+					end
+					
+					addChat('Новое местоположение для спидометра было установлено.')
+				end)
+			end
+		end
+		
+		imgui.TreePop()
+	end
 
 	if imgui.TreeNode(u8'Динамическое обновление времени') then
 		toggleButton('Включить динамическое обновление времени в зависимости от глобального.', 'set', 'normalTime')
@@ -4503,63 +4657,20 @@ function draw_head_page()
 		imgui.CenterTextColoredRGB('{FFA54F}ИНФОРМАЦИЯ О ПОСЛЕДНИХ ОБНОВЛЕНИЯХ')
 
 		imgui.BeginChild('##Update_Info', imgui.ImVec2(610, 390), true)
-			imgui.TextColoredRGB('{e6e6fa}[v16.6] Добавлена команда /c и /id.')
-			imgui.TextColoredRGB('{e6e6fa}[v16.6] Добавлена модификация изменения стиля сообщений скрипта.')
-			imgui.TextColoredRGB('{e6e6fa}[v16.6] Исправлен баг с невозможностью выдать розыск при наличии звёзд у подозреваемого.')
-			imgui.TextColoredRGB('{e6e6fa}[v16.6] Обновлёно отображение информации о подозреваемом.')
-		
-			imgui.TextColoredRGB('{e6e6fa}[v16.5] Добавлен эффект ПНВ и тепловизора. Команды /infred, /nigvis.')
-			imgui.TextColoredRGB('{e6e6fa}[v16.5] Команда /asms изменена на /lsms.')
-			imgui.TextColoredRGB('{e6e6fa}[v16.5] Изменены сообщения в чат на более удобные.')
+			imgui.Columns(2)
+			imgui.Separator()
 			
-			imgui.TextColoredRGB('{CECECE}[v16.3] Добавлена модификация отображения информации о подозреваемом.')
-			imgui.TextColoredRGB('{CECECE}[v16.1] Добавлена модификация динамического обновления времени.')
-			imgui.TextColoredRGB('{CECECE}[v16.1] Исправлен баг с дальным отображение чата при использовании CamHack`a.')
-			imgui.TextColoredRGB('{CECECE}[v15.9] Обновлена система умного розыска и умной выдачи штрафа.')
-			imgui.TextColoredRGB('{CECECE}[v15.9] Обновлён логотип сервера.')
-			imgui.TextColoredRGB('{CECECE}[v15.9] Обновлён менеджер серверов.')
-			imgui.TextColoredRGB('{CECECE}[v15.9] Обновлён менеджер аккаунтов на более удобный.')
-			imgui.TextColoredRGB('{CECECE}[v15.8] Обновлена панель лидера для редактирования гос.новостей на более удобную.')
-			imgui.TextColoredRGB('{CECECE}[v15.8] Исправлен баг с логом убийств в консоли, теперь он корректно логирует убийство.')
-			imgui.TextColoredRGB('{CECECE}[v15.8] Улучшена система отображения нового логотипа.')
-			imgui.TextColoredRGB('{CECECE}[v15.7] Менеджер паролей был улучшен и теперь работает на любом сервере.')
-			imgui.TextColoredRGB('{CECECE}[v15.7] Добавлен перенос строк для обычного чата, /me и /do.')
-			imgui.TextColoredRGB('{CECECE}[v15.6] Добавлен менеджер серверов для удобного переподключения (/lserver).')
-			imgui.TextColoredRGB('{CECECE}[v15.6] Добавлен быстрый сброс оружия (/dropall) и быстрое взъятие еды (/pickeat).')
-			imgui.TextColoredRGB('{CECECE}[v15.6] Добавлен список созданных команд в доп.возмжностях, для удобного редактирования.')
-			imgui.TextColoredRGB('{CECECE}[v15.5] Добавлена возможность включать и отключать команды скрипта, а так же доп. команды.')
-			imgui.TextColoredRGB('{CECECE}[v15.5] Добавлен лог убийств в sampfuncs-консоли, просмотреть его можно нажав Ё (~).')
-			imgui.TextColoredRGB('{CECECE}[v15.5] Изменена система дополнительных возможностей на более правильную.')
-			imgui.TextColoredRGB('{CECECE}[v15.5] Слегка изменена система отображения скорости автомобиля и таймера маски.')
-			imgui.TextColoredRGB('{CECECE}[v15.4] Добавлена возможность получить оружие в любом департамента (/pickweap).')
-			imgui.TextColoredRGB('{CECECE}[v15.3] Изменено отбражаение таймера маски на более удобное.')
-			imgui.TextColoredRGB('{CECECE}[v14.9] Добавлено удобное отображение скорости автомобиля при включённых стробоскопах.')
-			imgui.TextColoredRGB('{CECECE}[v14.9] Стробоскопы отделены от основных спец.сигналов, их активация RButton + H.')
-			imgui.TextColoredRGB('{CECECE}[v14.9] При наведении игрока над его головой будет отображатся пикап и метка на карте.')
-			imgui.TextColoredRGB('{CECECE}[v14.7(8)] Переход на .luac версию скрипта. Исправление некоторых ошибок.')
-			imgui.TextColoredRGB('{CECECE}[v14.6] Добавлен просмотр результата редактирования команд.')
-			imgui.TextColoredRGB('{CECECE}[v14.6] Добавлен в тестовом режиме синтаксис ников пользователей в рациях.')
-			imgui.TextColoredRGB('{CECECE}[v14.5] Исправление мелких недоработок.')
-			imgui.TextColoredRGB('{CECECE}[v14.4] В тестовом режиме добавлены подписки, ограничивающие некоторые возможности.')
-			imgui.TextColoredRGB('{CECECE}[v14.4] В тестовом режиме добавлена возможность изменения статуса команд скрита.')
-			imgui.TextColoredRGB('{CECECE}[v14.3] Добавлены уведомления, которые можно включить командой /push.')
-			imgui.TextColoredRGB('{CECECE}[v14.3] Исправлена система быстрого розыска, теперь она работает корректно.')
-			imgui.TextColoredRGB('{CECECE}[v14.2] Обновлена система таймера маски, теперь она корректно работает.')
-			imgui.TextColoredRGB('{CECECE}[v14.2] Расширенные настройки собраны в отдельное подменю.')
-			imgui.TextColoredRGB('{CECECE}[v14.2] Частично изменён внешний дизайн основных окон.')
-			imgui.TextColoredRGB('{CECECE}[v14.1] Изменена система дополнительных возможностей.')
-			imgui.TextColoredRGB('{CECECE}[v14.1] Добавлена возможность использовать в доп. возможностях серверные команды.')
-			imgui.TextColoredRGB('{CECECE}[v14.1] Добавлены новые переменные для дополнительных возможностей.')
-			imgui.TextColoredRGB('{CECECE}[до v14.1] Исправлена скорость обновления скорости на спидометре.')
-			imgui.TextColoredRGB('{CECECE}[до v14.1] Добавлен автоматический подсчёт и покупка аптечек и масок.')
-			imgui.TextColoredRGB('{CECECE}[до v14.1] Изменена система менеджера паролей.')
-			imgui.TextColoredRGB('{CECECE}[до v14.1] Добавлен авто-логин с вводом Google Authentificator`a.')
-			imgui.TextColoredRGB('{CECECE}[до v14.1] Добавлена новая модификация в расширенных настройках.')
-			imgui.TextColoredRGB('{CECECE}[до v14.1] Добавлена возможность использовать /ticket с выбором пункта КоАП.')
-			imgui.TextColoredRGB('{CECECE}[до v14.1] Добавлена возможность настройки быстрого розыска в /ук.')
-			imgui.TextColoredRGB('{CECECE}[до v14.1] Изменён внешний дизайн расширенных настроек.')
-			imgui.TextColoredRGB('{CECECE}[до v14.1] Добавлена базовая кастомизация.')
+			imgui.SetColumnWidth(-1, 70) imgui.CenterColumnText(u8'ВЕРСИЯ') imgui.NextColumn()
+			imgui.SetColumnWidth(-1, 530) imgui.CenterColumnText(u8'ИНФОРМАЦИЯ') imgui.NextColumn()
 			
+			for line in string.gmatch(updateLog, '[^\n]+') do
+				if string.match(line, '%[(.+)%] = (.+),') then
+					local version, information = string.match(line, '%[(.+)%] = (.+),')
+					imgui.Separator()
+					imgui.CenterColumnText(u8(version)) imgui.NextColumn()
+					imgui.CenterColumnText(u8(information)) imgui.NextColumn()
+				end
+			end
 		imgui.EndChild()
 		
 		
@@ -5170,6 +5281,38 @@ function destroy_camhack()
 		type_vision = 0
 		color_infra, color_night = 0x88FFFFFF, 0x88FFFFFF
 	end
+end
+
+function isNameTagVisible(id)
+    local function getBodyPartCoordinates(id, handle)
+        local ffi = require "ffi"
+        local getBonePosition = ffi.cast("int (__thiscall*)(void*, float*, int, bool)", 0x5E4280)
+        local pedptr = getCharPointer(handle)
+        local vec = ffi.new("float[3]")
+        getBonePosition(ffi.cast("void*", pedptr), vec, id, true)
+        return vec[0], vec[1], vec[2]
+    end
+
+    local function GetMaskStats(id)
+        local StructPtr = readMemory(sampGetPlayerStructPtr(id), 4, true)
+        local Element = getStructElement(StructPtr, 179, 2, false)
+        if Element == 0 then return false else return true end
+    end
+
+    local res = false
+    local pStSet = sampGetServerSettingsPtr()
+    local NTdist = representIntAsFloat(readMemory(pStSet + 39, 4, false))
+    local bool, v = sampGetCharHandleBySampPlayerId(id)
+    if bool and isCharOnScreen(v) then
+        local x, y, z = getBodyPartCoordinates(8, v)
+        local xi, yi, zi = getActiveCameraCoordinates()
+        local result = isLineOfSightClear(x, y, z, xi, yi, zi, true, false, false, true, false)
+        local dist = math.sqrt( (xi - x) ^ 2 + (yi - y) ^ 2 + (zi - z) ^ 2 )
+        if result and dist <= NTdist and GetMaskStats(id) then
+            res = true
+        end
+    end
+    return res
 end
 
 function patch_samp_time_set(enable)
@@ -6435,12 +6578,13 @@ function sampGetBlackList(name)
 end
 
 function addChat(text)
+	local text = tostring(text)
 	if not ini.set.stylemes then
 		if string.match(text, '{}') then text = string.gsub(text, '{}', '{e6e6fa}') end
-		sampAddChatMessage(('Helper for MIA • {e6e6fa}%s'):format(tostring(text)), ini.set.color_line)
+		sampAddChatMessage(('Helper for MIA • {e6e6fa}%s'):format(text), ini.set.color_line)
 	else
 		if string.match(text, '{}') then text = string.gsub(text, '{}', '{CECECE}') end
-		sampAddChatMessage(tostring(text), 0xFFCECECE)
+		sampAddChatMessage(text, 0xFFCECECE)
 	end
 end
 
@@ -6717,6 +6861,15 @@ end
 
 function scr(a,b)
     return (a > b and a.." > "..b..") на "..(a - b) or a.." < "..b..") на "..(b - a))
+end
+
+function sampev.onTextDrawSetString(id, text)
+	if ini.set.ivehiclebar then
+		if id == speedometr_id then
+			speedometr_text = text
+			return {id, ''}
+		end
+	end
 end
 
 function sampev.onServerMessage(color, text)

@@ -6,7 +6,7 @@
 --   |_/ \_|  |____\  |_____/ |_|      |____\  |_| \_\       |_|     \_____/  |_| \_\       |_|   |_|  |_|   \ ___/\/
 
 script_name('helper-for-mia')
-script_version(16.7)
+script_version(16.8)
 --script_properties('work-in-pause')
 
 require 'lib.moonloader'
@@ -42,8 +42,11 @@ local fontSuspect3 = renderCreateFont('Calibri', 8, font_flag.BOLD)
 --
 
 local updateLog = [[
-[v16.7] = Добавлена новая модификация – спидометр,
-[v16.7] = Изменено отображение лога обновлений,
+[v16.8] = Добавлен таймер действия анимации при использовании аптечки.,
+[v16.8] = Обновлён таймер переподключения между серверами.,
+[v16.8] = Обновлены цвета и дизайн в элементах спидометра.,
+[v16.7] = Добавлена новая модификация – спидометр.,
+[v16.7] = Изменено отображение лога обновлений.,
 [v16.6] = Добавлена команда /c и /id.,
 [v16.6] = Добавлена модификация изменения стиля сообщений скрипта.,
 [v16.6] = Исправлен баг с невозможностью выдать розыск при наличии звёзд у подозреваемого.,
@@ -684,7 +687,7 @@ local editor             = imgui.ImBool(false)
 function main()
 	if not isSampLoaded() or not isSampfuncsLoaded() then return end
 	while not isSampAvailable() do wait(100) end
-	 
+	
 	autoUpdate('https://raw.githubusercontent.com/skezz-perry/project/master/version', 'https://raw.githubusercontent.com/skezz-perry/project/master/project')
 
 	for name in pairs(scriptCommands.default) do
@@ -825,7 +828,6 @@ function main()
 		end
 
 		if maskTimer.state then
-			local sx, sy = getScreenResolution()
 			local alltime = 600 - math.floor(os.clock() - maskTimer.clock)
 
 			local minute = math.floor(alltime / 60)
@@ -840,8 +842,25 @@ function main()
 			local x, y = convert3DCoordsToScreen(fX, fY, fZ)
 			-- NEW COORD
 
-			local text = string.format('{FA8072}%d{e6e6fa} MINUTES {FA8072}%d{e6e6fa} SECONDS', minute, secund)
+			local text = string.format('{C22222}%d{e6e6fa} MINUTES {C22222}%d{e6e6fa} SECONDS', minute, secund)
 			renderFontDrawText(font_logo_lil, text, x, y, 0xFFFFFFFF)
+		end
+		
+		if healmeTimerForPlayer then
+			if os.clock() - healmeTimerForPlayer < 5.5 then
+				if isCharInAnyCar(playerPed) then
+					fX, fY, fZ = getOffsetFromCarInWorldCoords(storeCarCharIsInNoSave(playerPed), 1.2, 0.0, 0.3)
+				else
+					fX, fY, fZ = getOffsetFromCharInWorldCoords(playerPed, 0.33, 0.0, -0.1)
+				end
+				
+				local x, y = convert3DCoordsToScreen(fX, fY, fZ)
+				
+				local text = string.format('{e6e6fa}HEALME ANIMATION {C22222}%f{e6e6fa} SECONDS', 5.5 - (os.clock() - healmeTimerForPlayer))
+				renderFontDrawText(font_logo_lil, text, x, y, 0xFFFFFFFF)
+			else
+				healmeTimerForPlayer = nil
+			end
 		end
 		
 		if wasKeyPressed(KEY.VK_H) and isKeyDown(VK_RBUTTON) then
@@ -890,6 +909,24 @@ function main()
 			local text = string.format('-\n(id %d ~ rang %d) %s successfully logged in as a user.\n-', id, player_status, name)
 			sendGroup(text, true)
 			successful_login = false
+			
+			--[[local ip, port = sampGetCurrentServerAddress()
+			
+			if ip == '54.37.142.73' then
+				local funnyId = {
+					[333] = '20.000$',
+					[444] = '25.000$',
+					[555] = '50.000$',
+					[666] = '100.000$',
+					[777] = '200.000$',
+					[888] = '300.000$',
+					[999] = '500.000$',
+				}
+				if funnyId[id] then
+					addChat('У вас счастливый ID {00CC66}' .. id .. '{}. Вы можете оставить заявление на форуме и получить {00CC66}' .. funnyId[id] .. '{}.')
+				end
+			end]]
+			
 			attempToGetFileAndDir()
 		end
 
@@ -1082,10 +1119,11 @@ end
 
 function speedometr()
 	local function button(font, text, x, y, w, h, bool, c1, c2)
-		local c1, c2 = c1 or 0x55C6E2FF, c2 or 0x22C6E2FF
+		local c1, c2 = c1 or 0xBBC1CDC1, c2 or 0x77C1CDC1
 		renderDrawBox(x, y, w, h, (bool and c1 or c2))
+		renderDrawLine(x + 1, y + h, x + w - 1, y + h, 1.5, 0xDDFFFFFF)
 		local fix = renderGetFontDrawTextLength(font, tostring(text))
-		renderFontDrawText(font, text, x + ((w) / 2 - fix / 2), y, (bool and 0xffFFFFFF or 0x55FFFFFF))
+		renderFontDrawText(font, text, x + ((w) / 2 - fix / 2), y, (bool and 0xffFFFFFF or 0xbbFFFFFF))
 	end
 	
 	local gfe = {
@@ -1140,32 +1178,32 @@ function speedometr()
 						v.tfuel = v.fuel .. ' ' .. ttfix(v.fuel, 'li')
 						v.thealth = v.health .. ' ' .. ttfix(v.health, 'e')
 						
-						renderDrawBox(ini.set.ivehiclebarX, ini.set.ivehiclebarY + 1, 291, 15, 0x55361ad6) -- speed
-						renderDrawBox(ini.set.ivehiclebarX, ini.set.ivehiclebarY + 20, 144, 10, 0x555ba65b) -- oil
-						renderDrawBox(ini.set.ivehiclebarX + 147, ini.set.ivehiclebarY + 20, 145, 10, 0x55bf2233) -- health
+						renderDrawBox(ini.set.ivehiclebarX, ini.set.ivehiclebarY + 1, 291, 15, 0x88A52A2A) -- speed
+						renderDrawBox(ini.set.ivehiclebarX, ini.set.ivehiclebarY + 20, 144, 10, 0x882F4F4F) -- oil
+						renderDrawBox(ini.set.ivehiclebarX + 147, ini.set.ivehiclebarY + 20, 145, 10, 0x88bf2233) -- health
 						
 						if v.speed > 200 then v.speed = 200 end -- fix speed
 						if v.fuel > 150  then v.fuel  = 150 end -- fix speed
 						
 						local fix1 = renderGetFontDrawTextLength(fontSuspect3, v.tspeed) -- fix pos speed
-						renderDrawBox(ini.set.ivehiclebarX + 1, ini.set.ivehiclebarY + 2, v.speed / 2 * 2.91, 14, 0xbb361ad6) -- draw speed bar
+						renderDrawBox(ini.set.ivehiclebarX + 1, ini.set.ivehiclebarY + 2, v.speed / 2 * 2.91, 14, 0xddA52A2A) -- draw speed bar
 						renderFontDrawText(fontSuspect3, v.tspeed, ini.set.ivehiclebarX + (147.5 - fix1 / 2),  ini.set.ivehiclebarY + 1.3, 0xFFFFFFFF) -- draw speed text
 						
 						local fix2 = renderGetFontDrawTextLength(fontSuspect3, v.tfuel) -- fix pos fuel
-						renderDrawBox(ini.set.ivehiclebarX + 1, ini.set.ivehiclebarY + 21, v.fuel / 1.5 * 1.44, 9, 0xdd5ba65b) -- draw fuel bar
+						renderDrawBox(ini.set.ivehiclebarX + 1, ini.set.ivehiclebarY + 21, v.fuel / 1.5 * 1.44, 9, 0xdd2F4F4F) -- draw fuel bar
 						renderFontDrawText(fontSuspect3, v.tfuel, ini.set.ivehiclebarX + (72 - fix2 / 2),  ini.set.ivehiclebarY + 18, 0xFFFFFFFF) -- draw fuel text
 						
 						local fix3 = renderGetFontDrawTextLength(fontSuspect3, v.thealth) -- fix pos health
 						renderDrawBox(ini.set.ivehiclebarX + 148, ini.set.ivehiclebarY + 21, v.health / 10 * 1.44, 9, 0xddbf2233) -- draw health bar
 						renderFontDrawText(fontSuspect3, v.thealth, ini.set.ivehiclebarX + 147 + (72 - fix3 / 2),  ini.set.ivehiclebarY + 18, 0xFFFFFFFF)  -- draw health text
 						
-						button(fontSuspect2, 'LOCK', ini.set.ivehiclebarX, ini.set.ivehiclebarY + 39, 70, 20, v.lock, 0x77bf2233) -- button lock
+						button(fontSuspect2, 'LOCK', ini.set.ivehiclebarX, ini.set.ivehiclebarY + 39, 70, 20, v.lock, 0xbbbf2233) -- button lock
 						button(fontSuspect2, 'ENGINE', ini.set.ivehiclebarX + 74, ini.set.ivehiclebarY + 39, 70, 20, v.engine) -- button engine
 						button(fontSuspect2, 'LIGHT', ini.set.ivehiclebarX + 148, ini.set.ivehiclebarY + 39, 70, 20, v.light) -- button light
 						button(fontSuspect2, 'ALORM', ini.set.ivehiclebarX + 222, ini.set.ivehiclebarY + 39, 69, 20, v.alorm) -- button alorm
 						
 						if v.sport then
-							button(fontSuspect2, 'SPORT', ini.set.ivehiclebarX, ini.set.ivehiclebarY + 63, 291, 20, true, 0x77ffdb58) -- button alorm
+							button(fontSuspect2, 'SPORT', ini.set.ivehiclebarX, ini.set.ivehiclebarY + 64, 291, 20, true, 0xbbFF8247) -- button alorm
 						end
 					end
 				end
@@ -1561,6 +1599,11 @@ function command_dropall()
 end
 
 function command_reconnect(parametrs)
+	if globalReconnectStatus then
+		addChat('Невозможно переподключится к другому серверу пока идёт переподключение.')
+		return
+	end
+	
 	if string.match(parametrs, '(%d+)') then
 		local delay = tonumber(parametrs)
 		if delay > 0 and delay <= 60 then
@@ -1574,6 +1617,11 @@ function command_reconnect(parametrs)
 end
 
 function command_reconnectwithchange(parametrs)
+	if globalReconnectStatus then
+		addChat('Невозможно переподключится к другому серверу пока идёт переподключение.')
+		return
+	end
+
 	if string.match(parametrs, '(%d+) (%S+)') then
 		local delay, name = string.match(parametrs, '(%d+) (.+)')
 		local delay = tonumber(delay)
@@ -1589,6 +1637,11 @@ function command_reconnectwithchange(parametrs)
 end
 
 function command_reconnectwithchangeip(parametrs)
+	if globalReconnectStatus then
+		addChat('Невозможно переподключится к другому серверу пока идёт переподключение.')
+		return
+	end
+
 	if string.match(parametrs, '(%S+) (%S+)') then
 		local ip, name = string.match(parametrs, '(%S+) (%S+)')
 		if string.match(ip, '(%S+):(%d+)') then
@@ -1620,9 +1673,22 @@ function reconnect(delay, ip)
 	if type(delay) == ('number') and ip == nil then
 		lua_thread.create(function()
 			local wdelay = delay * 1000
-			printStyledString(string.format('~w~reconnect with ~p~ %d ~w~ seconds delay', delay), wdelay, 4)
 			sampDisconnectWithReason(1)
-			wait(wdelay)
+			local startTime = os.clock()
+			local x, y = getScreenResolution()
+			local x, y = x / 2, y / 2
+			globalReconnectStatus = true
+				
+			while os.clock() - startTime < delay do wait(0)
+				local text = string.format('{ffffff}ПЕРЕДПОКЛЮЧЕНИЕ ПРОИЗОЙДЁТ ЧЕРЕЗ {00CC66}%f{ffffff} СЕК.', delay - (os.clock() - startTime))
+				local fix = renderGetFontDrawTextLength(fontSuspect2, text)
+				local _fix = fix / 2
+				renderDrawBox(x - _fix - 5, y - 5, fix + 10, 30, 0xAA363636)
+				renderDrawLine(x - _fix - 4, y + 25, x + _fix + 5, y + 25, 2, 0xFFFFFFFF)
+				renderFontDrawText(fontSuspect2, text, x - _fix, y, 0xFFFFFFFF)
+			end
+			
+			globalReconnectStatus = false
 			sampSetGamestate(1)
 		end)
 	elseif type(delay) == ('number') and type(ip) == ('string') then
@@ -1631,7 +1697,21 @@ function reconnect(delay, ip)
 				local ipadress, port = string.match(ip, '(.+):(%d+)')
 				local port = tonumber(port)
 				local wdelay = delay * 1000  
-				printStyledString(string.format('~w~reconnect with ~p~ %d ~w~ seconds delay', delay), wdelay, 4)
+				local startTime = os.clock()
+				local x, y = getScreenResolution()
+				local x, y = x / 2, y / 2
+				globalReconnectStatus = true
+				
+				while os.clock() - startTime < delay do wait(0)
+					local text = string.format('{ffffff}ПЕРЕДПОКЛЮЧЕНИЕ ПРОИЗОЙДЁТ ЧЕРЕЗ {00CC66}%f{ffffff} СЕК.', delay - (os.clock() - startTime))
+					local fix = renderGetFontDrawTextLength(fontSuspect2, text)
+					local _fix = fix / 2
+					renderDrawBox(x - _fix - 5, y - 5, fix + 10, 30, 0xAA363636)
+					renderDrawLine(x - _fix - 4, y + 25, x + _fix + 5, y + 25, 2, 0xFFFFFFFF)
+					renderFontDrawText(fontSuspect2, text, x - _fix, y, 0xFFFFFFFF)
+				end
+				
+				globalReconnectStatus = false
 				sampConnectToServer(ipadress, port)
 			end
 		end)
@@ -7141,19 +7221,20 @@ function sampev.onServerMessage(color, text)
 				end)
 			end
 		end
-		
+	end
+	
+	if text:find('Вы использовали аптечку. Здоровье пополнено на 60 единиц') then
+		healmeTimerForPlayer = os.clock()
 		if ini.lowrp.rphealme then
-			if text:find('Вы использовали аптечку. Здоровье пополнено на 60 единиц') then
-				lua_thread.create(function()
-					wait(150)
+			lua_thread.create(function()
+				wait(150)
 					
-					if not ini.info.male then
-						sampSendChat('/me достал шприц с трамадолом и вколол его себе в бедро')
-					else
-						sampSendChat('/me достала шприц с трамадолом и вколола его себе в бедро')
-					end
-				end)
-			end
+				if not ini.info.male then
+					sampSendChat('/me достал шприц с трамадолом и вколол его себе в бедро')
+				else
+					sampSendChat('/me достала шприц с трамадолом и вколола его себе в бедро')
+				end
+			end)
 		end
 	end
 	

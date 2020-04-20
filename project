@@ -6,7 +6,7 @@
 --   |_/ \_|  |____\  |_____/ |_|      |____\  |_| \_\       |_|     \_____/  |_| \_\       |_|   |_|  |_|   \ ___/\/
 
 script_name('helper-for-mia')
-script_version(16.9)
+script_version(17.1)
 --script_properties('work-in-pause')
 
 require 'lib.moonloader'
@@ -42,6 +42,7 @@ local fontSuspect3 = renderCreateFont('Calibri', 8, font_flag.BOLD)
 --
 
 local updateLog = [[
+[v17.1] = В инвентарь добавлено некоторое количество новых функций.,
 [v16.9] = В тестовом режиме добавлен новый инвентарь /inventory.,
 [v16.8] = Добавлен таймер действия анимации при использовании аптечки.,
 [v16.8] = Обновлён таймер переподключения между серверами.,
@@ -756,12 +757,6 @@ function main()
 	
 	while true do
 		wait(0)
-
-		if sampTextdrawIsExists(0) and ini.set.new_logo then
-			if sampTextdrawGetString(0):find('Advance_RP') then
-				sampTextdrawDelete(0)
-			end
-		end
 		
 		if ini.set.halfrpweapon and ini.set.rpweapon then
 			if wasKeyPressed(KEY.VK_RBUTTON) and lweap ~= getCurrentCharWeapon(playerPed) then
@@ -850,7 +845,7 @@ function main()
 			-- NEW COORD
 
 			local text = string.format('{C22222}%d{e6e6fa} MINUTES {C22222}%d{e6e6fa} SECONDS', minute, secund)
-			renderFontDrawText(font_logo_lil, text, x, y, 0xFFFFFFFF)
+			renderFontDrawText(fontSuspect3, text, x, y, 0xFFFFFFFF)
 		end
 		
 		if healmeTimerForPlayer then
@@ -864,7 +859,7 @@ function main()
 				local x, y = convert3DCoordsToScreen(fX, fY, fZ)
 				
 				local text = string.format('{e6e6fa}HEALME ANIMATION {C22222}%f{e6e6fa} SECONDS', 5.5 - (os.clock() - healmeTimerForPlayer))
-				renderFontDrawText(font_logo_lil, text, x, y, 0xFFFFFFFF)
+				renderFontDrawText(fontSuspect3, text, x, y, 0xFFFFFFFF)
 			else
 				healmeTimerForPlayer = nil
 			end
@@ -1133,7 +1128,7 @@ function drawInventoryBlock()
 	local lastInventoryKey = {}
 	local inventoryKey = {}
 	
-	local texture = {['healme'] = 0, ['bullet'] = 0, ['mask'] = 0, ['person'] = 0, ['drug'] = 0, ['iron'] = 0, ['health'] = 0, ['armour'] = 0}
+	local texture = {['healme'] = 0, ['bullet'] = 0, ['mask'] = 0, ['person'] = 0, ['drug'] = 0, ['iron'] = 0}
 	
 	for name, value in pairs(texture) do
 		local path = 'moonloader/helper/image/' .. name .. '.png'
@@ -1165,10 +1160,10 @@ function drawInventoryBlock()
 	
 	local function renderDrawButton(font, text, x, y, w, h, mx, my)
 		if (mx >= x and mx <= x + w) and (my >= y and my <= y + h) then
-			renderDrawBox(x, y, w, h, 0xAA302e38)
+			renderDrawBox(x, y, w, h, 0x99302e38)
 			if wasKeyPressed(1) then return true end
 		else
-			renderDrawBox(x, y, w, h, 0xEE302e38)
+			renderDrawBox(x, y, w, h, 0x66302e38)
 		end
 		
 		local fix = renderGetFontDrawTextLength(font, text)
@@ -1221,6 +1216,24 @@ function drawInventoryBlock()
 		end
 	end
 	
+	local function interfaceInputText(value, x, y)
+		if value and type(value) == 'string' then
+			if string.len(value) < 26 then
+				for key = 48, 57 do 
+					if wasKeyPressed(key) then value = value .. '' .. key - 48 end
+				end
+				renderFontDrawText(fontInventory, value .. ((math.fmod(math.floor(os.clock()), 2) == 0) and '_' or ''), x, y, 0xdd000000)
+			else
+				renderFontDrawText(fontInventory, value, x, y, 0xdd000000)
+			end
+			if wasKeyPressed(8) then value = string.sub(value, 0, string.len(value) - 1) end
+			
+			return value
+		end
+	end
+	
+	local interfaceInput = ''
+	
 	while true do wait(0)
 		if dInventoryBlock and not sampIsDialogActive() then
 			--if not isCursorActive() then showCursor(true) end
@@ -1240,22 +1253,220 @@ function drawInventoryBlock()
 			local mx, my = getCursorPos()
 			
 			-- BUTTON PERSON BLOCK --
-			if renderDrawButton(fontInventory, 'ИЗМЕНИТЬ', ws + 25, hs + 390, 135, 25, mx, my) then
+			if renderDrawButton(fontInventory, 'ИЗМЕНИТЬ', ws + 25, hs + 390, 135, 21, mx, my) then
 				sampSendClickTextdraw(1364)
 			end
 			
-			if renderDrawButton(fontInventory, 'УДАЛИТЬ', ws + 170, hs + 390, 135, 25, mx, my) then
-				addChat('REMOVE')
+			if renderDrawButton(fontInventory, 'УДАЛИТЬ', ws + 170, hs + 390, 135, 21, mx, my) then
+				addChat('На данный момент нет такой возможности.')
 			end
+			
+			local skin = getCharModel(playerPed)
+			local health = getCharHealth(playerPed)
+			local armour = getCharArmour(playerPed)
+			if not inventoryName then 
+				local result, playerId = sampGetPlayerIdByCharHandle(playerPed)
+				inventoryName = string.upper(string.gsub(sampGetPlayerName(playerId), '_', ' '))
+			end
+			
+			renderDrawTexture(texture[skin], ws + 27, hs + 25, 80, 80, 0, 0xffffffff)
+			local fix3 = renderGetFontDrawTextLength(fontSuspect2, inventoryName)
+			renderFontDrawText(fontSuspect2, inventoryName, ws + 210 - fix3 / 2, hs + 33, 0xddffffff)
+			renderDrawBox(ws + 120, hs + 55, 180, 12, 0x22ffffff)
+			renderDrawBox(ws + 120, hs + 72, 180, 12, 0x22ffffff)
+			
+			renderDrawBox(ws + 120, hs + 56, health * 1.8, 10, 0x88bf2233)
+			renderDrawBox(ws + 120, hs + 73, armour * 1.8, 10, 0x882F4F4F)
+			local fix1 = renderGetFontDrawTextLength(fontSuspect3, health)
+			renderFontDrawText(fontSuspect3, health, ws + 210 - fix1 / 2, hs + 54, 0xffffffff)
+			local fix2 = renderGetFontDrawTextLength(fontSuspect3, armour)
+			renderFontDrawText(fontSuspect3, armour, ws + 210 - fix2 / 2, hs + 71, 0xffffffff)
+			
+			--0x882F4F4F 0x88bf2233
+			
+			if inventoryActive then
+				if inventoryActive == 1 then
+					if iinventoryKey[lastInventoryKey[1]] then
+						local element = iinventoryKey[lastInventoryKey[1]][lastInventoryKey[2]]
+						if element then
+							if tonumber(element.name) then
+								if tonumber(element.name) <= 311 then
+									addChat('На данный момент нет возможности выбрасывать скины персонажа.')
+									inventoryActive = nil
+									interfaceInput = ''
+								end
+							else
+								renderFontDrawText(fontInventory, 'Сколько вещей хотите выбросить?', ws + 65, hs + 135, 0xffffffff)
+								renderDrawBox(ws + 65, hs + 155, 193, 20, 0xaaffffff)
+								interfaceInput = interfaceInputText(interfaceInput, ws + 70, hs + 155)
+								
+								if renderDrawButton(fontInventory, 'ПРИМЕНИТЬ', ws + 98, hs + 180, 125, 20, mx, my) then
+									if tonumber(element.value) >= tonumber(interfaceInput) then
+										--addChat('Вы выбросили ' .. element.name .. '[' .. element.id .. '] в количестве ' .. interfaceInput .. ' шт.')
+										inventoryDrop = interfaceInput
+										sampSendClickTextdraw(element.id)
+										sampSendClickTextdraw(1369)
+										iinventoryKey = {}
+									else
+										addChat('Вы не можете выбросить более {00CC66}' .. element.value .. '{} шт. данного элемента.')
+									end
+									inventoryActive = nil
+									interfaceInput = ''
+								end
+							end
+						else
+							addChat('Чтобы выбросить вещь сначала выберите её.')
+							inventoryActive = nil
+							interfaceInput = ''
+						end
+					else
+						addChat('Чтобы выбросить вещь сначала выберите её.')
+						inventoryActive = nil
+						interfaceInput = ''
+					end
+				elseif inventoryActive == 2 then
+					if iinventoryKey[lastInventoryKey[1]] then
+						local element = iinventoryKey[lastInventoryKey[1]][lastInventoryKey[2]]
+						if element then
+							if tonumber(element.name) then
+								if tonumber(element.name) <= 311 then
+									addChat('На данный момент нет возможности продавать скины персонажа.')
+									inventoryActive = nil
+									interfaceInput = ''
+								end
+							else
+								if not inventorySell then inventorySell = {1} end
+								
+								if inventorySell[1] == 1 then
+									renderFontDrawText(fontInventory, 'Введите ID покупателя', ws + 95, hs + 135, 0xffffffff)
+									renderDrawBox(ws + 65, hs + 155, 193, 20, 0xaaffffff)
+									interfaceInput = interfaceInputText(interfaceInput, ws + 70, hs + 155)
+									
+									if renderDrawButton(fontInventory, 'ПРИМЕНИТЬ', ws + 98, hs + 180, 125, 20, mx, my) then
+										if IPC(interfaceInput) then
+											if sampGetDistanceToPlayer(interfaceInput) < 3 then
+												inventorySell[2] = sampGetPlayerName(interfaceInput)
+												inventorySell[3] = interfaceInput
+												inventorySell[1] = 2
+												interfaceInput = ''
+											else
+												addChat('Данный игрок находится слишком далеко от Вас.')
+												inventoryActive = nil; interfaceInput = ''; inventorySell = nil
+											end
+										else
+											addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+											inventoryActive = nil; interfaceInput = ''; inventorySell = nil
+										end
+									end
+								elseif inventorySell[1] == 2 then
+									if IPC(inventorySell[3]) then
+										if sampGetDistanceToPlayer(inventorySell[3]) < 3 then
+											renderFontDrawText(fontInventory, 'Сколько вещей Вы хотите продать?', ws + 62, hs + 135, 0xffffffff)
+											
+											renderDrawBox(ws + 65, hs + 220, 193, 18, 0xaaffffff)
+											renderFontDrawText(fontSuspect3, ('Покупатель %s[%d]'):format(inventorySell[2], inventorySell[3]), ws + 67, hs + 221, 0xdd000000)
+											
+											renderDrawBox(ws + 65, hs + 155, 193, 20, 0xaaffffff)
+											interfaceInput = interfaceInputText(interfaceInput, ws + 70, hs + 155)
+											
+											if renderDrawButton(fontInventory, 'ПРИМЕНИТЬ', ws + 98, hs + 180, 125, 20, mx, my) then
+												if tonumber(element.value) >= tonumber(interfaceInput) then
+													inventorySell[4] = interfaceInput
+													inventorySell[1] = 3
+													interfaceInput = ''
+												else
+													addChat('Вы не можете продать более {00CC66}' .. element.value .. '{} шт. данного элемента.')
+													inventoryActive = nil; interfaceInput = ''; inventorySell = nil
+												end
+											end
+										else
+											addChat('Данный игрок находится слишком далеко от Вас.')
+											inventoryActive = nil; interfaceInput = ''; inventorySell = nil
+										end
+									else
+										addChat('Данный игрок отключился от сервера. Продажа не была осуществлена.')
+										inventoryActive = nil; interfaceInput = ''; inventorySell = nil
+									end
+								elseif inventorySell[1] == 3 then
+									if IPC(inventorySell[3]) then
+										if sampGetDistanceToPlayer(inventorySell[3]) < 3 then
+											renderFontDrawText(fontInventory, 'За какую сумму Вы хотите продать вещи?', ws + 45, hs + 135, 0xffffffff)
+											
+											renderDrawBox(ws + 65, hs + 220, 193, 34, 0xaaffffff)
+											renderFontDrawText(fontSuspect3, ('Покупатель %s[%d]'):format(inventorySell[2], inventorySell[3]), ws + 67, hs + 221, 0xdd000000)
+											renderFontDrawText(fontSuspect3, ('Количество вещей %d шт.'):format(inventorySell[4]), ws + 67, hs + 235, 0xdd000000)
+											
+											renderDrawBox(ws + 65, hs + 155, 193, 20, 0xaaffffff)
+											interfaceInput = interfaceInputText(interfaceInput, ws + 70, hs + 155)
+											
+											if renderDrawButton(fontInventory, 'ПРИМЕНИТЬ', ws + 98, hs + 180, 125, 20, mx, my) then
+												inventorySell[5] = interfaceInput
+												inventorySell[1] = 4
+												interfaceInput = ''
+											end
+										else
+											addChat('Данный игрок находится слишком далеко от Вас.')
+											inventoryActive = nil; interfaceInput = ''; inventorySell = nil
+										end
+									else
+										addChat('Данный игрок отключился от сервера. Продажа не была осуществлена.')
+										inventoryActive = nil; interfaceInput = ''; inventorySell = nil
+									end
+								elseif inventorySell[1] == 4 then
+									if IPC(inventorySell[3]) then
+										if sampGetDistanceToPlayer(inventorySell[3]) < 3 then
+											renderFontDrawText(fontInventory, 'Подтвердите действие', ws + 95, hs + 135, 0xffffffff)
+											
+											renderDrawBox(ws + 65, hs + 158, 193, 48, 0xaaffffff)
+											renderFontDrawText(fontSuspect3, ('Покупатель %s[%d]'):format(inventorySell[2], inventorySell[3]), ws + 67, hs + 158, 0xdd000000)
+											renderFontDrawText(fontSuspect3, ('Количество вещей %d шт.'):format(inventorySell[4]), ws + 67, hs + 172, 0xdd000000)
+											renderFontDrawText(fontSuspect3, ('Стоимость %d$'):format(inventorySell[5]), ws + 67, hs + 186, 0xdd000000)
+											
+											if renderDrawButton(fontInventory, 'ПРОДАТЬ', ws + 98, hs + 212, 125, 20, mx, my) then
+												if not sampIsPlayerPaused(inventorySell[3]) then
+													sampSendClickTextdraw(element.id)
+													sampSendClickTextdraw(1373)
+													iinventoryKey = {}
+													inventoryActive = nil
+												else
+													addChat('Данный игрок не должен находится на паузе.')
+													inventoryActive = nil; interfaceInput = ''; inventorySell = nil
+												end
+											end
+										else
+											addChat('Данный игрок находится слишком далеко от Вас.')
+											inventoryActive = nil; interfaceInput = ''; inventorySell = nil
+										end
+									else
+										addChat('Данный игрок отключился от сервера. Продажа не была осуществлена.')
+										inventoryActive = nil; interfaceInput = ''; inventorySell = nil
+									end
+								end
+							end
+						else
+							addChat('Чтобы продать вещь сначала выберите её.')
+							inventoryActive = nil
+							interfaceInput = ''
+						end
+					else
+						addChat('Чтобы продать вещь сначала выберите её.')
+						inventoryActive = nil
+						interfaceInput = ''
+					end
+				end
+			end
+			
 			-- BUTTON PERSON BLOCK --
 			
 			-- BUTTON INTERACTION BLOCK --
 			if renderDrawButton(fontInventory, 'ВЫБРОСИТЬ', ws + 340, hs + 25, 125, 25, mx, my) then
-				addChat('На данный момент нет возможности выбрасывать вещи.')
+				--addChat('На данный момент нет возможности выбрасывать вещи.')
+				inventoryActive = 1
 			end
 			
 			if renderDrawButton(fontInventory, 'ПРОДАТЬ', ws + 475, hs + 25, 125, 25, mx, my) then
-				addChat('На данный момент нет возможности продавать вещи.')
+				--addChat('На данный момент нет возможности продавать вещи.')
+				inventoryActive = 2
 			end
 			
 			if renderDrawButton(fontInventory, 'ПЕРЕДАТЬ', ws + 610, hs + 25, 125, 25, mx, my) then
@@ -1268,7 +1479,6 @@ function drawInventoryBlock()
 			-- BUTTON INTERACTION BLOCK --
 			
 			-- BUTTON INVENTORY BLOCK --
-			
 			if showAllBlock then -- 585 - 34.9 (17.45) = 575 - 7.45 = 568 - 0.45 = 567.5
 				local x, y = ws + 588, hs + 388
 				if (mx >= x and mx <= x + 35) and (my >= y and my <= y + 35) then
@@ -1403,22 +1613,20 @@ function speedometr()
 end
 
 function logotyp()
-	local server_name = {'', 'RED', 'GREEN', 'BLUE'}
+	local server_name = {'', {'RED', '{CD0000}'}, {'GREEN', '{228B22}'}, {'BLUE', '{4876FF}'}, {'LIME', '{90EE90}'}}
 	local serverName
 
+	--local font_logo = renderCreateFont('Tahoma', 13, font_flag.BOLD)
+	--local font_logo_lil = renderCreateFont('Tahoma', 11, font_flag.BOLD)
+	
 	if string.match(sampGetCurrentServerAddress(), '54.37.142.7(%d)') then
 		local id = string.match(sampGetCurrentServerAddress(), '54.37.142.7(%d)')
-		serverName = server_name[tonumber(id)]
+		serverName = server_name[tonumber(id)][1]
 
 		text_logo_lil = 'ROLE PLAY ' .. serverName
 
-		if serverName == 'GREEN' then
-			posLogoX = (ini.set.logo_x + 98.5) - string.len(text_logo_lil) * 2.55
-		elseif serverName == 'RED' then
-			posLogoX = (ini.set.logo_x + 98.5) - string.len(text_logo_lil) * 2.48
-		else
-			posLogoX = (ini.set.logo_x + 98.5) - string.len(text_logo_lil) * 2.53
-		end
+		local fix = renderGetFontDrawTextLength(font_logo_lil, text_logo_lil)
+		posLogoX = (ini.set.logo_x + 98.5) - fix / 2
 	end
 
 	while true and serverName do
@@ -7189,6 +7397,12 @@ function sampev.onShowTextDraw(id, _table)
 		end
 		return false
 	end
+	
+	if ini.set.new_logo then
+		if id >= 9 and id <= 22 then
+			return false
+		end
+	end
 end
 
 function sampev.onServerMessage(color, text)
@@ -7894,6 +8108,40 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 		end
 	end
 
+	if inventoryDrop then
+		if string.find(title, 'Инвентарь') then
+			if string.find(text, 'хотите выбросить') then
+				sampSendDialogResponse(dialogId, 1, 1, inventoryDrop)
+				inventoryDrop = nil
+				return false
+			end
+		end
+	end
+	
+	if inventorySell then
+		if string.find(title, 'Выберите игрока') then
+			for line in string.gmatch(text, "[^\n]+") do
+				if string.match(line, '(%d+). (%S+)') then
+					local number, name = string.match(line, '(%d+). (%S+)')
+					
+					if name == inventorySell[2] then
+						sampSendDialogResponse(dialogId, 1, tonumber(number) - 1, -1)
+						return false
+					end
+				end
+			end
+		end
+	
+		if string.find(title, 'Инвентарь') then
+			if string.find(text, 'хотите продать') then
+				local value, money = tonumber(inventorySell[4]), tonumber(inventorySell[5])
+				sampSendDialogResponse(dialogId, 1, 1, ('%d %d'):format(value, money))
+				inventorySell = nil
+				return false
+			end
+		end
+	end
+	
 	if ini.set.autoweapon then
 		if dialogId == 175 then
 			if string.find(title, 'Тюрьма') or string.find(title, 'ФБР') or string.find(title, 'Управление полиции') or string.find(title, 'Служба безопасности') then
@@ -8028,7 +8276,7 @@ end
 
 local longCommand = {
 	['me']  = {90, {true, 1}},
-	['do']  = {75},
+	['do']  = {75, {true, 1}},
 	['r']   = {75, {true, 2}},
 	['f']   = {75, {true, 2}}
 }

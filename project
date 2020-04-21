@@ -6,13 +6,13 @@
 --   |_/ \_|  |____\  |_____/ |_|      |____\  |_| \_\       |_|     \_____/  |_| \_\       |_|   |_|  |_|   \ ___/\/
 
 script_name('helper-for-mia')
-script_version(17.1)
+script_version(17.2)
 --script_properties('work-in-pause')
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
 local sf                = require 'lib.sampfuncs'
-local mad               = require 'MoonAdditions'
+--local mad               = require 'MoonAdditions'
 local KEY               = require 'vkeys'
 local rkeys             = require 'rkeys'
 local memory            = require 'memory'
@@ -42,6 +42,8 @@ local fontSuspect3 = renderCreateFont('Calibri', 8, font_flag.BOLD)
 --
 
 local updateLog = [[
+[v17.2] = Инвентарь приобрел полный функционал (и даже больше).,
+[INFO] = Если при отображении элементы имеют текст ERROR введите команду /helpimage.,
 [v17.1] = В инвентарь добавлено некоторое количество новых функций.,
 [v16.9] = В тестовом режиме добавлен новый инвентарь /inventory.,
 [v16.8] = Добавлен таймер действия анимации при использовании аптечки.,
@@ -507,7 +509,8 @@ local ini = inicfg.load({
 		nigvis               = true,
 		gate                 = true,
 		id                   = true,
-		c                    = true
+		c                    = true,
+		inventory            = true
 	},
 	customCommands = {
 	},
@@ -581,7 +584,8 @@ local scriptCommands = {
 		nigvis               = {true, 'command_nightvision'},
 		gate                 = {true, 'command_gate'},
 		id                   = {true, 'command_id'},
-		c                    = {true, 'command_call'}
+		c                    = {true, 'command_call'},
+		inventory            = {true, 'command_inventory'}
 	}
 }
 
@@ -693,6 +697,15 @@ function main()
 	
 	autoUpdate('https://raw.githubusercontent.com/skezz-perry/project/master/version', 'https://raw.githubusercontent.com/skezz-perry/project/master/project')
 
+	sampRegisterChatCommand('helpimage', function()
+		addChat('Если при просмотре инвентаря появляются элементы с текстом {00CC66}ERROR{} нужно:')
+		addChat('1. Перейти по ссылке {00CC66}https://yadi.sk/d/Pc572dKGiE178g{} (скопирована в буффер-обмена).')
+		addChat('2. Скачать архив и разархивировать папку {00CC66}image{} по пути:')
+		addChat('{FFCD00}' .. getWorkingDirectory() .. '\\helper')
+		addChat('3. Перезагрузить скрипт через меню /mh или сочетанием клавиш CTRL + R.')
+		setClipboardText('https://yadi.sk/d/Pc572dKGiE178g')
+	end)
+	
 	for name in pairs(scriptCommands.default) do
 		if ini.defaultCommands[name] == nil then
 			ini.defaultCommands[name] = true
@@ -731,10 +744,6 @@ function main()
 		end
 	end
 	print(('Во время подготовки было найдено %d пользовательских команд(-ы) в скрипте, из них было зарегистрировано %d.'):format(numberCommands, registerCommands))
-	
-	sampRegisterChatCommand('inventory', function()
-		dInventoryBlock = not dInventoryBlock
-	end)
 	
 	--[[memory.setuint8(7634870, 1) 
 	memory.setuint8(7635034, 1)
@@ -877,7 +886,7 @@ function main()
 			imgui.Process = false
 		end
 		
-		if ini.set.streetlight then
+		--[[if ini.set.streetlight then
 			local hour = getTimeOfDay() 
 			if hour >= ini.set.slhour or hour <= ini.set.mslhour then 
 				local x, y, z = getCharCoordinates(playerPed)
@@ -903,7 +912,7 @@ function main()
 					end
 				end
 			end
-		end 
+		end]]
 		 
 		if successful_login and sampGetCurrentServerName() ~= 'SA-MP' then
 			local _, id = sampGetPlayerIdByCharHandle(playerPed)
@@ -1084,12 +1093,14 @@ function dynamicTime()
 	while true do
 		wait(0)
 
-		if set_time then
-			setTimeOfDay(set_time[1], set_time[2])
-		else
-			if ini.set.normalTime then
-				local hour, minutes = os.date('%H'), os.date('%M')
-				setTimeOfDay(hour, minutes)
+		if sampIsLocalPlayerSpawned() then
+			if set_time then
+				setTimeOfDay(set_time[1], set_time[2])
+			else
+				if ini.set.normalTime then
+					local hour, minutes = os.date('%H'), os.date('%M')
+					setTimeOfDay(hour, minutes)
+				end
 			end
 		end
 	end
@@ -1239,6 +1250,7 @@ function drawInventoryBlock()
 			--if not isCursorActive() then showCursor(true) end
 			
 			if not fullInv then
+				if iinventoryKey then linventoryKey = iinventoryKey end
 				iinventoryKey = {}
 				sampSendChat('/i')
 				fullInv = true
@@ -1254,7 +1266,7 @@ function drawInventoryBlock()
 			
 			-- BUTTON PERSON BLOCK --
 			if renderDrawButton(fontInventory, 'ИЗМЕНИТЬ', ws + 25, hs + 390, 135, 21, mx, my) then
-				sampSendClickTextdraw(1364)
+				sampSendClickTextdraw(1377)
 			end
 			
 			if renderDrawButton(fontInventory, 'УДАЛИТЬ', ws + 170, hs + 390, 135, 21, mx, my) then
@@ -1305,7 +1317,8 @@ function drawInventoryBlock()
 										--addChat('Вы выбросили ' .. element.name .. '[' .. element.id .. '] в количестве ' .. interfaceInput .. ' шт.')
 										inventoryDrop = interfaceInput
 										sampSendClickTextdraw(element.id)
-										sampSendClickTextdraw(1369)
+										sampSendClickTextdraw(1385)
+										linventoryKey = iinventoryKey
 										iinventoryKey = {}
 									else
 										addChat('Вы не можете выбросить более {00CC66}' .. element.value .. '{} шт. данного элемента.')
@@ -1425,7 +1438,8 @@ function drawInventoryBlock()
 											if renderDrawButton(fontInventory, 'ПРОДАТЬ', ws + 98, hs + 212, 125, 20, mx, my) then
 												if not sampIsPlayerPaused(inventorySell[3]) then
 													sampSendClickTextdraw(element.id)
-													sampSendClickTextdraw(1373)
+													sampSendClickTextdraw(1386)
+													linventoryKey = iinventoryKey
 													iinventoryKey = {}
 													inventoryActive = nil
 												else
@@ -1453,6 +1467,111 @@ function drawInventoryBlock()
 						inventoryActive = nil
 						interfaceInput = ''
 					end
+				elseif inventoryActive == 3 then
+					if iinventoryKey[lastInventoryKey[1]] then
+						local element = iinventoryKey[lastInventoryKey[1]][lastInventoryKey[2]]
+						if element then
+							if tonumber(element.name) then
+								if tonumber(element.name) <= 311 then
+									addChat('На данный момент нет возможности передавать скины персонажа.')
+									inventoryActive = nil
+									interfaceInput = ''
+								end
+							else
+								if not inventoryGive then inventoryGive = {1} end
+								
+								if inventoryGive[1] == 1 then
+									renderFontDrawText(fontInventory, 'Введите ID игрока для передачи', ws + 70, hs + 135, 0xffffffff)
+									renderDrawBox(ws + 65, hs + 155, 193, 20, 0xaaffffff)
+									interfaceInput = interfaceInputText(interfaceInput, ws + 70, hs + 155)
+									
+									if renderDrawButton(fontInventory, 'ПРИМЕНИТЬ', ws + 98, hs + 180, 125, 20, mx, my) then
+										if IPC(interfaceInput) then
+											if sampGetDistanceToPlayer(interfaceInput) < 3 then
+												inventoryGive[2] = sampGetPlayerName(interfaceInput)
+												inventoryGive[3] = interfaceInput
+												inventoryGive[1] = 2
+												interfaceInput = ''
+											else
+												addChat('Данный игрок находится слишком далеко от Вас.')
+												inventoryActive = nil; interfaceInput = ''; inventoryGive = nil
+											end
+										else
+											addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
+											inventoryActive = nil; interfaceInput = ''; inventoryGive = nil
+										end
+									end
+								elseif inventoryGive[1] == 2 then
+									if IPC(inventoryGive[3]) then
+										if sampGetDistanceToPlayer(inventoryGive[3]) < 3 then
+											renderFontDrawText(fontInventory, 'Сколько вещей Вы хотите передать?', ws + 62, hs + 135, 0xffffffff)
+											
+											renderDrawBox(ws + 65, hs + 220, 193, 18, 0xaaffffff)
+											renderFontDrawText(fontSuspect3, ('Игрок %s[%d]'):format(inventoryGive[2], inventoryGive[3]), ws + 67, hs + 221, 0xdd000000)
+											
+											renderDrawBox(ws + 65, hs + 155, 193, 20, 0xaaffffff)
+											interfaceInput = interfaceInputText(interfaceInput, ws + 70, hs + 155)
+											
+											if renderDrawButton(fontInventory, 'ПРИМЕНИТЬ', ws + 98, hs + 180, 125, 20, mx, my) then
+												if tonumber(element.value) >= tonumber(interfaceInput) then
+													inventoryGive[4] = interfaceInput
+													inventoryGive[1] = 3
+													interfaceInput = ''
+												else
+													addChat('Вы не можете передать более {00CC66}' .. element.value .. '{} шт. данного элемента.')
+													inventoryActive = nil; interfaceInput = ''; inventoryGive = nil
+												end
+											end
+										else
+											addChat('Данный игрок находится слишком далеко от Вас.')
+											inventoryActive = nil; interfaceInput = ''; inventoryGive = nil
+										end
+									else
+										addChat('Данный игрок отключился от сервера. Передача не была осуществлена.')
+										inventoryActive = nil; interfaceInput = ''; inventoryGive = nil
+									end
+								
+								elseif inventoryGive[1] == 3 then
+									if IPC(inventoryGive[3]) then
+										if sampGetDistanceToPlayer(inventoryGive[3]) < 3 then
+											renderFontDrawText(fontInventory, 'Подтвердите действие', ws + 95, hs + 135, 0xffffffff)
+											
+											renderDrawBox(ws + 65, hs + 158, 193, 34, 0xaaffffff)
+											renderFontDrawText(fontSuspect3, ('Игрок %s[%d]'):format(inventoryGive[2], inventoryGive[3]), ws + 67, hs + 158, 0xdd000000)
+											renderFontDrawText(fontSuspect3, ('Количество вещей %d шт.'):format(inventoryGive[4]), ws + 67, hs + 172, 0xdd000000)
+											
+											if renderDrawButton(fontInventory, 'ПЕРЕДАТЬ', ws + 98, hs + 212, 125, 20, mx, my) then
+												if not sampIsPlayerPaused(inventoryGive[3]) then
+													sampSendClickTextdraw(element.id)
+													sampSendClickTextdraw(1381)
+													linventoryKey = iinventoryKey
+													iinventoryKey = {}
+													inventoryActive = nil
+												else
+													addChat('Данный игрок не должен находится на паузе.')
+													inventoryActive = nil; interfaceInput = ''; inventoryGive = nil
+												end
+											end
+										else
+											addChat('Данный игрок находится слишком далеко от Вас.')
+											inventoryActive = nil; interfaceInput = ''; inventoryGive = nil
+										end
+									else
+										addChat('Данный игрок отключился от сервера. Передача не была осуществлена.')
+										inventoryActive = nil; interfaceInput = ''; inventoryGive = nil
+									end
+								end
+							end
+						else
+							addChat('Чтобы передать вещь сначала выберите её.')
+							inventoryActive = nil
+							interfaceInput = ''
+						end
+					else
+						addChat('Чтобы передать вещь сначала выберите её.')
+						inventoryActive = nil
+						interfaceInput = ''
+					end
 				end
 			end
 			
@@ -1470,7 +1589,8 @@ function drawInventoryBlock()
 			end
 			
 			if renderDrawButton(fontInventory, 'ПЕРЕДАТЬ', ws + 610, hs + 25, 125, 25, mx, my) then
-				addChat('На данный момент нет возможности передавать вещи.')
+				--addChat('На данный момент нет возможности передавать вещи.')
+				inventoryActive = 3
 			end
 			
 			if renderDrawButton(fontInventory, 'ОБЪЕДИНИТЬ', ws + 745, hs + 25, 125, 25, mx, my) then
@@ -1634,7 +1754,7 @@ function logotyp()
 		
 		if destroyLogototyp then 
 			destroyLogototyp = false 
-			break 
+			break
 		end
 
 		if sampIsLocalPlayerSpawned() then
@@ -1733,6 +1853,10 @@ end
 
 function command_menu()
 	show_menu.v = not show_menu.v
+end
+
+function command_inventory()
+	dInventoryBlock = not dInventoryBlock
 end
 
 function command_push()
@@ -2045,9 +2169,6 @@ function command_reconnectwithchangeip(parametrs)
 		if string.match(ip, '(%S+):(%d+)') then
 			sampSetLocalPlayerName(name)
 			reconnect(1, ip)
-
-			destroyLogototyp = true
-			lua_thread.create(logotyp)
 		else
 			addChat('IP-адресс сервера должен быть в формате {00CC66}IP:PORT{} (например: {00CC66}5.254.104.132:7777{}).')
 		end
@@ -2056,9 +2177,6 @@ function command_reconnectwithchangeip(parametrs)
 		if string.match(ip, '(%S+):(%d+)') then
 			sampSetLocalPlayerName(name)
 			reconnect(1, ip)
-
-			destroyLogototyp = true
-			lua_thread.create(logotyp)
 		else
 			addChat('IP-адресс сервера должен быть в формате {00CC66}IP:PORT{} (например: {00CC66}5.254.104.132:7777{}).')
 		end
@@ -2111,6 +2229,8 @@ function reconnect(delay, ip)
 				
 				globalReconnectStatus = false
 				sampConnectToServer(ipadress, port)
+				destroyLogototyp = true
+				lua_thread.create(logotyp)
 			end
 		end)
 	end
@@ -7372,8 +7492,28 @@ local awdawdawdaw = {
 
 local adasadweqew = {}
 
+buttonInventoryCheck = {
+	CHANGE = 0, REMOVE = 0, GIVE = 0, DROP = 0, COMBINE = 0, SELL = 0
+}
+
+-- linventoryKey
+function isItemFound(tab, name, value)
+	for k, v in pairs(tab) do
+		for _k, _v in pairs(v) do
+			if _v.name == name and _v.value == value then
+				return {k, _k}
+			end
+		end
+	end
+end
+
 function sampev.onShowTextDraw(id, _table)
 	if dInventoryBlock and speedometr_id ~= id then
+		--[[if buttonInventoryCheck[_table.text] then
+			buttonInventoryCheck[_table.text] = id
+			addChat(buttonInventoryCheck[_table.text])
+		end]]
+	
 		if awdawdawdaw[id] then
 			local model = _table.modelId
 			if model > 0 and model <= 311 then
@@ -7384,11 +7524,19 @@ function sampev.onShowTextDraw(id, _table)
 		elseif adasadweqew[id - 1] then
 			local value = _table.text
 			if iinventoryKey[#iinventoryKey] then
-				if table.maxn(iinventoryKey[#iinventoryKey]) < 9 then
-					table.insert(iinventoryKey[#iinventoryKey], {name = adasadweqew[id - 1], value = value, id = id - 1})
+				local result = isItemFound(linventoryKey, adasadweqew[id - 1], value)
+				
+				if not result then
+					if table.maxn(iinventoryKey[#iinventoryKey]) < 9 then
+						table.insert(iinventoryKey[#iinventoryKey], {name = adasadweqew[id - 1], value = value, id = id - 1})
+					else
+						table.insert(iinventoryKey, {})
+						table.insert(iinventoryKey[#iinventoryKey], {name = adasadweqew[id - 1], value = value, id = id - 1})
+					end
 				else
-					table.insert(iinventoryKey, {})
-					table.insert(iinventoryKey[#iinventoryKey], {name = adasadweqew[id - 1], value = value, id = id - 1})
+					if not iinventoryKey[result[1]] then iinventoryKey[result[1]] = {} end
+					if not iinventoryKey[result[1]][result[2]] then iinventoryKey[result[1]][result[2]] = {} end
+					iinventoryKey[result[1]][result[2]] = {name = adasadweqew[id - 1], value = value, id = id - 1}
 				end
 			else
 				table.insert(iinventoryKey, {})
@@ -8142,6 +8290,29 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 		end
 	end
 	
+	if inventoryGive then
+		if string.find(title, 'Выберите игрока') then
+			for line in string.gmatch(text, "[^\n]+") do
+				if string.match(line, '(%d+). (%S+)') then
+					local number, name = string.match(line, '(%d+). (%S+)')
+					
+					if name == inventoryGive[2] then
+						sampSendDialogResponse(dialogId, 1, tonumber(number) - 1, -1)
+						return false
+					end
+				end
+			end
+		end
+		
+		if string.find(title, 'Инвентарь') then
+			if string.find(text, 'собираетесь передать') then
+				sampSendDialogResponse(dialogId, 1, 1, inventoryGive[4])
+				inventoryGive = nil
+				return false
+			end
+		end
+	end
+	
 	if ini.set.autoweapon then
 		if dialogId == 175 then
 			if string.find(title, 'Тюрьма') or string.find(title, 'ФБР') or string.find(title, 'Управление полиции') or string.find(title, 'Служба безопасности') then
@@ -8193,6 +8364,21 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 		end
 	end
 end
+
+--[[function sampev.onSetVehicleParamsEx(vehicleId, parametrs, door, window)
+	if isCharSittingInAnyCar(playerPed) then
+		local char = storeCarCharIsInNoSave(playerPed)
+		local result, id = sampGetVehicleIdByCarHandle(char)
+		
+		if result then
+			if vehicleId == id then
+				if not parametrs.engine then
+					return false
+				end
+			end
+		end
+	end
+end]]
 
 function sampev.onPlayerChatBubble(id, color, distance, dur, message)
 	if distanceChat then

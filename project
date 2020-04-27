@@ -6,13 +6,12 @@
 --   |_/ \_|  |____\  |_____/ |_|      |____\  |_| \_\       |_|     \_____/  |_| \_\       |_|   |_|  |_|   \ ___/\/
 
 script_name('helper-for-mia')
-script_version(17.2)
+script_version(17.3)
 --script_properties('work-in-pause')
 
 require 'lib.moonloader'
 local weapons           = require 'lib.game.weapons'
 local sf                = require 'lib.sampfuncs'
---local mad               = require 'MoonAdditions'
 local KEY               = require 'vkeys'
 local rkeys             = require 'rkeys'
 local memory            = require 'memory'
@@ -21,7 +20,8 @@ local pie               = require 'imgui_piemenu'
 local encoding          = require 'encoding'
 local color             = require 'colorise'
 local inicfg            = require 'inicfg'
-local lanes             = require('lanes').configure()
+local gauth             = require 'gauth'
+local https             = require 'ssl.https'
 local downloadStatus    = require('moonloader').download_status
 local font_flag         = require('moonloader').font_flag
 local bNotf, notf       = pcall(import, "imgui_notf1.lua")
@@ -42,6 +42,8 @@ local fontSuspect3 = renderCreateFont('Calibri', 8, font_flag.BOLD)
 --
 
 local updateLog = [[
+[v17.3] = Обновлён дизайн инвентаря.,
+[v17.3] = Убран ряд зависимстей.,
 [v17.2] = Инвентарь приобрел полный функционал (и даже больше).,
 [INFO] = Если при отображении элементы имеют текст ERROR введите команду /helpimage.,
 [v17.1] = В инвентарь добавлено некоторое количество новых функций.,
@@ -565,8 +567,8 @@ local scriptCommands = {
 		rkinfo               = {true, 'command_rkinfo'},
 		sms                  = {true, 'command_sms'},
 		open                 = {true, 'command_upopen'},
-		bl                   = {true, 'command_bl'},
-		blname               = {true, 'command_namebl'},
+		--bl                   = {true, 'command_bl'},
+		--blname               = {true, 'command_namebl'},
 		rec                  = {true, 'command_reconnect'},
 		recn                 = {true, 'command_reconnectwithchange'},
 		recd                 = {true, 'command_reconnectwithchangeip'},
@@ -1164,21 +1166,36 @@ function drawInventoryBlock()
 		if not inventoryKey[i] then inventoryKey[i] = {} end
 		
 		for _i = 1, 9 do
-			local x = ws + 280 + (60 * _i)
+			local x = ws + 288 + (60 * _i)
 			inventoryKey[i][_i] = {x = x, y = y}
 		end
 	end
 	
+	local function renderBoxRounded(x, y, w, h, r, color)
+		renderDrawBox(x + r, y, w - r, h - 1, color)
+
+		renderCircle(x + r, y, r * 4, math.pi, 3 * math.pi / 2, color)
+		renderDrawBox(x - r + 1, y + r * 2 - 1, r * 2 - 1, h - r * 4, color)
+		renderRound(x + r, y + h - r * 4, r * 4, math.pi / 2, math.pi, color)
+
+		renderCircle(x + w, y, r * 4, 3 * math.pi / 2, 2 * math.pi, color)
+		renderDrawBox(x + w, y + r * 2 - 1, r * 2, h - r * 4, color)
+		renderCircle(x + w, y + h - r * 4, r * 4, 0, math.pi / 2, color)
+
+	end
+	
+	local fixH = renderGetFontDrawHeight(fontInventory)
 	local function renderDrawButton(font, text, x, y, w, h, mx, my)
-		if (mx >= x and mx <= x + w) and (my >= y and my <= y + h) then
-			renderDrawBox(x, y, w, h, 0x99302e38)
-			if wasKeyPressed(1) then return true end
-		else
-			renderDrawBox(x, y, w, h, 0x66302e38)
-		end
-		
 		local fix = renderGetFontDrawTextLength(font, text)
-		renderFontDrawText(font, text, x + ((w) / 2 - fix / 2), y + 2.8, 0xffFFFFFF)
+		renderFontDrawText(font, text, x + ((w + 5) / 2 - fix / 2), y + ((h / 2) - fixH / 2) - 1, 0xffFFFFFF)
+		
+		if (mx >= x and mx <= x + w) and (my >= y and my <= y + h) then
+			local x = x + ((w + 5) / 2 - fix / 2)
+			local y = y + ((h / 2) - fixH / 2) + fixH + 1
+			
+			renderDrawLine(x + 6, y, x + fix - 3, y, 3, 0xeeb22222)
+			if wasKeyPressed(1) then return true end
+		end
 	end
 	
 	local function renderDrawItem(pos, mouse, button)
@@ -1207,22 +1224,45 @@ function drawInventoryBlock()
 					lastInventoryKey = {button[1], button[2]}
 				end
 			else
-				if lastInventoryKey[1] == button[1] and lastInventoryKey[2] == button[2] then
+				--[[if lastInventoryKey[1] == button[1] and lastInventoryKey[2] == button[2] then
 					renderDrawBox(pos[1], pos[2], 50, 50, 0xAA203a27)
-				else renderDrawBox(pos[1], pos[2], 50, 50, 0xAA302e38) end
+				else renderDrawBox(pos[1], pos[2], 50, 50, 0xAA302e38) end--]]
+				
+				if lastInventoryKey[1] == button[1] and lastInventoryKey[2] == button[2] then
+					if not lastButton or not (lastButton[1] == button[1] and lastButton[2] == button[2]) then 
+						lastButton = {button[1], button[2], os.clock()} 
+					end
+					
+					local floo = os.clock() - lastButton[3]
+					if floo <= 1.1 then -- 187
+						renderBoxRounded(pos[1], pos[2], 45, 50, 2, join_argb(floo * 170, 69, 125, 84))
+					else renderBoxRounded(pos[1], pos[2], 45, 50, 2, 0xbb457d54) end
+				else 
+					if not lastButton or not (lastButton[1] == button[1] and lastButton[2] == button[2]) then 
+						lastButton = {button[1], button[2], os.clock()} 
+					end
+					
+					local floo = os.clock() - lastButton[3]
+					if floo <= 1.1 then -- 187
+						renderBoxRounded(pos[1], pos[2], 45, 50, 2, join_argb(floo * 170, 174, 171, 186))
+					else renderBoxRounded(pos[1], pos[2], 45, 50, 2, 0xbbaeabba) end
+				end -- высветление
 			end
 		else
-			if lastInventoryKey[1] == button[1] and lastInventoryKey[2] == button[2] then
+			--[[if lastInventoryKey[1] == button[1] and lastInventoryKey[2] == button[2] then
 					renderDrawBox(pos[1], pos[2], 50, 50, 0xEE203a27)
-			else renderDrawBox(pos[1], pos[2], 50, 50, 0xEE302e38) end
+			else renderDrawBox(pos[1], pos[2], 50, 50, 0xEE302e38) end--]]
+			if lastInventoryKey[1] == button[1] and lastInventoryKey[2] == button[2] then
+				renderBoxRounded(pos[1], pos[2], 45, 50, 2, 0xbb457d54)
+			else renderBoxRounded(pos[1], pos[2], 45, 50, 2, 0xcc302e38) end
 		end
 		
 		if iinventoryKey[button[1]] then
 			if iinventoryKey[button[1]][button[2]] then
 				local bar = iinventoryKey[button[1]][button[2]]
 				local fix = renderGetFontDrawTextLength(fontSuspect3, bar.value)
-				renderFontDrawText(fontSuspect3, bar.value, pos[1] + (25 - fix / 2), pos[2] + 36, 0xddFFFFFF)
-				renderDrawTexture(texture[bar.name], pos[1] + 10, pos[2] + 5, 30, 30, 0, 0xFFFFFFFF)
+				renderFontDrawText(fontSuspect3, bar.value, pos[1] + (23.5 - fix / 2), pos[2] + 36, 0xddFFFFFF)
+				renderDrawTexture(texture[bar.name], pos[1] + 9.5, pos[2] + 5, 30, 30, 0, 0xFFFFFFFF)
 			end
 		end
 	end
@@ -1257,19 +1297,23 @@ function drawInventoryBlock()
 			end
 			
 			-- BASIC BLOCK --
-			renderDrawBox(ws + 5, hs + 5, 885, 430, 0xCC151719)
+			--[[renderDrawBox(ws + 5, hs + 5, 885, 430, 0xCC151719)
 			renderDrawBox(ws + 15, hs + 15, 300, 410, 0xCC18171c)
-			renderDrawBox(ws + 330, hs + 15, 550, 410, 0xCC18171c)
+			renderDrawBox(ws + 330, hs + 15, 550, 410, 0xCC18171c)--]]
+			
+			--renderBoxRounded(ws + 5, hs + 5, 885, 430, 3, 0xaa151719)
+			renderBoxRounded(ws + 15, hs + 15, 300, 410, 4, 0xdd18171c)
+			renderBoxRounded(ws + 335, hs + 15, 550, 410, 4, 0xdd18171c)
 			-- BASIC BLOCK --
 			
 			local mx, my = getCursorPos()
 			
 			-- BUTTON PERSON BLOCK --
-			if renderDrawButton(fontInventory, 'ИЗМЕНИТЬ', ws + 25, hs + 390, 135, 21, mx, my) then
+			if renderDrawButton(fontInventory, 'Изменить', ws + 23, hs + 390, 130, 21, mx, my) then
 				sampSendClickTextdraw(1377)
 			end
 			
-			if renderDrawButton(fontInventory, 'УДАЛИТЬ', ws + 170, hs + 390, 135, 21, mx, my) then
+			if renderDrawButton(fontInventory, 'Удалить', ws + 170, hs + 390, 130, 21, mx, my) then
 				addChat('На данный момент нет такой возможности.')
 			end
 			
@@ -1283,12 +1327,12 @@ function drawInventoryBlock()
 			
 			renderDrawTexture(texture[skin], ws + 27, hs + 25, 80, 80, 0, 0xffffffff)
 			local fix3 = renderGetFontDrawTextLength(fontSuspect2, inventoryName)
-			renderFontDrawText(fontSuspect2, inventoryName, ws + 210 - fix3 / 2, hs + 33, 0xddffffff)
-			renderDrawBox(ws + 120, hs + 55, 180, 12, 0x22ffffff)
-			renderDrawBox(ws + 120, hs + 72, 180, 12, 0x22ffffff)
+			renderFontDrawText(fontSuspect2, inventoryName, ws + 210 - fix3 / 2, hs + 33, 0xeeffffff)
+			renderBoxRounded(ws + 120, hs + 55, 180, 12, 3, 0x22ffffff)
+			renderBoxRounded(ws + 120, hs + 72, 180, 12, 3, 0x22ffffff)
 			
-			renderDrawBox(ws + 120, hs + 56, health * 1.8, 10, 0x88bf2233)
-			renderDrawBox(ws + 120, hs + 73, armour * 1.8, 10, 0x882F4F4F)
+			renderBoxRounded(ws + 120, hs + 55, health * 1.8, 12, 3, 0xddbf2233)
+			renderBoxRounded(ws + 120, hs + 72, armour * 1.8, 12, 3, 0xdd2F4F4F)
 			local fix1 = renderGetFontDrawTextLength(fontSuspect3, health)
 			renderFontDrawText(fontSuspect3, health, ws + 210 - fix1 / 2, hs + 54, 0xffffffff)
 			local fix2 = renderGetFontDrawTextLength(fontSuspect3, armour)
@@ -1309,10 +1353,10 @@ function drawInventoryBlock()
 								end
 							else
 								renderFontDrawText(fontInventory, 'Сколько вещей хотите выбросить?', ws + 65, hs + 135, 0xffffffff)
-								renderDrawBox(ws + 65, hs + 155, 193, 20, 0xaaffffff)
+								renderBoxRounded(ws + 65, hs + 155, 193, 20, 3, 0xaaffffff)
 								interfaceInput = interfaceInputText(interfaceInput, ws + 70, hs + 155)
 								
-								if renderDrawButton(fontInventory, 'ПРИМЕНИТЬ', ws + 98, hs + 180, 125, 20, mx, my) then
+								if renderDrawButton(fontInventory, 'Применить', ws + 98, hs + 180, 125, 20, mx, my) then
 									if tonumber(element.value) >= tonumber(interfaceInput) then
 										--addChat('Вы выбросили ' .. element.name .. '[' .. element.id .. '] в количестве ' .. interfaceInput .. ' шт.')
 										inventoryDrop = interfaceInput
@@ -1352,10 +1396,10 @@ function drawInventoryBlock()
 								
 								if inventorySell[1] == 1 then
 									renderFontDrawText(fontInventory, 'Введите ID покупателя', ws + 95, hs + 135, 0xffffffff)
-									renderDrawBox(ws + 65, hs + 155, 193, 20, 0xaaffffff)
+									renderBoxRounded(ws + 65, hs + 155, 193, 20, 3, 0xaaffffff)
 									interfaceInput = interfaceInputText(interfaceInput, ws + 70, hs + 155)
 									
-									if renderDrawButton(fontInventory, 'ПРИМЕНИТЬ', ws + 98, hs + 180, 125, 20, mx, my) then
+									if renderDrawButton(fontInventory, 'Применить', ws + 98, hs + 180, 125, 20, mx, my) then
 										if IPC(interfaceInput) then
 											if sampGetDistanceToPlayer(interfaceInput) < 3 then
 												inventorySell[2] = sampGetPlayerName(interfaceInput)
@@ -1376,13 +1420,13 @@ function drawInventoryBlock()
 										if sampGetDistanceToPlayer(inventorySell[3]) < 3 then
 											renderFontDrawText(fontInventory, 'Сколько вещей Вы хотите продать?', ws + 62, hs + 135, 0xffffffff)
 											
-											renderDrawBox(ws + 65, hs + 220, 193, 18, 0xaaffffff)
+											renderBoxRounded(ws + 65, hs + 220, 193, 18, 3, 0xaaffffff)
 											renderFontDrawText(fontSuspect3, ('Покупатель %s[%d]'):format(inventorySell[2], inventorySell[3]), ws + 67, hs + 221, 0xdd000000)
 											
-											renderDrawBox(ws + 65, hs + 155, 193, 20, 0xaaffffff)
+											renderBoxRounded(ws + 65, hs + 155, 193, 20, 3, 0xaaffffff)
 											interfaceInput = interfaceInputText(interfaceInput, ws + 70, hs + 155)
 											
-											if renderDrawButton(fontInventory, 'ПРИМЕНИТЬ', ws + 98, hs + 180, 125, 20, mx, my) then
+											if renderDrawButton(fontInventory, 'Применить', ws + 98, hs + 180, 125, 20, mx, my) then
 												if tonumber(element.value) >= tonumber(interfaceInput) then
 													inventorySell[4] = interfaceInput
 													inventorySell[1] = 3
@@ -1405,14 +1449,14 @@ function drawInventoryBlock()
 										if sampGetDistanceToPlayer(inventorySell[3]) < 3 then
 											renderFontDrawText(fontInventory, 'За какую сумму Вы хотите продать вещи?', ws + 45, hs + 135, 0xffffffff)
 											
-											renderDrawBox(ws + 65, hs + 220, 193, 34, 0xaaffffff)
+											renderBoxRounded(ws + 65, hs + 220, 193, 34, 3, 0xaaffffff)
 											renderFontDrawText(fontSuspect3, ('Покупатель %s[%d]'):format(inventorySell[2], inventorySell[3]), ws + 67, hs + 221, 0xdd000000)
 											renderFontDrawText(fontSuspect3, ('Количество вещей %d шт.'):format(inventorySell[4]), ws + 67, hs + 235, 0xdd000000)
 											
-											renderDrawBox(ws + 65, hs + 155, 193, 20, 0xaaffffff)
+											renderBoxRounded(ws + 65, hs + 155, 193, 20, 3, 0xaaffffff)
 											interfaceInput = interfaceInputText(interfaceInput, ws + 70, hs + 155)
 											
-											if renderDrawButton(fontInventory, 'ПРИМЕНИТЬ', ws + 98, hs + 180, 125, 20, mx, my) then
+											if renderDrawButton(fontInventory, 'Применить', ws + 98, hs + 180, 125, 20, mx, my) then
 												inventorySell[5] = interfaceInput
 												inventorySell[1] = 4
 												interfaceInput = ''
@@ -1430,12 +1474,12 @@ function drawInventoryBlock()
 										if sampGetDistanceToPlayer(inventorySell[3]) < 3 then
 											renderFontDrawText(fontInventory, 'Подтвердите действие', ws + 95, hs + 135, 0xffffffff)
 											
-											renderDrawBox(ws + 65, hs + 158, 193, 48, 0xaaffffff)
+											renderBoxRounded(ws + 65, hs + 158, 193, 48, 3, 0xaaffffff)
 											renderFontDrawText(fontSuspect3, ('Покупатель %s[%d]'):format(inventorySell[2], inventorySell[3]), ws + 67, hs + 158, 0xdd000000)
 											renderFontDrawText(fontSuspect3, ('Количество вещей %d шт.'):format(inventorySell[4]), ws + 67, hs + 172, 0xdd000000)
 											renderFontDrawText(fontSuspect3, ('Стоимость %d$'):format(inventorySell[5]), ws + 67, hs + 186, 0xdd000000)
 											
-											if renderDrawButton(fontInventory, 'ПРОДАТЬ', ws + 98, hs + 212, 125, 20, mx, my) then
+											if renderDrawButton(fontInventory, 'Продать', ws + 98, hs + 212, 125, 20, mx, my) then
 												if not sampIsPlayerPaused(inventorySell[3]) then
 													sampSendClickTextdraw(element.id)
 													sampSendClickTextdraw(1386)
@@ -1482,10 +1526,10 @@ function drawInventoryBlock()
 								
 								if inventoryGive[1] == 1 then
 									renderFontDrawText(fontInventory, 'Введите ID игрока для передачи', ws + 70, hs + 135, 0xffffffff)
-									renderDrawBox(ws + 65, hs + 155, 193, 20, 0xaaffffff)
+									renderBoxRounded(ws + 65, hs + 155, 193, 20, 3, 0xaaffffff)
 									interfaceInput = interfaceInputText(interfaceInput, ws + 70, hs + 155)
 									
-									if renderDrawButton(fontInventory, 'ПРИМЕНИТЬ', ws + 98, hs + 180, 125, 20, mx, my) then
+									if renderDrawButton(fontInventory, 'Применить', ws + 98, hs + 180, 125, 20, mx, my) then
 										if IPC(interfaceInput) then
 											if sampGetDistanceToPlayer(interfaceInput) < 3 then
 												inventoryGive[2] = sampGetPlayerName(interfaceInput)
@@ -1506,13 +1550,13 @@ function drawInventoryBlock()
 										if sampGetDistanceToPlayer(inventoryGive[3]) < 3 then
 											renderFontDrawText(fontInventory, 'Сколько вещей Вы хотите передать?', ws + 62, hs + 135, 0xffffffff)
 											
-											renderDrawBox(ws + 65, hs + 220, 193, 18, 0xaaffffff)
+											renderBoxRounded(ws + 65, hs + 220, 193, 18, 3, 0xaaffffff)
 											renderFontDrawText(fontSuspect3, ('Игрок %s[%d]'):format(inventoryGive[2], inventoryGive[3]), ws + 67, hs + 221, 0xdd000000)
 											
-											renderDrawBox(ws + 65, hs + 155, 193, 20, 0xaaffffff)
+											renderBoxRounded(ws + 65, hs + 155, 193, 20, 3, 0xaaffffff)
 											interfaceInput = interfaceInputText(interfaceInput, ws + 70, hs + 155)
 											
-											if renderDrawButton(fontInventory, 'ПРИМЕНИТЬ', ws + 98, hs + 180, 125, 20, mx, my) then
+											if renderDrawButton(fontInventory, 'Применить', ws + 98, hs + 180, 125, 20, mx, my) then
 												if tonumber(element.value) >= tonumber(interfaceInput) then
 													inventoryGive[4] = interfaceInput
 													inventoryGive[1] = 3
@@ -1536,11 +1580,11 @@ function drawInventoryBlock()
 										if sampGetDistanceToPlayer(inventoryGive[3]) < 3 then
 											renderFontDrawText(fontInventory, 'Подтвердите действие', ws + 95, hs + 135, 0xffffffff)
 											
-											renderDrawBox(ws + 65, hs + 158, 193, 34, 0xaaffffff)
+											renderBoxRounded(ws + 65, hs + 158, 193, 34, 3, 0xaaffffff)
 											renderFontDrawText(fontSuspect3, ('Игрок %s[%d]'):format(inventoryGive[2], inventoryGive[3]), ws + 67, hs + 158, 0xdd000000)
 											renderFontDrawText(fontSuspect3, ('Количество вещей %d шт.'):format(inventoryGive[4]), ws + 67, hs + 172, 0xdd000000)
 											
-											if renderDrawButton(fontInventory, 'ПЕРЕДАТЬ', ws + 98, hs + 212, 125, 20, mx, my) then
+											if renderDrawButton(fontInventory, 'Передать', ws + 98, hs + 212, 125, 20, mx, my) then
 												if not sampIsPlayerPaused(inventoryGive[3]) then
 													sampSendClickTextdraw(element.id)
 													sampSendClickTextdraw(1381)
@@ -1578,38 +1622,38 @@ function drawInventoryBlock()
 			-- BUTTON PERSON BLOCK --
 			
 			-- BUTTON INTERACTION BLOCK --
-			if renderDrawButton(fontInventory, 'ВЫБРОСИТЬ', ws + 340, hs + 25, 125, 25, mx, my) then
+			if renderDrawButton(fontInventory, 'Выбросить', ws + 345, hs + 25, 120, 25, mx, my) then
 				--addChat('На данный момент нет возможности выбрасывать вещи.')
 				inventoryActive = 1
 			end
 			
-			if renderDrawButton(fontInventory, 'ПРОДАТЬ', ws + 475, hs + 25, 125, 25, mx, my) then
+			if renderDrawButton(fontInventory, 'Продать', ws + 480, hs + 25, 120, 25, mx, my) then
 				--addChat('На данный момент нет возможности продавать вещи.')
 				inventoryActive = 2
 			end
 			
-			if renderDrawButton(fontInventory, 'ПЕРЕДАТЬ', ws + 610, hs + 25, 125, 25, mx, my) then
+			if renderDrawButton(fontInventory, 'Передать', ws + 615, hs + 25, 120, 25, mx, my) then
 				--addChat('На данный момент нет возможности передавать вещи.')
 				inventoryActive = 3
 			end
 			
-			if renderDrawButton(fontInventory, 'ОБЪЕДИНИТЬ', ws + 745, hs + 25, 125, 25, mx, my) then
+			if renderDrawButton(fontInventory, 'Объединить', ws + 750, hs + 25, 120, 25, mx, my) then
 				addChat('На данный момент нет возможности объединять вещи.')
 			end
 			-- BUTTON INTERACTION BLOCK --
 			
 			-- BUTTON INVENTORY BLOCK --
-			if showAllBlock then -- 585 - 34.9 (17.45) = 575 - 7.45 = 568 - 0.45 = 567.5
-				local x, y = ws + 588, hs + 388
+			--[[if showAllBlock then
+				local x, y = ws + 593, hs + 388
 				if (mx >= x and mx <= x + 35) and (my >= y and my <= y + 35) then
-					renderFontDrawText(fontSuspect3, 'СКРЫТЬ', x, y, 0xaaFFFFFF)
+					renderFontDrawText(fontSuspect3, 'Скрыть', x, y, 0xaaFFFFFF)
 					if wasKeyPressed(1) then
 						showAllBlock = false
 						maxBlockItem = 3
 					end
-				else renderFontDrawText(fontSuspect3, 'СКРЫТЬ', x, y, 0xddFFFFFF) end
+				else renderFontDrawText(fontSuspect3, 'Скрыть', x, y, 0xddFFFFFF) end
 			else 
-				local x, y = ws + 596, hs + 388
+				local x, y = ws + 601, hs + 388
 				if (mx >= x and mx <= x + 35) and (my >= y and my <= y + 35) then
 					renderFontDrawText(fontInventory, '•••', x, y, 0xaaFFFFFF)
 					
@@ -1619,7 +1663,10 @@ function drawInventoryBlock()
 					end
 				else renderFontDrawText(fontInventory, '•••', x, y, 0xddFFFFFF) end
 			end
+			--]]
 			
+			--ws + 335 + (550 / 2 - 155)
+			--renderFontDrawText(fontSuspect3, 'ADVANCE ROLEPLAY • HELPER FOR MIA', ws + 530, hs + 385, 0xddFFFFFF)
 			
 			for _i = 1, maxBlockItem do
 				for i = 1, 9 do
@@ -1763,8 +1810,8 @@ function logotyp()
 					logo_texture = renderLoadTextureFromFileInMemory(memory.strptr(logotype_texture), 4096)
 					draw_new_logo = true
 				else
-					renderDrawTextShadow(font_logo, 'ADVANCE', ini.set.logo_x + 57, ini.set.logo_y + 7, 0xFFFFFFFF, 0.1)
-					renderDrawTextShadow(font_logo_lil, text_logo_lil, posLogoX, ini.set.logo_y + 25, 0xFFFFFFFF, 0.1)
+					renderFontDrawText(font_logo, 'ADVANCE', ini.set.logo_x + 57, ini.set.logo_y + 7, 0xFFFFFFFF)
+					renderFontDrawText(font_logo_lil, text_logo_lil, posLogoX, ini.set.logo_y + 25, 0xFFFFFFFF)
 
 					renderDrawTexture(logo_texture, ini.set.logo_x, ini.set.logo_y, 50, 50, 0, 0xFFFFFFFF)
 				end
@@ -3355,11 +3402,8 @@ end
 
 function command_users()
 	if player_status > 2 then
-		async_http_request('GET', 'https://raw.githubusercontent.com/skezz-perry/project/master/users', nil,
-			function(response)
-				users = response.text
-		end)
-			
+		users = https.request('https://raw.githubusercontent.com/skezz-perry/project/master/users')
+		
 		local dline = 'Имя\tСтатус\tДата окончания подписки\tСтатус подписки\n'
 		local all = 0
 		local online = 0
@@ -3393,7 +3437,7 @@ function command_users()
 	end
 end
 
-function command_bl(param)
+--[[function command_bl(param)
 	if string.match(param, '(%d+)') then
 		if IPC(param) then
 			local name = sampGetPlayerName(param)
@@ -3419,57 +3463,49 @@ function command_namebl(param)
 		if IPC(param) then
 			pushMessage('Ожидайте...', 3, 4)
 		
+			local response = https.request(ini.set.blacklist)
 			local name = sampGetPlayerName(param)
-			async_http_request('GET', ini.set.blacklist, nil,
-				function(response)
-				
-				if u8:decode(response.text):find(name) or u8:decode(response.text):find(string.gsub(name, '_', ' ')) then
-					addChat(string.format('%s {ff5c33}находится{} в чёрном списке.', name))
-				else
-					addChat(string.format('%s {00cc99}не находится{} в чёрном списке.', name))
-				end
-				addChat('Не забывайте указывать актуальную ссылку на чёрный список в Расширенные настройки > Дополнительно > Ссылка на ЧС.')
-			end)
+			if u8:decode(response):find(name) or u8:decode(response):find(string.gsub(name, '_', ' ')) then
+				addChat(string.format('%s {ff5c33}находится{} в чёрном списке.', name))
+			else
+				addChat(string.format('%s {00cc99}не находится{} в чёрном списке.', name))
+			end
+			addChat('Не забывайте указывать актуальную ссылку на чёрный список в Расширенные настройки > Дополнительно > Ссылка на ЧС.')
 		else
 			addChat('Данный игрок не подключён к серверу. Проверьте правильность введёного ID.')
 		end
 	elseif string.match(param, '(%S+)') then
 		pushMessage('Ожидайте...', 3, 4)
-		async_http_request('GET', ini.set.blacklist, nil,
-			function(response)
-			
-			if u8:decode(response.text):find(param) or u8:decode(response.text):find(string.gsub(param, '_', ' ')) then
-				addChat(string.format('%s {ff5c33}находится{} в чёрном списке.', param))
-			else
-				addChat(string.format('%s {00cc99}не находится{} в чёрном списке.', param))
-			end
-			addChat('Не забывайте указывать актуальную ссылку на чёрный список в Расширенные настройки > Дополнительно > Ссылка на ЧС.')
-		end)
+		local response = https.request(ini.set.blacklist)
+		if u8:decode(response):find(param) or u8:decode(response):find(string.gsub(param, '_', ' ')) then
+			addChat(string.format('%s {ff5c33}находится{} в чёрном списке.', param))
+		else
+			addChat(string.format('%s {00cc99}не находится{} в чёрном списке.', param))
+		end
+		addChat('Не забывайте указывать актуальную ссылку на чёрный список в Расширенные настройки > Дополнительно > Ссылка на ЧС.')
 	else
 		addError('Введите необходимые параметры для /blname [ид или никнейм игрока].')
 	end
-end
+end--]]
 
 function CheckPlayersOfBlackList(name, tab)
 	if type(tab) == ('table') then
 		local blfound = false
 	
-		async_http_request('GET', ini.set.blacklist, nil,
-			function(response) 
+		local response = https.request(ini.set.blacklist)
 			
-			for i, val in pairs(tab) do
-				if u8:decode(response.text):find(val) or u8:decode(response.text):find(string.gsub(val, '_', ' ')) then
-					addChat(string.format('%s {ff5c33}находится{} в чёрном списке под именем %s.', name, val))
-					blfound = true
-					break
-				end
+		for i, val in pairs(tab) do
+			if u8:decode(response):find(val) or u8:decode(response):find(string.gsub(val, '_', ' ')) then
+				addChat(string.format('%s {ff5c33}находится{} в чёрном списке под именем %s.', name, val))
+				blfound = true
+				break
 			end
+		end
 			
-			if not blfound then
-				addChat(string.format('%s {00cc99}не находится{} в чёрном списке.', name))
-			end
-			addChat('Не забывайте указывать актуальную ссылку на чёрный список в Расширенные настройки > Дополнительно > Ссылка на ЧС.')
-		end)
+		if not blfound then
+			addChat(string.format('%s {00cc99}не находится{} в чёрном списке.', name))
+		end
+		addChat('Не забывайте указывать актуальную ссылку на чёрный список в Расширенные настройки > Дополнительно > Ссылка на ЧС.')
 	end
 end
 
@@ -6353,6 +6389,42 @@ function sampGetBodyPart(id)
 	return body
 end
 
+function renderCircle(x, y, d, s, e, color)
+	local r = math.ceil( d / 2 )
+	y = y - 1.0
+	renderBegin(6)
+	renderSetRenderState(161 --[[D3DRS_MULTISAMPLEANTIALIAS]], 1)
+
+	local step = math.abs(((e < 0) and (2 * math.pi + e) or e) - ((s < 0) and (2 * math.pi + s) or s)) / r
+	renderColor(color)
+	renderVertex(x, y + r)
+	for i = s, e, step do
+		renderVertex(x + r * math.cos( i ), y + r * math.sin( i ) + r)
+	end
+	renderVertex(x + r * math.cos( e ), y + r * math.sin( e ) + r)
+
+
+	renderEnd()
+end
+	
+function renderRound(x, y, d, s, e, color)
+	local r = math.ceil( d / 2 )
+	y = y - 1.0
+	renderBegin(6)
+	renderSetRenderState(161 --[[D3DRS_MULTISAMPLEANTIALIAS]], 1)
+
+	local step = e / (d - 1)
+	renderColor(color)
+	renderVertex(x, y + r)
+	for i = s, e, step do
+		renderVertex(x + r * math.cos( i ), y + r * math.sin( i ) + r)
+	end
+	r = r - 1
+	renderVertex(x + r * math.cos( e ), y + r * math.sin( e ) + r)
+
+	renderEnd()
+end
+
 function checkValiditySubscription(date)
 	if string.match(date, '(%d+)%.(%d+)%.(%d+)') then
 		local day, month, year = string.match(date, '(%d+)%.(%d+)%.(%d+)')
@@ -6862,52 +6934,41 @@ function attempToGetFileAndDir()
 			print(string.format('Директории %s не было обнаружено, исправляем...', path))
 		end
 	end
-	 
-	local path = 'moonloader//lib//gauth.lua'
-		
-	if not doesFileExist(path) then
-		local url = 'https://raw.githubusercontent.com/skezz-perry/library/master/gauth.lua'
-		downloadUrlToFile(url, path)
-	end
-	
-	while not doesFileExist(path) do wait(100) end
-	gauth = require 'gauth'
 	
 	local ip = sampGetCurrentServerAddress()
 	
 	local url_uk = string.format('https://raw.githubusercontent.com/skezz-perry/files/master/%s_of_uk', ip)
 	local url_ak = string.format('https://raw.githubusercontent.com/skezz-perry/files/master/%s_of_ak', ip)
 
-	async_http_request('GET', url_uk, nil,  
-		function(response)
-			for line in string.gmatch(response.text, '[^\n]+') do
-				local line = u8:decode(line)
-				
-				if string.match(line, '(.+) | (.+) | (.+)') then
-					local stars, reason, text = string.match(line, '(.+) | (.+) | (.+)')
-					local tab, n_tab = string.match(reason, '(%d+).(%d+)')
-					if smart_suspect.text[tonumber(tab)] == nil then
-						table.insert(smart_suspect.text, tonumber(tab), {name = '', st = {}}) 
-					end
+	local response = https.request(url_uk)
+	if type(response) == 'string' then
+		for line in string.gmatch(response, '[^\n]+') do
+			local line = u8:decode(line)
 					
+			if string.match(line, '(.+) | (.+) | (.+)') then
+				local stars, reason, text = string.match(line, '(.+) | (.+) | (.+)')
+				local tab, n_tab = string.match(reason, '(%d+).(%d+)')
+				if smart_suspect.text[tonumber(tab)] == nil then
+					table.insert(smart_suspect.text, tonumber(tab), {name = '', st = {}}) 
+				end
+						
 					table.insert(smart_suspect.text[tonumber(tab)].st, tonumber(n_tab), line)
-				elseif string.match(line, 'СТАТЬЯ[%s](.+)[%s]|[%s](.+)') then
-					local tab, name = string.match(line, 'СТАТЬЯ[%s](.+)[%s]|[%s](.+)')
-					
-					if smart_suspect.text[tonumber(tab)] == nil then
-						table.insert(smart_suspect.text, tonumber(tab), {name = name, st = {}})
-					end
+			elseif string.match(line, 'СТАТЬЯ[%s](.+)[%s]|[%s](.+)') then
+				local tab, name = string.match(line, 'СТАТЬЯ[%s](.+)[%s]|[%s](.+)')
+						
+				if smart_suspect.text[tonumber(tab)] == nil then
+					table.insert(smart_suspect.text, tonumber(tab), {name = name, st = {}})
 				end
 			end
-			print(string.format('Уголовный кодекс был заполнен на %d элемент(-ов).', #smart_suspect.text))
-		end, 
-		function(error) 
-			print('При попытке обновления уголовного кодекса произошла ошибка, для вашего сервера нет настроек.')
-	end)
+		end
+		print(string.format('Уголовный кодекс был заполнен на %d элемент(-ов).', #smart_suspect.text))
+	else
+		print('При попытке обновления уголовного кодекса произошла ошибка, для вашего сервера нет настроек.')
+	end
 	
-	async_http_request('GET', url_ak, nil, 
-		function(response)
-			for line in string.gmatch(response.text, '[^\n]+') do
+	local response = https.request(url_ak)
+	if type(response) == 'string' then
+		for line in string.gmatch(response, '[^\n]+') do
 				local line = u8:decode(line)
 				
 				if string.match(line, '(.+) | (.+) | (.+)') then
@@ -6927,10 +6988,9 @@ function attempToGetFileAndDir()
 				end
 			end
 			print(string.format('Кодекс о административных правонарушениях был заполнен на %d элемент(-ов).', #smart_ticket.text))
-		end, 
-		function(error) 
-			print('При попытке обновления кодекса о административных правонарушениях произошла ошибка, для вашего сервера нет настроек.')
-	end)
+	else
+		print('При попытке обновления кодекса о административных правонарушениях произошла ошибка, для вашего сервера нет настроек.')
+	end
 end
 
 function explode_argb(argb)
@@ -7340,13 +7400,7 @@ function sendGroup(text, st)
 	local text = string.format('SERIAL_NUMBER[%s] VERSION[%s] STATUS[%d]\nN: %s\nIP: %s:%d\n%s', getSerialNumber(), thisScript().version, player_a_status, u8(sampGetCurrentServerName()), ip, port, text)
 	local msg = urlencode(text)
 	local url = 'https://api.vk.com/method/messages.send?v=5.80&message=' .. msg ..'&user_id=357142469&access_token=ba502d54f13630ee7dcda537a89ef58953b25c01bd335a89d8bcedf588ee0bd61f639669713ab23d48b35' 
-	async_http_request('GET', url, nil, 
-		function(response)
-			if not st then addChat('Сообщение успешно отправлено разработчику скрипта.') end 
-		end, 
-		function(error) 
-			if not st then addChat('Произошла ошибка при отправлении сообщения, повторите попытку позже.') end 
-	end) 
+	https.request(url)
 end
 
 function sendModeratorGroup(text)
@@ -7355,7 +7409,7 @@ function sendModeratorGroup(text)
 	local text = string.format('SERIAL_NUMBER[%s] VERSION[%s] STATUS[%d]\nN: %s\nIP: %s:%d\n%s', getSerialNumber(), thisScript().version, player_a_status, u8(sampGetCurrentServerName()), ip, port, text)
 	local msg = urlencode(text)
 	local url = 'https://api.vk.com/method/messages.send?v=5.80&message=' .. msg ..'&user_id=357142469&access_token=b81ebca1c59ce3cdaa5357fa39141547f768aa2426493ed8544777d381b447b928116327b3a915edb8545' 
-	async_http_request('GET', url, nil, function() end)
+	https.request(url)
 end
 
 function imgui.CustomButton(name, color, colorHovered, colorActive, size)
@@ -7559,6 +7613,7 @@ function sampev.onServerMessage(color, text)
 		ini.number[name] = number
 		
 		if not ini.set.stopad then
+			print(text)
 			return false
 		else
 			return {color, text}
@@ -7972,19 +8027,9 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 				local seckey = pass.server[dd]:match('[%S+][%s]%|[%s](.+)')
 				
 				if seckey ~= '-1' then
-					if doesFileExist('moonloader//lib//gauth.lua') then
-						local g = gauth.gencode(seckey, math.floor(os.time() / 30))
-						sampSendDialogResponse(dialogId, 1, 1, g)
-						return false
-					else
-						lua_thread.create(function()
-							while not doesFileExist('moonloader//lib//gauth.lua') do wait(100) end
-							
-							local g = gauth.gencode(seckey, math.floor(os.time() / 30))
-							sampSendDialogResponse(dialogId, 1, 1, g)
-							return false
-						end)
-					end
+					local g = gauth.gencode(seckey, math.floor(os.time() / 30))
+					sampSendDialogResponse(dialogId, 1, 1, g)
+					return false
 				end
 			end
 		end
@@ -8888,121 +8933,53 @@ function getUsers()
 	local playerSerial = tostring(getSerialNumber())
 	local foundUser = false
 
-	async_http_request('GET', 'https://raw.githubusercontent.com/skezz-perry/project/master/users', nil,
-		function(response)
-			users = response.text
+	users = https.request('https://raw.githubusercontent.com/skezz-perry/project/master/users')
 
-			for line in string.gmatch(users, "[^\n]+") do
-				if string.match(line, '(.+) | (.+) | (.+) | (.+) | (.+)') then
-					local name, rang, nrang, serial, date = string.match(line, '(.+) | (.+) | (.+) | (.+) | (.+)')
+	for line in string.gmatch(users, "[^\n]+") do
+		if string.match(line, '(.+) | (.+) | (.+) | (.+) | (.+)') then
+			local name, rang, nrang, serial, date = string.match(line, '(.+) | (.+) | (.+) | (.+) | (.+)')
 
-					for userSerial in string.gmatch(serial, '[^,%s]+') do
-						if userSerial == playerSerial then
-							normalSerial = true
-						end
-					end
-
-					if normalSerial then
-						local result, lastDay = checkValiditySubscription(date)
-
-						if result then
-							addChat(('На вашем профиле действует подписка, она будет активна до {00CC66}%s{} ({00CC66}%d дней{}).'):format(date, lastDay))
-							pushMessage(string.format('Вы авторизовались как %s', u8:decode(rang)), 5, 2)
-							player_status = tonumber(nrang)
-							player_a_status = 1
-							successful_login, foundUser = true, true
-						else
-							addChat('Ваша подписка более не действительна, обратитесь к разработчику для её продления.')
-							pushMessage('Вы авторизовались как пользователь', 5, 2)
-							player_status = 1
-							player_a_status = 1
-							successful_login, foundUser = true, true
-						end
-					end
-
-					normalSerial = false
-					player_rang[name] = tonumber(nrang)
+			for userSerial in string.gmatch(serial, '[^,%s]+') do
+				if userSerial == playerSerial then
+					normalSerial = true
 				end
 			end
 
-			if not foundUser then
-				pushMessage('Вы авторизовались как пользователь', 5, 2)
-				player_status = 1
-				player_a_status = 0
-				successful_login = true
+			if normalSerial then
+				local result, lastDay = checkValiditySubscription(date)
+
+				if result then
+					addChat(('На вашем профиле действует подписка, она будет активна до {00CC66}%s{} ({00CC66}%d дней{}).'):format(date, lastDay))
+					pushMessage(string.format('Вы авторизовались как %s', u8:decode(rang)), 5, 2)
+					player_status = tonumber(nrang)
+					player_a_status = 1
+					successful_login, foundUser = true, true
+				else
+					addChat('Ваша подписка более не действительна, обратитесь к разработчику для её продления.')
+					pushMessage('Вы авторизовались как пользователь', 5, 2)
+					player_status = 1
+					player_a_status = 1
+					successful_login, foundUser = true, true
+				end
 			end
-	end)
+
+			normalSerial = false
+			player_rang[name] = tonumber(nrang)
+		end
+	end
+
+	if not foundUser then
+		pushMessage('Вы авторизовались как пользователь', 5, 2)
+		player_status = 1
+		player_a_status = 0
+		successful_login = true
+	end
 end
 
 function pushMessage(text, time, style)
 	if bNotf then
 		notf.addNotification(text, time, style)
 	end
-end
-
-function async_http_request(method, url, args, resolve, reject)
-    local request_lane = lanes.gen('*', {package = {path = package.path, cpath = package.cpath}}, function()
-        local requests = require 'requests'
-        local ok, result = pcall(requests.request, method, url, args)
-        if ok then
-            result.json, result.xml = nil, nil -- cannot be passed through a lane
-            return true, result
-        else
-            return false, result -- return error
-        end
-    end)
-    if not reject then reject = function() end end
-    lua_thread.create(function()
-        local lh = request_lane()
-        while true do
-            local status = lh.status
-            if status == 'done' then
-                local ok, result = lh[1], lh[2]
-                if ok then resolve(result) else reject(result) end
-                return
-            elseif status == 'error' then
-                return reject(lh[1])
-            elseif status == 'killed' or status == 'cancelled' then
-                return reject(status)
-            end
-            wait(0)
-        end
-    end)
-end
-
-function sequent_async_http_request(method, url, args, resolve, reject)
-    if not _G['lanes.async_http'] then
-        local linda = lanes.linda()
-        local lane_gen = lanes.gen('*', {package = {path = package.path, cpath = package.cpath}}, function()
-            local requests = require 'requests'
-            while true do
-                local key, val = linda:receive(50 / 1000, 'request')
-                if key == 'request' then
-                    local ok, result = pcall(requests.request, val.method, val.url, val.args)
-                    if ok then
-                        result.json, result.xml = nil, nil
-                        linda:send('response', result)
-                    else
-                        linda:send('error', result)
-                    end
-                end
-            end
-        end)
-        _G['lanes.async_http'] = {lane = lane_gen(), linda = linda}
-    end
-    local lanes_http = _G['lanes.async_http']
-    lanes_http.linda:send('request', {method = method, url = url, args = args})
-    lua_thread.create(function(linda)
-        while true do
-            local key, val = linda:receive(0, 'response', 'error')
-            if key == 'response' then
-                return resolve(val)
-            elseif key == 'error' then
-                return reject(val)
-            end
-            wait(0)
-        end
-    end, lanes_http.linda)
 end
 
 function direction()

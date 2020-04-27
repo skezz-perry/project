@@ -1253,8 +1253,8 @@ function drawInventoryBlock()
 					renderDrawBox(pos[1], pos[2], 50, 50, 0xEE203a27)
 			else renderDrawBox(pos[1], pos[2], 50, 50, 0xEE302e38) end--]]
 			if lastInventoryKey[1] == button[1] and lastInventoryKey[2] == button[2] then
-				renderBoxRounded(pos[1], pos[2], 45, 50, 2, 0xbb457d54)
-			else renderBoxRounded(pos[1], pos[2], 45, 50, 2, 0xcc302e38) end
+				renderBoxRounded(pos[1], pos[2], 45, 50, 2, 0x77457d54)
+			else renderBoxRounded(pos[1], pos[2], 45, 50, 2, 0x88302e38) end
 		end
 		
 		if iinventoryKey[button[1]] then

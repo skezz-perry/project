@@ -28,10 +28,24 @@
     "account": "26.11.2020"
   },
   "Joseph_Chapman": {
-    "color": "{009EFF}",
+    "color": "{FFD700}",
     "rang": "Пользователь",
     "rangNumber": 2,
     "serialNumber": "2128973442",
+    "account": "26.11.2020"
+  },
+  "Kenny_Heldens": {
+    "color": "{FFD700}",
+    "rang": "Пользователь",
+    "rangNumber": 2,
+    "serialNumber": "3467552715",
+    "account": "26.11.2020"
+  },
+  "Evgeniy_Stavrogin": {
+    "color": "{FFD700}",
+    "rang": "Пользователь",
+    "rangNumber": 2,
+    "serialNumber": "551324144",
     "account": "26.11.2020"
   }
 }

@@ -6,15 +6,15 @@
     "serialNumber": "2323311406 776753279",
     "account": "26.11.2020"
   },
-  "Hikari_Tsutsui": {
-    "color": "{009EFF}",
+  "Thanatos_Peugeot": {
+    "color": "{e33434}",
     "rang": "Модератор",
     "rangNumber": 3,
     "serialNumber": "352109051 2669911894",
     "account": "26.11.2020"
   },
   "Vadim_Moralles": {
-    "color": "{009EFF}",
+    "color": "{e33434}",
     "rang": "Бумер",
     "rangNumber": 3,
     "serialNumber": "2914915824",
@@ -22,7 +22,7 @@
   },
   "Tommy_Belfort": {
     "color": "{009EFF}",
-    "rang": "Пользователь",
+    "rang": "Император белого камня",
     "rangNumber": 2,
     "serialNumber": "1574933021",
     "account": "26.11.2020"

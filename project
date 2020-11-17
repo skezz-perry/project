@@ -6,7 +6,7 @@
 --   |_/ \_|  |____\  |_____/ |_|      |____\  |_| \_\       |_|     \_____/  |_| \_\       |_|   |_|  |_|   \ ___/\/
 
 script_name('helper-for-mia')
-script_version(17.3)
+script_version(17.4)
 --script_properties('work-in-pause')
 
 require 'lib.moonloader'
@@ -25,7 +25,7 @@ local https             = require 'ssl.https'
 local downloadStatus    = require('moonloader').download_status
 local font_flag         = require('moonloader').font_flag
 local bNotf, notf       = pcall(import, "imgui_notf1.lua")
-lsampev, sampev         = pcall(require, 'lib.samp.events')
+lsampev, sampev         = pcall(require, 'lib.samp.events') 
 imgui.HotKey            = require('imgui_addons').HotKey  
 imgui.ToggleButton      = require('imgui_addons').ToggleButton
 encoding.default        = 'CP1251'
@@ -42,6 +42,7 @@ local fontSuspect3 = renderCreateFont('Calibri', 8, font_flag.BOLD)
 --
 
 local updateLog = [[
+[v17.4] = Добавлено отображение названий пользовательских рангов.,
 [v17.3] = Обновлён дизайн инвентаря.,
 [v17.3] = Убран ряд зависимстей.,
 [v17.2] = Инвентарь приобрел полный функционал (и даже больше).,
@@ -272,7 +273,9 @@ local ini = inicfg.load({
 		stylemes             = false,
 		ivehiclebar          = false,
 		ivehiclebarX         = 500,
-		ivehiclebarY         = 500
+		ivehiclebarY         = 500,
+		smarker              = true,
+		userrangname         = true
 	},
 	uk_set = {
 		insubordination      = '3 | 31.2 УК', -- неподчинение
@@ -607,7 +610,7 @@ local hotkey_butt = {
 
 local hotkey_cust_butt = {}
 
-local users              = ''
+local userList           = {}
 local lgov               = {}
 local gnews              = {}
 local iinventoryKey      = {}
@@ -631,7 +634,7 @@ local flymode            = false
 local autopass           = false
 local follow_state       = false
 local timerActive        = false
-local openBarrier         = false
+local openBarrier        = false
 local successful_login   = false
 local player_status      = 0
 local player_a_status    = 0
@@ -754,13 +757,14 @@ function main()
 
 	lua_thread.create(strobe)
 	lua_thread.create(rpweapon)
-	--lua_thread.create(show_flymode)
+	lua_thread.create(show_flymode)
 	lua_thread.create(logotyp)
 	lua_thread.create(speedometr)
 	lua_thread.create(notifications)
 	lua_thread.create(dynamicTime)
 	lua_thread.create(suspectBar)
 	lua_thread.create(drawInventoryBlock)
+	lua_thread.create(phone)
 	
 	apply_custom_style()
 	register_custom_hotkey()
@@ -824,20 +828,31 @@ function main()
 				end
 			end
 		end
-
+ 
 		if isKeyDown(VK_RBUTTON) then
-			local id, ped = sampGetPlayerIdByTarget()
-			if id then
-				if target_id ~= id then
-					target_id = id
+			if ini.set.smarker then
+				local id, ped = sampGetPlayerIdByTarget()
+				if id then
+					if target_id ~= id then
+						target_id = id
 
-					if lastBlipChar then removeBlip(lastBlipChar) end
-					if sampGetPlayerColor(target_id) ~= 2236962 then
-						lastBlipChar = addBlipForChar(ped)
-						changeBlipColour(lastBlipChar, '0x' .. sampGetColorByPlayer(id) .. 'FF')
+						if lastBlipChar then removeBlip(lastBlipChar) end
+						if sampGetPlayerColor(target_id) ~= 2236962 then
+							lastBlipChar = addBlipForChar(ped)
+							changeBlipColour(lastBlipChar, '0x' .. sampGetColorByPlayer(id) .. 'FF')
+						end
 					end
 				end
 			end
+		end
+		
+		if lastBlipChar then
+			if target_id then
+				if IPC(target_id) and sampGetDistanceToPlayer(target_id) > 8.5 then
+					removeBlip(lastBlipChar)
+					target_id = -1
+				end
+			else removeBlip(lastBlipChar) end
 		end
 
 		if maskTimer.state then
@@ -869,7 +884,7 @@ function main()
 				
 				local x, y = convert3DCoordsToScreen(fX, fY, fZ)
 				
-				local text = string.format('{e6e6fa}HEALME ANIMATION {C22222}%f{e6e6fa} SECONDS', 5.5 - (os.clock() - healmeTimerForPlayer))
+				local text = string.format('{e6e6fa}HEALME ANIMATION {C22222}%0.3f{e6e6fa} SECONDS', 5.5 - (os.clock() - healmeTimerForPlayer))
 				renderFontDrawText(fontSuspect3, text, x, y, 0xFFFFFFFF)
 			else
 				healmeTimerForPlayer = nil
@@ -904,7 +919,7 @@ function main()
 								mad.draw_spotlight(objx, objy, objz, objx, objy, ground_z, 0.065, 27)
 							end
 						elseif model == 1297 then
-							local matrix = mad.get_object_matrix(object)
+							local matrix = mad.get_object_matrix(object) 
 							if matrix then
 								local objx, objy, objz = matrix:get_coords_with_offset(-0.5, 0, 3.1)
 								local ground_z = getGroundZFor3dCoord(objx, objy, objz)
@@ -943,6 +958,26 @@ function main()
 			attempToGetFileAndDir()
 		end
 
+		if ini.set.userrangname then
+			if type(userList) == 'table' then
+				if not wasCreate3dLabel then wasCreate3dLabel = {} end
+				
+				for index, value in pairs(userList) do
+					local playerId = sampGetPlayerIdByNickname(index)
+					local result, ped = sampGetCharHandleBySampPlayerId(playerId)
+					if result and not wasCreate3dLabel[index] then
+						local text = ('%s%s'):format(value.color, u8:decode(value.rang)) 
+						wasCreate3dLabel[index] = {sampCreate3dText(text, 0xFFFFFFFF, 0.0, 0.0, -0.7, 3.0, false, playerId, -1), playerId}
+					end
+					
+					if not result and wasCreate3dLabel[index] then
+						sampDestroy3dText(wasCreate3dLabel[index])
+						wasCreate3dLabel[index] = nil
+					end
+				end
+			end
+		end
+		
 		if flymode and not sampIsChatInputActive() and not isSampfuncsConsoleActive() then
 			offMouX, offMouY = getPcMouseMovement()
 			  
@@ -1171,7 +1206,7 @@ function drawInventoryBlock()
 		end
 	end
 	
-	local function renderBoxRounded(x, y, w, h, r, color)
+	function renderBoxRounded(x, y, w, h, r, color)
 		renderDrawBox(x + r, y, w - r, h - 1, color)
 
 		renderCircle(x + r, y, r * 4, math.pi, 3 * math.pi / 2, color)
@@ -1302,8 +1337,8 @@ function drawInventoryBlock()
 			renderDrawBox(ws + 330, hs + 15, 550, 410, 0xCC18171c)--]]
 			
 			--renderBoxRounded(ws + 5, hs + 5, 885, 430, 3, 0xaa151719)
-			renderBoxRounded(ws + 15, hs + 15, 300, 410, 4, 0xdd18171c)
-			renderBoxRounded(ws + 335, hs + 15, 550, 410, 4, 0xdd18171c)
+			renderBoxRounded(ws + 15, hs + 15, 300, 410, 4, 0xee18171c)
+			renderBoxRounded(ws + 335, hs + 15, 550, 410, 4, 0xee18171c)
 			-- BASIC BLOCK --
 			
 			local mx, my = getCursorPos()
@@ -1320,6 +1355,7 @@ function drawInventoryBlock()
 			local skin = getCharModel(playerPed)
 			local health = getCharHealth(playerPed)
 			local armour = getCharArmour(playerPed)
+			--local power = getSprintLocalPlayer()
 			if not inventoryName then 
 				local result, playerId = sampGetPlayerIdByCharHandle(playerPed)
 				inventoryName = string.upper(string.gsub(sampGetPlayerName(playerId), '_', ' '))
@@ -1330,15 +1366,16 @@ function drawInventoryBlock()
 			renderFontDrawText(fontSuspect2, inventoryName, ws + 210 - fix3 / 2, hs + 33, 0xeeffffff)
 			renderBoxRounded(ws + 120, hs + 55, 180, 12, 3, 0x22ffffff)
 			renderBoxRounded(ws + 120, hs + 72, 180, 12, 3, 0x22ffffff)
+			--renderBoxRounded(ws + 120, hs + 89, 180, 12, 3, 0x22ffffff)
 			
 			renderBoxRounded(ws + 120, hs + 55, health * 1.8, 12, 3, 0xddbf2233)
 			renderBoxRounded(ws + 120, hs + 72, armour * 1.8, 12, 3, 0xdd2F4F4F)
+			--renderBoxRounded(ws + 120, hs + 89, power * 1.8, 12, 3, 0xdd2F4F4F)
 			local fix1 = renderGetFontDrawTextLength(fontSuspect3, health)
-			renderFontDrawText(fontSuspect3, health, ws + 210 - fix1 / 2, hs + 54, 0xffffffff)
+			renderFontDrawText(fontSuspect3, health, ws + 210 - fix1 / 2, hs + 53, 0xffffffff)
 			local fix2 = renderGetFontDrawTextLength(fontSuspect3, armour)
-			renderFontDrawText(fontSuspect3, armour, ws + 210 - fix2 / 2, hs + 71, 0xffffffff)
-			
-			--0x882F4F4F 0x88bf2233
+			renderFontDrawText(fontSuspect3, armour, ws + 210 - fix2 / 2, hs + 70, 0xffffffff)
+			-- BUTTON PERSON BLOCK --
 			
 			if inventoryActive then
 				if inventoryActive == 1 then
@@ -1361,7 +1398,7 @@ function drawInventoryBlock()
 										--addChat('Вы выбросили ' .. element.name .. '[' .. element.id .. '] в количестве ' .. interfaceInput .. ' шт.')
 										inventoryDrop = interfaceInput
 										sampSendClickTextdraw(element.id)
-										sampSendClickTextdraw(1385)
+										sampSendClickTextdraw(1382)
 										linventoryKey = iinventoryKey
 										iinventoryKey = {}
 									else
@@ -1390,6 +1427,7 @@ function drawInventoryBlock()
 									addChat('На данный момент нет возможности продавать скины персонажа.')
 									inventoryActive = nil
 									interfaceInput = ''
+									inventorySell = nil
 								end
 							else
 								if not inventorySell then inventorySell = {1} end
@@ -1505,11 +1543,13 @@ function drawInventoryBlock()
 							addChat('Чтобы продать вещь сначала выберите её.')
 							inventoryActive = nil
 							interfaceInput = ''
+							inventorySell = nil
 						end
 					else
 						addChat('Чтобы продать вещь сначала выберите её.')
 						inventoryActive = nil
 						interfaceInput = ''
+						inventorySell = nil
 					end
 				elseif inventoryActive == 3 then
 					if iinventoryKey[lastInventoryKey[1]] then
@@ -1684,11 +1724,131 @@ function drawInventoryBlock()
 	end
 end
 
+function phone()
+	local w, h = getScreenResolution()
+	local x, y = w / 2, h / 2
+	local w, h = 220, 400
+	local x, y = x - w / 2, y - h / 2
+	local phonePage = 1
+	local phonePageStart = 1
+	
+	local listCall = {
+		[1] = 'Hikari_Tsutsui   Исходящий   25.04.2020 2:03 PM',
+		[2] = 'Hikari_Tsutsui   Входящий   25.04.2020 3:03 PM',
+		[3] = 'Hikari_Tsutsui   Исходящий   25.04.2020 4:03 PM',
+		[4] = 'Hikari_Tsutsui   Исходящий   25.04.2020 5:03 PM',
+		[5] = 'Hikari_Tsutsui   Входящий   25.04.2020 6:03 PM',
+		[6] = 'Hikari_Tsutsui   Исходящий   25.04.2020 7:03 PM',
+		[7] = 'Hikari_Tsutsui   Входящий   25.04.2020 8:03 PM',
+		[8] = 'Hikari_Tsutsui   Исходящий   25.04.2020 9:03 PM',
+		[9] = 'Hikari_Tsutsui   Входящий   25.04.2020 6:03 PM',
+		[10] = 'Hikari_Tsutsui   Исходящий   25.04.2020 7:03 PM',
+		[11] = 'Hikari_Tsutsui   Входящий   25.04.2020 8:03 PM',
+		[12] = 'Hikari_Tsutsui   Исходящий   25.04.2020 9:03 PM'
+	}
+	
+	local fixH = renderGetFontDrawHeight(fontSuspect3)
+	local function button(text, x, y, w, h, mx, my, color, tcolor)
+		local fix = renderGetFontDrawTextLength(fontSuspect3, text)
+		renderBoxRounded(x, y, w, h, 2, color)
+		renderFontDrawText(fontSuspect3, text, x + (w / 2 - fix / 2) + 1, y + (h / 2 - fixH) + 3, tcolor or 0xeeffffff)
+		
+		if mx >= x and mx <= x + w and my >= y - 5 and my <= y + h then
+			if wasKeyPressed(1) then return true end
+		end
+	end
+	
+	while true do wait(0)
+		if showPhone then
+			renderBoxRounded(x, y, w, h, 10, 0xee18171c)
+			renderBoxRounded(x + 8, y + 8, w - 16, h - 16, 10, 0xddffffff)
+			
+			renderDrawBox(x + 240, y + 60, 2, 50, 0xee18171c) -- КНОПКА ЗВУКА
+			renderDrawBox(x + 240, y + 115, 2, 25, 0xee18171c) -- КНОПКА ПИТАНИЯ
+			
+			renderFontDrawText(fontSuspect3, 'Advance', x + 20, y + 15, 0xee000000) -- ОПЕРАТОР
+			renderBoxRounded(x + 180, y + 15, 25, 13, 2, 0xdd1d7a1d) -- УРОВЕНЬ ЗАРЯДА
+			renderFontDrawText(fontSuspect3, '100', x + 186.5, y + 14, 0xeeffffff) -- ЗНАЧЕНИЕ УРОВНЯ ЗАРЯДА
+			
+			renderDrawBox(x + 155, y + 21, 3, 6, 0xee000000) -- СВЯЗЬ
+			renderDrawBox(x + 160, y + 19, 3, 8, 0xee000000) -- СВЯЗЬ
+			renderDrawBox(x + 165, y + 17, 3, 10, 0xee000000) -- СВЯЗЬ
+			renderDrawBox(x + 170, y + 15, 3, 12, 0xee000000) -- СВЯЗЬ
+			
+			local mx, my = getCursorPos()
+			if isKeyDown(VK_MENU) then
+				if isKeyCheckAvailable() then
+					sampSetCursorMode(3)
+				end
+			elseif wasKeyReleased(VK_MENU) then
+				sampSetCursorMode(0)
+			end
+			
+			if phonePage == 1 then
+				local time = tonumber(os.date('%I')) .. ':' .. os.date('%M')
+				local fix = renderGetFontDrawTextLength(fontSuspect1, time)
+				renderFontDrawText(fontSuspect1, time, x + 1 + ((w - 16 - fix) / 2), y + 70, 0xee000000)
+				renderFontDrawText(fontSuspect3, os.date('%p'), x + 2 + ((w - 16 + fix) / 2), y + 72, 0xee000000)
+				
+				local day = ('%s, %d %s'):format(os.date('%A'), os.date('%d'), os.date('%B'))
+				local fix = renderGetFontDrawTextLength(fontSuspect3, day)
+				renderFontDrawText(fontSuspect3, day, x + 8 + ((w - 16 - fix) / 2), y + 90, 0xee000000)
+				
+				if button('CALL', x + 20, y + 335, 40, 40, mx, my, 0xee34c924) then
+					phonePage = 2
+				end
+				
+				if button('SMS', x + 69, y + 335, 40, 40, mx, my, 0xeeffc30f) then
+					phonePage = 3
+				end
+				
+				if button('GPS', x + 118, y + 335, 40, 40, mx, my, 0xee6666ff) then
+					phonePage = 4
+				end
+				
+				if button('MATH', x + 167, y + 335, 40, 40, mx, my, 0xeec70000) then
+					phonePage = 5
+				end
+			else
+				if button('', x + 95, y + 375, 40, 10, mx, my, 0xee000000) then
+					phonePage = 1
+				end
+				
+				if phonePage == 2 then
+					if button('Вызовы', x + 69, y + 45, 40, 18, mx, my, 0xee34c924) then
+					end
+					
+					if button('Контакты', x + 118, y + 45, 40, 18, mx, my, 0xee6666ff) then
+					end
+					
+					for index, value in pairs(listCall) do
+						if index >= phonePageStart and index < phonePageStart + 11 then
+							renderDrawLine(x + 8, y + 50 + 25 * index, x + 225, y + 50 + 25 * index, 1, 0x66000000)
+							renderFontDrawText(fontSuspect3, value, x + 10, y + 55 + 25 * index, 0xee000000)
+						end
+					end
+				elseif phonePage == 5 then
+					
+				end
+			end
+			
+			--[[for i = 0, 1 do
+				local _y = y + 290 + 45 * i
+				for _i = 0, 3 do
+					local _x = x + 20 + 49 * _i
+					renderBoxRounded(_x, _y, 40, 40, 2, 0xee18171c)
+				end
+			end--]]
+		end
+	end
+end
+
 function speedometr()
 	local function button(font, text, x, y, w, h, bool, c1, c2)
 		local c1, c2 = c1 or 0xBBC1CDC1, c2 or 0x77C1CDC1
-		renderDrawBox(x, y, w, h, (bool and c1 or c2))
-		renderDrawLine(x + 1, y + h, x + w - 1, y + h, 1.5, 0xDDFFFFFF)
+		renderBoxRounded(x, y, w, h, 3, (bool and c1 or c2))
+		--renderDrawBox(x, y, w, h, (bool and c1 or c2))
+		renderDrawLine(x + 4, y + h, x + w + 2, y + h, 2, 0xDDFFFFFF)
 		local fix = renderGetFontDrawTextLength(font, tostring(text))
 		renderFontDrawText(font, text, x + ((w) / 2 - fix / 2), y, (bool and 0xffFFFFFF or 0xbbFFFFFF))
 	end
@@ -1731,7 +1891,7 @@ function speedometr()
 						local v = {}
 						v.engine = isCarEngineOn(vehicle)
 						v.health = getCarHealth(vehicle)
-						v.speed = math.ceil(getCarSpeed(vehicle) * 2.02)
+						v.speed = getCarSpeed(vehicle) * 2.02
 						v.fuel = tonumber(string.match(speedometr_text, 'Fuel_(%d+)'))
 						v.sport = string.find(speedometr_text, '~y~Sport')
 						v.light = string.find(speedometr_text, '~g~L')
@@ -1741,7 +1901,7 @@ function speedometr()
 						--v.fuel, v.light, v.sport, v.alarm = 0, false, false, false
 						
 						v.lock = (v.door == 2)
-						v.tspeed = v.speed .. ' KM/Ч'
+						v.tspeed = string.format('%0.2f КМ/Ч', v.speed)
 						v.tfuel = v.fuel .. ' ' .. ttfix(v.fuel, 'li')
 						v.thealth = v.health .. ' ' .. ttfix(v.health, 'e')
 						
@@ -1768,10 +1928,10 @@ function speedometr()
 						renderDrawBox(ini.set.ivehiclebarX + 148, ini.set.ivehiclebarY + 21, v.health / 10 * 1.44, 9, 0xddbf2233) -- draw health bar
 						renderFontDrawText(fontSuspect3, v.thealth, ini.set.ivehiclebarX + 147 + (72 - fix3 / 2),  ini.set.ivehiclebarY + 18, 0xFFFFFFFF)  -- draw health text
 						
-						button(fontSuspect2, 'LOCK', ini.set.ivehiclebarX, ini.set.ivehiclebarY + 39, 70, 20, v.lock, 0xbbbf2233) -- button lock
-						button(fontSuspect2, 'ENGINE', ini.set.ivehiclebarX + 74, ini.set.ivehiclebarY + 39, 70, 20, v.engine) -- button engine
-						button(fontSuspect2, 'LIGHT', ini.set.ivehiclebarX + 148, ini.set.ivehiclebarY + 39, 70, 20, v.light) -- button light
-						button(fontSuspect2, 'ALORM', ini.set.ivehiclebarX + 222, ini.set.ivehiclebarY + 39, 69, 20, v.alorm) -- button alorm
+						button(fontSuspect2, 'LOCK', ini.set.ivehiclebarX, ini.set.ivehiclebarY + 39, 65, 20, v.lock, 0xbbbf2233) -- button lock
+						button(fontSuspect2, 'ENGINE', ini.set.ivehiclebarX + 74, ini.set.ivehiclebarY + 39, 65, 20, v.engine) -- button engine
+						button(fontSuspect2, 'LIGHT', ini.set.ivehiclebarX + 148, ini.set.ivehiclebarY + 39, 65, 20, v.light) -- button light
+						button(fontSuspect2, 'ALORM', ini.set.ivehiclebarX + 222, ini.set.ivehiclebarY + 39, 64, 20, v.alorm) -- button alorm
 					end
 				end
 			end
@@ -1800,8 +1960,17 @@ function logotyp()
 		wait(0)
 		
 		if destroyLogototyp then 
+			if string.match(sampGetCurrentServerAddress(), '54.37.142.7(%d)') then
+				local id = string.match(sampGetCurrentServerAddress(), '54.37.142.7(%d)')
+				serverName = server_name[tonumber(id)][1]
+
+				text_logo_lil = 'ROLE PLAY ' .. serverName
+
+				local fix = renderGetFontDrawTextLength(font_logo_lil, text_logo_lil)
+				posLogoX = (ini.set.logo_x + 98.5) - fix / 2
+			end
+			
 			destroyLogototyp = false 
-			break
 		end
 
 		if sampIsLocalPlayerSpawned() then
@@ -1824,7 +1993,7 @@ function suspectBar()
 	local _bsuspect = {name = '', staticName = ''}
 
 	while true do wait(0)
-		if suspect_id[4] ~= '' then
+		if ini.set.barSuspect and suspect_id[4] ~= '' then
 			--if IPC(suspect_id[1]) then
 				if suspect_id[4] ~= _bsuspect.staticName then
 					if IPC(suspect_id[1]) then
@@ -1896,6 +2065,10 @@ function suspectBar()
 			--end
 		end
 	end
+end
+
+function command_phone()
+	showPhone = not showPhone
 end
 
 function command_menu()
@@ -2243,7 +2416,7 @@ function reconnect(delay, ip)
 			globalReconnectStatus = true
 				
 			while os.clock() - startTime < delay do wait(0)
-				local text = string.format('{ffffff}ПЕРЕДПОКЛЮЧЕНИЕ ПРОИЗОЙДЁТ ЧЕРЕЗ {00CC66}%f{ffffff} СЕК.', delay - (os.clock() - startTime))
+				local text = string.format('{ffffff}ПЕРЕДПОКЛЮЧЕНИЕ ПРОИЗОЙДЁТ ЧЕРЕЗ {00CC66}%0.3f{ffffff} СЕК.', delay - (os.clock() - startTime))
 				local fix = renderGetFontDrawTextLength(fontSuspect2, text)
 				local _fix = fix / 2
 				renderDrawBox(x - _fix - 5, y - 5, fix + 10, 30, 0xAA363636)
@@ -2266,7 +2439,7 @@ function reconnect(delay, ip)
 				globalReconnectStatus = true
 				
 				while os.clock() - startTime < delay do wait(0)
-					local text = string.format('{ffffff}ПЕРЕДПОКЛЮЧЕНИЕ ПРОИЗОЙДЁТ ЧЕРЕЗ {00CC66}%f{ffffff} СЕК.', delay - (os.clock() - startTime))
+					local text = string.format('{ffffff}ПЕРЕДПОКЛЮЧЕНИЕ ПРОИЗОЙДЁТ ЧЕРЕЗ {00CC66}%0.3f{ffffff} СЕК.', delay - (os.clock() - startTime))
 					local fix = renderGetFontDrawTextLength(fontSuspect2, text)
 					local _fix = fix / 2
 					renderDrawBox(x - _fix - 5, y - 5, fix + 10, 30, 0xAA363636)
@@ -2277,7 +2450,6 @@ function reconnect(delay, ip)
 				globalReconnectStatus = false
 				sampConnectToServer(ipadress, port)
 				destroyLogototyp = true
-				lua_thread.create(logotyp)
 			end
 		end)
 	end
@@ -2305,7 +2477,7 @@ function command_rkinfo()
 end
 
 --[[function command_rkinfo()
-	if dreason[1] ~= nil then
+	if dreason[1] then
 		local timed = getTimeByPeriod(tonumber(dreason[2]), tonumber(dreason[3]), tonumber(dreason[4]), ini.set.delay_rk)
 		addChat(string.format('Вы можете вернуться в район %s в %d ч. %d мин. %d сек.', dreason[1], timed[1], timed[2], timed[3]))
 		if sampGetPassedTimeByPeriod(tonumber(dreason[2]), tonumber(dreason[3]), tonumber(dreason[4]), ini.set.delay_rk) then
@@ -2469,7 +2641,7 @@ end
 function command_gov(id) 
 	if player_status > 0 then
 		if string.match(id, '(%d+)') then
-			if gnews[1] ~= nil then
+			if gnews[1] then
 				local timed = getTimeByPeriod(tonumber(gnews[1]), tonumber(gnews[2]), tonumber(gnews[3]), 5)
 				if sampGetPassedTimeByPeriod(tonumber(gnews[1]), tonumber(gnews[2]), tonumber(gnews[3]), 5) then
 					send_gnews(id)
@@ -2480,7 +2652,7 @@ function command_gov(id)
 				send_gnews(id)
 			end
 		else
-			if gnews[1] ~= nil then
+			if gnews[1] then
 				local timed = getTimeByPeriod(tonumber(gnews[1]), tonumber(gnews[2]), tonumber(gnews[3]), 5)
 				if sampGetPassedTimeByPeriod(tonumber(gnews[1]), tonumber(gnews[2]), tonumber(gnews[3]), 5) then
 					addError('Введите необходимые параметры для /gov [ид новости]. Вы {00cc99}можете{} отправить гос. новость.')
@@ -2740,7 +2912,7 @@ function search_file(file, text, bool)
 end
 
 function search_law(table, text)
-	if table ~= nil and text ~= nil then
+	if table and text then
 		for _, val in pairs(table) do
 			for i, item in ipairs(val.st) do
 				if string.match(item, '(.+) | (.+) | (.+)') then
@@ -3171,7 +3343,7 @@ function command_ticket(param)
 		local id = string.match(param, '(%d+)')
 		if IPC(id) then
 			if sampGetDistanceToPlayer(id) <= 5 then
-				if smart_ticket.text ~= nil then
+				if smart_ticket.text then
 					smart_ticket.id = id
 					show_ticket.v = not show_ticket.v
 				else
@@ -3338,7 +3510,7 @@ function command_su(param)
 		if IPC(id) then
 			if sampGetPlayerColor(id) ~= 2236962 then
 				if sampGetDistanceToPlayer(id) <= 65 then
-					if smart_suspect.text ~= nil then
+					if smart_suspect.text then
 						smart_suspect.id = id
 						show_suspect.v = not show_suspect.v
 					else
@@ -3401,39 +3573,38 @@ function command_admins()
 end
 
 function command_users()
-	if player_status > 2 then
-		users = https.request('https://raw.githubusercontent.com/skezz-perry/project/master/users')
-		
-		local dline = 'Имя\tСтатус\tДата окончания подписки\tСтатус подписки\n'
-		local all = 0
-		local online = 0
+	if player_status > 1 then
+		local result = https.request('https://raw.githubusercontent.com/skezz-perry/project/master/users')
+		local result = decodeJson(result)
 
-		for line in string.gmatch(users, "[^\n]+") do
-			if string.match(line, '(.+) | (.+) | (.+) | (.+) | (.+)') then
-				local name, rang, nrang, serial, date = string.match(line, '(.+) | (.+) | (.+) | (.+) | (.+)')
-				local rang = u8:decode(rang)
-				local id = sampGetPlayerIdByNickname(name)
-				all = all + 1
-
-				local rang = string.format('%s %s', getColorRang(nrang), rang)
-
-				if checkValiditySubscription(date) then
-					status = string.format('%s\t{00cc99}Дейсвительна', date)
-				else
-					status = string.format('%s\t{ff5c33}Просрочена', date)
-				end
-					
-				if id == 'OFF' then
-					dline = string.format('%s{696969}%s\t{696969}%s ранг. %s\t%s\n', dline, name, player_rang[name], rang, status)
-				else
-					online = online + 1
-					dline = string.format('%s{%s}%s[%d]\t%s ранг. %s\t%s\n', dline, sampGetColorByPlayer(id), name, id, player_rang[name], rang, status)
+		if result and type(result) == 'table' then
+			userList = result
+			local dline = 'Имя\tСтатус\tДата окончания подписки\tСтатус подписки\n'
+			local all = 0
+			local online = 0
+			
+			for number = 4, 1, -1 do
+				for index, value in pairs(userList) do
+					if value.rangNumber == number then
+						local id = sampGetPlayerIdByNickname(index)
+						local rang = ('%s%s'):format(value.color, u8:decode(value.rang))
+						local status = (checkValiditySubscription(value.account) and string.format('%s\t{00cc99}Дейсвительна', value.account) or string.format('%s\t{ff5c33}Просрочена', value.account))
+						if id == 'OFF' then
+							dline = string.format('%s{696969}%s\t{696969}%s ранг. %s\t%s\n', dline, index, value.rangNumber, rang, status)
+						else
+							online = online + 1
+							dline = string.format('%s{%s}%s[%d]\t%s ранг. %s\t%s\n', dline, sampGetColorByPlayer(id), index, id, value.rangNumber, rang, status)
+						end
+						all = all + 1 
+					end  
 				end
 			end
-		end
 			
-		local caption = string.format('{e6e6fa}Всего пользователей {FFCD00}%d чел. {00CC66}(онлайн %d)', all, online)
-		sampShowDialog(1001, caption, dline, 'Закрыть', '', 5)
+			local caption = string.format('{e6e6fa}Всего пользователей {FFCD00}%d чел. {00CC66}(онлайн %d)', all, online)
+			sampShowDialog(1001, caption, dline, 'Закрыть', '', 5)
+		else
+			addChat('Произошла ошибка при попытке получить информацию о пользователях.')
+		end
 	end
 end
 
@@ -3509,7 +3680,7 @@ function CheckPlayersOfBlackList(name, tab)
 	end
 end
 
---[[function show_flymode()
+function show_flymode()
 	local type_vision = 0
 	
 	while true do
@@ -3587,7 +3758,7 @@ end
 			end
 			
 			
-			if targetSet ~= nil then
+			if targetSet then
 				local result, pped = sampGetCharHandleBySampPlayerId(targetSet)
 				
 				if result then
@@ -3627,7 +3798,7 @@ end
 				end
 			end
 			
-			 изображение типа отображения
+			--изображение типа отображения
 			if type_vision == 0 then
 				color_infra, color_night = 0x88FFFFFF, 0x88FFFFFF
 			elseif type_vision == 1 then
@@ -3641,7 +3812,7 @@ end
 			
  		end
 	end
-end]]
+end
 
 function getnear()
     local all_players = getAllChars()
@@ -3649,7 +3820,7 @@ function getnear()
     local mx, my, mz = poiX, poiY, poiZ
 
     for k, v in pairs(all_players) do
-        if v ~= nil and v ~= 1 then
+        if v and v ~= 1 then
             local x, y, z = getCharCoordinates(v)
             if lastchar[1] == nil and isCharOnScreen(v) then
                 local distance = getDistanceBetweenCoords2d(mx, my, x, y)
@@ -3665,7 +3836,7 @@ function getnear()
         end
     end
 
-    if lastchar[1] ~= nil then
+    if lastchar[1] then
 		local id = select(2, sampGetPlayerIdByCharHandle(lastchar[1]))
 		--local nick = sampGetPlayerName(id)
 		--addChat(string.format('Ближайший игрок: %s [%s]', nick, lastchar[2]))
@@ -3688,7 +3859,7 @@ function toggleButton(name, block, value)
 		return true
 	end
 	
-	imgui.SameLine() imgui.Text(u8(name))
+	imgui.SameLine() imgui.Text(u8(name)) 
 end
 
 local w, h = getScreenResolution()
@@ -3763,7 +3934,7 @@ function imgui.OnDrawFrame()
 
 			if drawAllNotifications then
 				imgui.BeginChild('##allNotifications', imgui.ImVec2(435, 400), true, imgui.WindowFlags.VerticalScrollbar)
-					if notificationsTimer[1] ~= nil then
+					if notificationsTimer[1] then
 						imgui.Columns(5)
 						imgui.Separator()
 						imgui.SetColumnWidth(-1, 60) imgui.CenterColumnText(u8'ID') imgui.NextColumn()
@@ -4153,7 +4324,7 @@ function imgui.OnDrawFrame()
 								if u8:decode(passname.v):match('%S+') and u8:decode(passip.v):match('%S+') then
 									local path = string.format('%s_%s', u8:decode(passname.v), u8:decode(passip.v))
 									
-									if pass.server[path] ~= nil then
+									if pass.server[path] then
 										pass.server[path] = nil
 										inicfg.save(pass, 'HfMIA servers and passwords.ini')
 
@@ -4252,7 +4423,7 @@ function imgui.OnDrawFrame()
 			imgui.Begin(u8'ФУНКЦИИ | HELPER FOR MIA', show_help, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 				for i, val in pairs(info_function) do
 					local f, i = string.match(val, '(.+) | (.+)')
-					if f ~= nil and i ~= nil then
+					if f and i then
 						imgui.Separator()
 						if f ~= 'ФУНКЦИИ' then 
 							if imgui.Button(u8(f), imgui.ImVec2(170, 20)) then
@@ -4680,6 +4851,10 @@ function draw_another_settings()
 	if ini.lowrp.rpmask then
 		toggleButton('Сообщение в /do о наличие маски при снятие её системой', 'lowrp', 'unmask')
 	end
+	
+	if toggleButton('Маркер над головой игроков при наведении', 'set', 'smarker') then
+		if lastBlipChar then removeBlip(lastBlipChar) end 
+	end
 end
 
 function draw_settings_rpweapon()
@@ -4731,7 +4906,7 @@ function draw_settings_rpweapon()
 			imgui.SetColumnWidth(-1, 30) imgui.CenterColumnText(u8'ID') imgui.NextColumn()
 			
 			for i = 1, 46 do
-				if weapons.get_name(i) ~= nil then 
+				if weapons.get_name(i) then 
 					local name_weap = weapons.get_name(i)
 					
 					imgui.Separator()
@@ -5161,11 +5336,17 @@ function draw_modification()
 		imgui.TreePop()
 	end
 	
-	--[[if imgui.TreeNode(u8'Модицированный CamHack') then
+	if imgui.TreeNode(u8'Модицированный CamHack') then
 		toggleButton('Включить отображение эффектов при использовании CamHack`a.', 'set', 'kvadrocopter')
 		
 		imgui.TreePop()
-	end]]
+	end
+	
+	if imgui.TreeNode(u8'Пользовательское название ранга') then
+		toggleButton('Включить отображение названия пользовательского ранга на персонаже.', 'set', 'userrangname')
+		
+		imgui.TreePop()
+	end
 	
 	if imgui.TreeNode(u8'ID игроков в чате') then
 		toggleButton('Дописывает [ID] около ника игрока, если его там нет.', 'set', 'idforname')
@@ -5343,7 +5524,7 @@ function draw_head_page()
 end
 
 function getStateCommand(name)
-	if name_cmd.v ~= nil and name_cmd.v ~= '' then
+	if name_cmd.v and name_cmd.v ~= '' then
 		local path = string.format('moonloader//helper//commands//%s.txt', name)
 		
 		if not ini.defaultCommands[name] then
@@ -5387,7 +5568,7 @@ function draw_another_custom_command()
 
 	if result and result < 3 then
 		if imgui.Button(u8'ОТКРЫТЬ ИЛИ СОЗДАТЬ', imgui.ImVec2(610, 20)) then
-			if name_cmd.v ~= nil and name_cmd.v ~= '' then
+			if name_cmd.v and name_cmd.v ~= '' then
 				if not ini.defaultCommands[name_cmd.v] then
 					local path = string.format('moonloader//helper//commands//%s.txt', u8:decode(name_cmd.v))
 				
@@ -5453,7 +5634,7 @@ function draw_another_custom_command()
 		ItemPovered('С помощью данной клавиши вы можете очистить название команды, количество параметров и поле редактора команды.')
 
 		if imgui.Button(u8'СОХРАНИТЬ КОМАНДУ', imgui.ImVec2(173, 20)) then
-			if name_cmd.v ~= nil and name_cmd.v ~= '' then
+			if name_cmd.v and name_cmd.v ~= '' then
 				if not ini.defaultCommands[name_cmd.v] then
 					local path = string.format('moonloader//helper//commands//%s.txt', u8:decode(name_cmd.v))
 				
@@ -5478,7 +5659,7 @@ function draw_another_custom_command()
 		imgui.SameLine()
 
 		if imgui.Button(u8'УДАЛИТЬ КОМАНДУ', imgui.ImVec2(172, 20)) then
-			if name_cmd.v ~= nil and name_cmd.v ~= '' then
+			if name_cmd.v and name_cmd.v ~= '' then
 				if not ini.defaultCommands[name_cmd.v] then
 					local path = string.format('moonloader//helper//commands//%s.txt', u8:decode(name_cmd.v))
 				
@@ -5644,13 +5825,13 @@ function draw_settings_allcommands()
 end
 
 function draw_new_custom_hotkey()
-	if name_cmd.v ~= nil and name_cmd.v ~= '' then
+	if name_cmd.v and name_cmd.v ~= '' then
 		local path = string.format('moonloader//helper//commands//%s.txt', u8:decode(name_cmd.v))
 
-		if ini.custom_hkey[u8:decode(name_cmd.v)] ~= nil then
+		if ini.custom_hkey[u8:decode(name_cmd.v)] then
 			for id, val in pairs(hotkey_cust_butt) do
 				if u8:decode(name_cmd.v) == val.name then
-					if val.key.v ~= nil then
+					if val.key.v then
 						if imgui.HotKey('##' .. val.name, hotkey_cust_butt[id].key, hotkey_cust_butt[id].last, 124) then
 							if not rkeys.isHotKeyDefined(hotkey_cust_butt[id].key.v) then
 								rkeys.changeHotKey(hotkey_cust_butt[id].bind, hotkey_cust_butt[id].key.v)
@@ -5664,7 +5845,7 @@ function draw_new_custom_hotkey()
 								inicfg.save(ini, 'HfMIA global settings.ini')
 								pushMessage('Для этой команды установленно новое сочетание клавиш.', 3, 4)
 							else
-								hotkey_cust_butt[id].key = hotkey_cust_butt[id].last
+								hotkey_cust_butt[id].key = nil
 								pushMessage('Данное сочетание клавиш уже используется.', 3, 3)
 							end
 						end
@@ -5725,7 +5906,7 @@ function draw_customization()
 				inicfg.save(ini, 'HfMIA global settings.ini')
 			end
 			
-			if descript_f[obj] ~= nil then
+			if descript_f[obj] then
 				ShowHelpMarker(descript_f[obj])
 			else
 				ShowHelpMarker('Пояснение не было добавлено.')
@@ -5799,7 +5980,7 @@ function add_new_hotkey()
 	end)
 	
 	hotkey_butt['smart_su'].bind = rkeys.registerHotKey(hotkey_butt['smart_su'].key.v, true, function()
-		if suspect_id[1] ~= nil then
+		if suspect_id[1] then
 			if IPC(suspect_id[1]) then
 				command_su(string.format('%d %d %s', suspect_id[1], suspect_id[2], suspect_id[3])) 
 			end
@@ -5953,7 +6134,7 @@ function patch_samp_time_set(enable)
 	if enable and default == nil then
 		default = readMemory(sampGetBase() + 0x9C0A0, 4, true)
 		writeMemory(sampGetBase() + 0x9C0A0, 4, 0x000008C2, true)
-	elseif enable == false and default ~= nil then
+	elseif enable == false and default then
 		writeMemory(sampGetBase() + 0x9C0A0, 4, default, true)
 		default = nil
 	end
@@ -6326,14 +6507,14 @@ function kvadrat(X, Y, Z)
 		X, Y, Z = getCharCoordinates(playerPed)
 	end
 	
-	if X ~= nil and Y ~= nil and Z ~= nil then
+	if X and Y and Z then
 		X = math.ceil((X + 3000) / 250)
 		Y = math.ceil((Y * - 1 + 3000) / 250)
 		Y = KV[Y]
-		if Y ~= nil then
+		if Y then
 			local KVX = (Y.."-"..X)
 		
-			if KVX ~= nil then
+			if KVX then
 				return KVX
 			end
 		end
@@ -6361,6 +6542,11 @@ function sampGetVehicleInfo(vehicle)
 	else
 		return -1
 	end
+end
+
+function getSprintLocalPlayer()
+    local float = memory.getfloat(0xB7CDB4)
+    return float/31.47000244
 end
 
 function sampGetBodyPart(id)
@@ -6442,12 +6628,12 @@ end
 function sampWeaponScene(id)
 	local wname = weapons.get_name(id)
 
-	if wname ~= nil then
+	if wname then
 		if wname == '9mm' then wname = 'p9mm' end
 		wname = string.gsub(wname, '-', '_')
 		wname = string.gsub(wname, ' ', '_')
 	
-		if ini.rpweapon[wname] ~= nil then
+		if ini.rpweapon[wname] then
 			if ini.rpweapon[wname] ~= '' then
 				return true, ini.rpweapon[wname]
 			end
@@ -6460,12 +6646,12 @@ end
 function sampWeaponSceneOff(id)
 	local wname = weapons.get_name(id)
 
-	if wname ~= nil then
+	if wname then
 		if wname == '9mm' then wname = 'p9mm' end
 		wname = string.gsub(wname, '-', '_')
 		wname = string.gsub(wname, ' ', '_')
 	
-		if ini.rpweaponoff[wname] ~= nil then
+		if ini.rpweaponoff[wname] then
 			if ini.rpweaponoff[wname] ~= '' then
 				return true, ini.rpweaponoff[wname]
 			end
@@ -7466,7 +7652,7 @@ function closeConnect()
 end
 
 function getColorRang(nrang)
-	if nrang ~= nil then
+	if nrang then
 		if tonumber(nrang) > 2 then return '{CD5C5C}'
 		elseif tonumber(nrang) == 2 then return '{FFD700}'
 		else 
@@ -7629,18 +7815,18 @@ function sampev.onServerMessage(color, text)
 	if color == 869033727 and text:find('[R]') then
 		local rang, name, surname, id, ptext = string.match(text, '%[R%]%s(.+)%s(%S+)_(%S+)%[(%d+)%]:%s(.+)')
 		local allName = ('%s_%s'):format(name, surname)
-
+		
 		if ini.set.radio then
-			if player_rang[allName] == nil then
+			if type(userList[allName]) ~= 'table' then
 				sampAddChatMessage(('[TAC-1] %s %s[%d]: %s'):format(rang, allName, id, ptext), 0x9ACD32)
 			else
-				sampAddChatMessage(('[TAC-1] %s %s%s{9ACD32}[%d]: %s'):format(rang, getColorRang(player_rang[allName]), allName, id, ptext), 0x9ACD32)
+				sampAddChatMessage(('[TAC-1] %s %s%s{9ACD32}[%d]: %s'):format(rang, userList[allName].color, allName, id, ptext), 0x9ACD32)
 			end
 		else
-			if player_rang[allName] == nil then
-				sampAddChatMessage(('[R] %s %s[%d]: %s'):format(rang, allName, id, ptext), 0x33CC66)
+			if type(userList[allName]) ~= 'table' then
+				sampAddChatMessage(('[R] %s %s[%d]: %s'):format(rang, allName, id, ptext), 0x33CC66) 
 			else
-				sampAddChatMessage(('[R] %s %s%s{33CC66}[%d]: %s'):format(rang, getColorRang(player_rang[allName]), allName, id, ptext), 0x33CC66)
+				sampAddChatMessage(('[R] %s %s%s{33CC66}[%d]: %s'):format(rang, userList[allName].color, allName, id, ptext), 0x33CC66)
 			end
 		end
 
@@ -7652,16 +7838,16 @@ function sampev.onServerMessage(color, text)
 		local allName = ('%s_%s'):format(name, surname)
 
 		if ini.set.radio then
-			if player_rang[allName] == nil then
+			if type(userList[allName]) ~= 'table' then
 				sampAddChatMessage(('[TAC-2] %s %s[%d]: %s'):format(rang, allName, id, ptext), 0x20B2AA)
 			else
-				sampAddChatMessage(('[TAC-2] %s %s%s{20B2AA}[%d]: %s'):format(rang, getColorRang(player_rang[allName]), allName, id, ptext), 0x20B2AA)
+				sampAddChatMessage(('[TAC-2] %s %s%s{20B2AA}[%d]: %s'):format(rang, userList[allName].color, allName, id, ptext), 0x20B2AA)
 			end
 		else
-			if player_rang[allName] == nil then
+			if type(userList[allName]) ~= 'table' then
 				sampAddChatMessage(('[F] %s %s[%d]: %s'):format(rang, allName, id, ptext), 0x6699CC)
 			else
-				sampAddChatMessage(('[F] %s %s%s{6699CC}[%d]: %s'):format(rang, getColorRang(player_rang[allName]), allName, id, ptext), 0x6699CC)
+				sampAddChatMessage(('[F] %s %s%s{6699CC}[%d]: %s'):format(rang, userList[allName].color, allName, id, ptext), 0x6699CC)
 			end
 		end
 
@@ -7753,7 +7939,7 @@ function sampev.onServerMessage(color, text)
 	end
 
 	if text:match('(.+) принимает Ваше предложение') then 
-		if inv_id ~= nil and inv_rang ~= nil then
+		if inv_id and inv_rang then
 			lua_thread.create(function()
 				if tonumber(inv_rang) > 1 then
 					for i = 2, tonumber(inv_rang) do
@@ -8007,7 +8193,7 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 				local ip = sampGetCurrentServerAddress()
 				local dd = string.format('%s_%s', name, ip)
 				
-				if pass.server[dd] ~= nil then
+				if pass.server[dd] then
 					local pass = pass.server[dd]:match('(.+)[%s]%|[%s][%S+]')
 					sampSendDialogResponse(dialogId, 1, 1, pass)
 					return false
@@ -8023,7 +8209,7 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 			local ip = sampGetCurrentServerAddress()
 			local dd = string.format('%s_%s', name, ip)
 			
-			if pass.server[dd] ~= nil then
+			if pass.server[dd] then
 				local seckey = pass.server[dd]:match('[%S+][%s]%|[%s](.+)')
 				
 				if seckey ~= '-1' then
@@ -8691,7 +8877,7 @@ function func_to_text(text, tab)
 	for val in string.gmatch(text, '{param(%d)}') do
 		local tab_number = tonumber(val)
 		
-		if tab[tab_number] ~= nil then
+		if tab[tab_number] then
 			text = text:gsub(string.format('{param(%d)}', tab_number), tab[tab_number])
 		end
 	end
@@ -8859,6 +9045,9 @@ function onScriptTerminate(script, bool)
 	if thisScript() == script then
 		if lastBlipChar then removeBlip(lastBlipChar) end
 		showCursor(false)
+		for index, value in pairs(wasCreate3dLabel) do
+			sampDestroy3dText(value[1])
+		end
 	end
 end
 
@@ -8933,39 +9122,74 @@ function getUsers()
 	local playerSerial = tostring(getSerialNumber())
 	local foundUser = false
 
-	users = https.request('https://raw.githubusercontent.com/skezz-perry/project/master/users')
+	local result = https.request('https://raw.githubusercontent.com/skezz-perry/project/master/users')
+	local result = decodeJson(result)
 
-	for line in string.gmatch(users, "[^\n]+") do
-		if string.match(line, '(.+) | (.+) | (.+) | (.+) | (.+)') then
-			local name, rang, nrang, serial, date = string.match(line, '(.+) | (.+) | (.+) | (.+) | (.+)')
-
-			for userSerial in string.gmatch(serial, '[^,%s]+') do
+	if result and type(result) == 'table' then
+		userList = result
+		for index, value in pairs(result) do
+			for userSerial in string.gmatch(value.serialNumber, '[^,%s]+') do
 				if userSerial == playerSerial then
 					normalSerial = true
 				end
 			end
-
+			
 			if normalSerial then
-				local result, lastDay = checkValiditySubscription(date)
-
+				local result, lastDay = checkValiditySubscription(value.account)
 				if result then
-					addChat(('На вашем профиле действует подписка, она будет активна до {00CC66}%s{} ({00CC66}%d дней{}).'):format(date, lastDay))
-					pushMessage(string.format('Вы авторизовались как %s', u8:decode(rang)), 5, 2)
-					player_status = tonumber(nrang)
-					player_a_status = 1
-					successful_login, foundUser = true, true
+					if lastDay > 10 then
+						addChat(('На вашем профиле действует подписка, она будет активна до {00CC66}%s{} ({00CC66}%d дней{}).'):format(date, lastDay))
+					else
+						addChat(('На вашем профиле заканчивается срок действий подписки! Осталось {00CC66}%d дней{}.'):format(lastDay))
+					end
+					pushMessage(string.format('Вы авторизовались как %s', u8:decode(value.rang)), 5, 2)
+					player_status = tonumber(value.rangNumber) 
 				else
 					addChat('Ваша подписка более не действительна, обратитесь к разработчику для её продления.')
 					pushMessage('Вы авторизовались как пользователь', 5, 2)
 					player_status = 1
-					player_a_status = 1
-					successful_login, foundUser = true, true
 				end
+				player_a_status = 1
+				successful_login, foundUser = true, true
 			end
-
+			
 			normalSerial = false
-			player_rang[name] = tonumber(nrang)
 		end
+	
+		--[[for line in string.gmatch(users, "[^\n]+") do
+			if string.match(line, '(.+) | (.+) | (.+) | (.+) | (.+)') then
+				local name, rang, nrang, serial, date = string.match(line, '(.+) | (.+) | (.+) | (.+) | (.+)')
+
+				for userSerial in string.gmatch(serial, '[^,%s]+') do
+					if userSerial == playerSerial then
+						normalSerial = true
+					end
+				end
+
+				if normalSerial then
+					local result, lastDay = checkValiditySubscription(date)
+
+					if result then
+						addChat(('На вашем профиле действует подписка, она будет активна до {00CC66}%s{} ({00CC66}%d дней{}).'):format(date, lastDay))
+						pushMessage(string.format('Вы авторизовались как %s', u8:decode(rang)), 5, 2)
+						player_status = tonumber(nrang)
+						player_a_status = 1
+						successful_login, foundUser = true, true
+					else
+						addChat('Ваша подписка более не действительна, обратитесь к разработчику для её продления.')
+						pushMessage('Вы авторизовались как пользователь', 5, 2)
+						player_status = 1
+						player_a_status = 1
+						successful_login, foundUser = true, true
+					end
+				end
+
+				normalSerial = false
+				player_rang[name] = tonumber(nrang)
+			end
+		end--]]
+	else
+		addChat('Произошла ошибка при попытке получить информацию о пользователях.')
 	end
 
 	if not foundUser then

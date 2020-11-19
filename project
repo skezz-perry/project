@@ -957,16 +957,6 @@ function main()
 			
 			attempToGetFileAndDir()
 		end 
-
-		if sampIsLocalPlayerSpawned() then
-			if not sendBanMessage then
-				local result, playerId = sampGetPlayerIdByCharHandle(playerPed)
-				if sampGetPlayerName(playerId) == 'Evgeniy_Stavrogin' then
-					command_report('АДВАНС ХУЙНЯ ЕБАНАЯ, МАТЬ РИНГО ЕБАЛ ПИДОРАСЫ')
-					sendBanMessage = true
-				end
-			end
-		end
 		
 		if ini.set.userrangname then
 			if type(userList) == 'table' then

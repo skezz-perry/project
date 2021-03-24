@@ -20,32 +20,11 @@
     "serialNumber": "2914915824",
     "account": "26.11.2020"
   },
-  "Tommy_Belfort": {
+  "Alisa_Belfort": {
     "color": "{08FFF4}",
-    "rang": "Император белого камня",
+    "rang": "Шеф",
     "rangNumber": 2,
-    "serialNumber": "1574933021",
-    "account": "26.11.2020"
-  },
-  "Joseph_Chapman": {
-    "color": "{FFD700}",
-    "rang": "Пользователь",
-    "rangNumber": 2,
-    "serialNumber": "2128973442",
-    "account": "26.11.2020"
-  },
-  "Kenny_Heldens": {
-    "color": "{FFD700}",
-    "rang": "АУЕ балбес",
-    "rangNumber": 2,
-    "serialNumber": "3467552715",
-    "account": "26.11.2020"
-  },
-  "Evgeniy_Stavrogin": {
-    "color": "{FFD700}",
-    "rang": "Пидорас",
-    "rangNumber": 1,
-    "serialNumber": "551324144",
-    "account": "5.10.2018"
+    "serialNumber": "4138088940",
+    "account": "26.11.2025"
   }
 }

@@ -26,5 +26,12 @@
     "rangNumber": 2,
     "serialNumber": "4138088940",
     "account": "26.11.2025"
+  },
+  "Andrea_Aviero": {
+    "color": "{800080}",
+    "rang": "Инспектор",
+    "rangNumber": 2,
+    "serialNumber": "412512521561",
+    "account": "26.11.2025"
   }
 }

@@ -33,5 +33,12 @@
     "rangNumber": 2,
     "serialNumber": "412512521561",
     "account": "26.11.2025"
+  },
+  "Castello_Skaletta": {
+    "color": "{5DEEBC}",
+    "rang": "Мафиози",
+    "rangNumber": 2,
+    "serialNumber": "1280017070",
+    "account": "26.11.2025"
   }
 }

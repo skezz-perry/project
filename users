@@ -6,7 +6,7 @@
     "serialNumber": "2323311406 776753279",
     "account": "26.11.2025"
   },
-  "Thanatos_Peugeot": {
+  "Philip_Plakin": {
     "color": "{e33434}",
     "rang": "Модератор",
     "rangNumber": 3,
@@ -18,27 +18,27 @@
     "rang": "Бумер",
     "rangNumber": 3,
     "serialNumber": "2914915824",
-    "account": "26.11.2020"
+    "account": "26.11.2025"
   },
   "Alisa_Belfort": {
     "color": "{08FFF4}",
     "rang": "Шеф",
     "rangNumber": 2,
     "serialNumber": "4138088940",
-    "account": "26.11.2025"
+    "account": "26.11.2021"
   },
-  "Andrea_Aviero": {
+  "Mario_DeConte": {
     "color": "{800080}",
     "rang": "Инспектор",
     "rangNumber": 2,
     "serialNumber": "412512521561",
-    "account": "26.11.2025"
+    "account": "26.11.2021"
   },
   "Castello_Skaletta": {
     "color": "{5DEEBC}",
     "rang": "Мафиози",
     "rangNumber": 2,
     "serialNumber": "1280017070",
-    "account": "26.11.2025"
+    "account": "26.11.2021"
   }
 }

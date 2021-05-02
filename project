@@ -6,7 +6,7 @@
 --   |_/ \_|  |____\  |_____/ |_|      |____\  |_| \_\       |_|     \_____/  |_| \_\       |_|   |_|  |_|   \ ___/\/
 
 script_name("helper-for-mia")
-script_version(17.8)
+script_version(17.9)
 --script_properties("work-in-pause")
 
 require "lib.moonloader"
@@ -848,7 +848,7 @@ function main()
 						if lastBlipChar then removeBlip(lastBlipChar) end
 						if sampGetPlayerColor(target_id) ~= 2236962 then
 							lastBlipChar = addBlipForChar(ped)
-							changeBlisPlayerConnectedolour(lastBlipChar, "0x" .. sampGetColorByPlayer(id) .. "FF")
+							changeBlipColour(lastBlipChar, "0x" .. sampGetColorByPlayer(id) .. "FF")
 						end
 					end
 				end
@@ -5663,9 +5663,9 @@ end
 function sampIsPoliceOfficerById(ped)
 	local result, playerId = sampGetPlayerIdByCharHandle(ped)
 	if result then
-		if sampGetPlayerColor(id) == 4278190335 then
+		if sampGetPlayerColor(playerId) == 4278190335 then
 			return true
-		elseif sampGetPlayerColor(id) == 2236962 then
+		elseif sampGetPlayerColor(playerId) == 2236962 then
 			local model = getCharModel(ped)
 			if model >= 280 and model <= 286 then 
 				return true 

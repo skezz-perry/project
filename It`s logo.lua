@@ -1,4 +1,4 @@
-﻿script_author('Skezz Perry')
+script_author('Skezz Perry')
 script_version('1.0')
 
 local memory = require 'memory'
@@ -187,7 +187,7 @@ end
 
 function sampev.onShowTextDraw(id)
     if not delayRender then
-        if id >= 46 and id <= 59 then
+        if id >= 188 and id <= 201 then
             return false
         end
     end

@@ -31,26 +31,7 @@ function main()
 	end)
 	
     while true do wait(0) 
-        if compass then
-            renderCompass(cx, cy, 15)
-        
-            if isPlayerPlaying(playerHandle) then
-                if isCharOnFoot(playerPed) and not isCharInAir(playerPed) then
-                    if isButtonPressed(playerHandle, 16) -- sprint
-                    and isButtonPressed(playerHandle, 6) -- aim
-                    then
-                        local weap = getCurrentCharWeapon(playerPed)
-                        local slot = getWeapontypeSlot(weap)
-                        if slot >= 2 and slot <= 8 then
-                            while isButtonPressed(playerHandle, 6) do
-                                wait(0)
-                                setGameKeyState(16, 0)
-                            end
-                        end
-                    end
-                end
-            end
-        end
+        if compass then renderCompass(cx, cy, 15) end
     end
 end
 

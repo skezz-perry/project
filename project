@@ -6,7 +6,7 @@
 --   |_/ \_|  |____\  |_____/ |_|      |____\  |_| \_\       |_|     \_____/  |_| \_\       |_|   |_|  |_|   \ ___/\/
 
 script_name("helper-for-mia")
-script_version(17.9)
+script_version(18.0)
 --script_properties("work-in-pause")
 
 require "lib.moonloader"
@@ -43,6 +43,7 @@ local fontSuspect4 = renderCreateFont("Calibri", 8, font_flag.BOLD + font_flag.S
 --
 
 local updateLog = [[
+[v18.0] = Добавлен тактический компас, расширены возможности модификаций.,
 [v17.8] = Добавлен тестовый патрульный ассистент.,
 [v17.8] = Изменена определённая часть отыгровок.,
 [v17.8] = Добавлены альтернативные модификации для спидометра и логотипа.,
@@ -280,7 +281,8 @@ local ini = inicfg.load({
 		ivehiclebarX         = 500,
 		ivehiclebarY         = 500,
 		smarker              = true,
-		userrangname         = true
+		userrangname         = true,
+		patrol               = true
 	},
 	uk_set = {
 		insubordination      = "3 | 31.2 УК", -- неподчинение
@@ -704,7 +706,7 @@ local editor             = imgui.ImBool(false)
 function main()
 	if not isSampLoaded() or not isSampfuncsLoaded() then return end
 	while not isSampAvailable() do wait(100) end
-	
+
 	autoUpdate("https://raw.githubusercontent.com/skezz-perry/project/master/version", "https://raw.githubusercontent.com/skezz-perry/project/master/project")
 
 	sampRegisterChatCommand("helpimage", function()
@@ -1177,28 +1179,30 @@ function renderPlayerText()
 	while true do wait(0)
 		local step, step_vehicle = 0.1, 0.15
 		
-		if global_patrol then
-			if os.clock() - patrol_mark_update > 5 then
-				patrol_mark = string.upper(sampGetMarkCharByVehicle(playerPed))
-				patrol_mark_update = os.clock()
+		if ini["set"]["patrol"] then
+			if global_patrol then
+				if os.clock() - patrol_mark_update > 5 then
+					patrol_mark = string.upper(sampGetMarkCharByVehicle(playerPed))
+					patrol_mark_update = os.clock()
+				end
+				
+				if isCharInAnyCar(playerPed) then
+					step_vehicle = step_vehicle - 0.1
+					fX, fY, fZ = getOffsetFromCarInWorldCoords(storeCarCharIsInNoSave(playerPed), 1.2, 0.0, step_vehicle)
+				else 
+					step = step - 0.05
+					fX, fY, fZ = getOffsetFromCharInWorldCoords(playerPed, 0.33, 0.0, step)
+				end local x, y = convert3DCoordsToScreen(fX, fY, fZ)
+				
+				local time
+				if start_code_1 then
+					time = 30 - (os.clock() - start_code_1)
+					if time < 0 then start_code_1 = nil end
+				end
+				
+				local text = start_code_1 and string.format("PRESS {00CC66}Y{ffffff} TO DECLARE {C22222}CODE 1{ffffff}! (%d OF 30)", time) or string.format("%s | CODE: {C22222}%d", patrol_mark, global_patrol)
+				renderFontDrawText(fontSuspect4, text, x, y, 0xFFFFFFFF)
 			end
-			
-			if isCharInAnyCar(playerPed) then
-				step_vehicle = step_vehicle - 0.1
-				fX, fY, fZ = getOffsetFromCarInWorldCoords(storeCarCharIsInNoSave(playerPed), 1.2, 0.0, step_vehicle)
-			else 
-				step = step - 0.05
-				fX, fY, fZ = getOffsetFromCharInWorldCoords(playerPed, 0.33, 0.0, step)
-			end local x, y = convert3DCoordsToScreen(fX, fY, fZ)
-			
-			local time
-			if start_code_1 then
-				time = 30 - (os.clock() - start_code_1)
-				if time < 0 then start_code_1 = nil end
-			end
-			
-			local text = start_code_1 and string.format("PRESS {00cc99}Y{ffffff} TO DECLARE {C22222}CODE 1{ffffff}! (%d OF 30)", time) or string.format("%s | CODE: {C22222}%d", patrol_mark, global_patrol)
-			renderFontDrawText(fontSuspect4, text, x, y, 0xFFFFFFFF)
 		end
 	
 		if maskTimer.state then
@@ -1441,7 +1445,8 @@ function suspectBar()
 end
 
 function command_patrol()
-	global_patrol = global_patrol and nil or 4
+	if global_patrol then global_patrol = nil
+	else global_patrol = 4 end
 end
 
 function command_phone()
@@ -4294,6 +4299,8 @@ function draw_another_settings()
 	if toggleButton("Маркер над головой игроков при наведении", "set", "smarker") then
 		if lastBlipChar then removeBlip(lastBlipChar) end 
 	end
+	
+	toggleButton("Информация о маркировке и статусе", "set", "patrol")
 end
 
 function draw_settings_rpweapon()
@@ -4740,6 +4747,7 @@ function draw_modification()
 	
 	if imgui.TreeNode(u8"Новый спидометр") then
 		--toggleButton("Включить отображение нового спидометра.", "set", "ivehiclebar")
+		imgui.Text(u8"Для отключения спидометра используйте команду /sp_off.")
 		imgui.Text(u8"Чтобы изменить местоположение спидометра используйте команду /sp_change.")
 		if imgui.Button(u8"Скачать speedometr.lua") then
 			local path = string.format("%s//speedometr.lua", getWorkingDirectory())
@@ -4751,6 +4759,21 @@ function draw_modification()
 		
 		imgui.TreePop()
 	end--]]
+	
+	if imgui.TreeNode(u8"Тактический компас") then
+		--toggleButton("Включить отображение нового спидометра.", "set", "ivehiclebar")
+		imgui.Text(u8"Для отключения компаса используйте команду /cmp_off.")
+		imgui.Text(u8"Чтобы изменить местоположение компаса используйте команду /cmp_change.")
+		if imgui.Button(u8"Скачать compass.lua") then
+			local path = string.format("%s//compass.lua", getWorkingDirectory())
+			if not doesFileExist(path) then
+				downloadUrlToFile("https://raw.githubusercontent.com/skezz-perry/project/master/compass.lua", path)
+				chat("Модификация установится через несколько секунд. Для активации нажмите CTRL + R.")
+			else chat("Данная модификация или схожий с ней файл уже сущестуют в библиотеке.") end
+		end
+		
+		imgui.TreePop()
+	end
 
 	if imgui.TreeNode(u8"Динамическое обновление времени") then
 		toggleButton("Включить динамическое обновление времени в зависимости от глобального.", "set", "normalTime")

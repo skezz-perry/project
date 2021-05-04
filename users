@@ -40,5 +40,12 @@
     "rangNumber": 2,
     "serialNumber": "1280017070",
     "account": "26.11.2021"
+  },
+  "Drago_Hurricane": {
+    "color": "{FFC300}",
+    "rang": "Senior Deputy Sheriff",
+    "rangNumber": 2,
+    "serialNumber": "2630765252",
+    "account": "26.11.2021"
   }
 }

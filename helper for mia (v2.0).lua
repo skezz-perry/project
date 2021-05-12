@@ -1,6 +1,6 @@
 script_name("helper-for-mia (v2.0)")
 script_author("Joachim von Ribbentrop")
-script_version("0.0.2")
+script_version("0.0.3")
 
 require "deps" {
 	"fyp:mimgui@1.4.1",
@@ -23,6 +23,7 @@ local inicfg = require "inicfg"
 local gauth = require "gauth"
 local https = require "ssl.https" 
 local downloadStatus = require("moonloader").download_status
+local player_serial
 lsampev, sampev = pcall(require, "lib.samp.events")
 encoding.default = "CP1251"
 u8 = encoding.UTF8
@@ -31,6 +32,7 @@ imgui.HotKey = mimgui_addons.HotKey
 
 -- global value
 local update_log = {
+	{["0.0.3"] = {"Добавлена отправка сообщения о авторизации конкретного пользователя в телеграм-бот.", "Добавлена возможность печатать при прицеливании (правый ctrl)."}},
 	{["0.0.2"] = {"Добавлена система авто-обновлений."}},
 	{["0.0.1"] = {"Начало разработки..."}}
 }
@@ -832,6 +834,7 @@ local convert_patrol_list = {"L", "A", "M", "C", "D", "H", "ASD", "SUPERVISOR"}
 local imgui_patrol_current = new.int(0)
 local imgui_patrol_number = new.char[256]()
 local imgui_custom_float = new.float(0)
+local pricel
 -- !local value
 
 -- const 
@@ -1617,6 +1620,8 @@ function main()
 	if not isSampLoaded() or not isSampfuncsLoaded() then return end
 	while not isSampAvailable() do wait(100) end
 	
+	print("\n\n")
+	local start_time = os.clock()
 	autoUpdate("https://raw.githubusercontent.com/skezz-perry/project/master/version_2", "https://raw.githubusercontent.com/skezz-perry/project/master/helper%20for%20mia%20(v2.0).lua")
 	
 	-- ивенты
@@ -1721,7 +1726,17 @@ function main()
 	lua_thread.create(t_stroboscopes)
 	lua_thread.create(patrol_assistant)
 	
-	while true do wait(0) end
+	print(string.format("Общее время загрузки игрового помощника: %s\n\n", os.clock() - start_time))
+	
+	while true do wait(0) 
+		if wasKeyPressed(vkeys.VK_RCONTROL) then
+            if not isCharSittingInAnyCar(playerPed) then
+                pricel = not pricel
+            end
+        end
+		
+        if pricel then memory.write(12 + 12006488, 2, 128, false) end
+	end
 end
 -- !main
 
@@ -3563,6 +3578,16 @@ function getSerialNumber()
 	
 	return serial
 end
+
+function urlencode(str)
+   if (str) then
+      str = string.gsub (str, "\n", "\r\n")
+      str = string.gsub (str, "([^%w ])",
+         function (c) return string.format ("%%%02X", string.byte(c)) end)
+      str = string.gsub (str, " ", "+")
+   end
+   return str
+end
 -- !function  
 
 -- event
@@ -4080,6 +4105,15 @@ end
 -- !event
 
 -- https
+local url = 'https://api.telegram.org/bot'
+local token = '1844452113:AAGwnnAxzMOUdgvfemz6w289LuLwYjd_si4'
+
+function send(text)
+	local text = urlencode(string.format("SN[%s] V[%s]: %s", player_serial, thisScript().version, text))
+	local request = string.format("%s%s/sendMessage?chat_id=766017841&text=%s", url, token, text)
+	https.request(request)
+end
+ 
 function attempToGetFileAndDir()
 	local start_time = os.clock()
 	local url = "https://raw.githubusercontent.com/skezz-perry/files/master/epk"
@@ -4118,7 +4152,7 @@ function getUsers()
 	local start_time = os.clock()
 	local _result, id = sampGetPlayerIdByCharHandle(playerPed)
 	local player_name = sampGetPlayerNickname(id)
-	local player_serial = tostring(getSerialNumber())
+	player_serial = tostring(getSerialNumber())
 	local normal_serial = false
 
 	local result = https.request("https://raw.githubusercontent.com/skezz-perry/project/master/users")
@@ -4135,7 +4169,11 @@ function getUsers()
 				end
 			end
 		end
-		if normal_serial then chat("Вы авторизовались как пользователь.") end
+		if normal_serial then 
+			send(u8(string.format("\n%s авторизовался как пользователь %s-го уровня.", player_name, player_status)))
+		else
+			send(u8(string.format("\n%s авторизовался как неизвестный пользователь.", player_name)))
+		end
 		print(string.format("Список пользователей был подгружен за %s.", os.clock() - start_time))
 	else chat("Произошла ошибка при попытке получить информацию о пользователях.") end
 end
@@ -4158,41 +4196,9 @@ function autoUpdate(versionUrl, updateUrl)
 				local file_text = u8:decode(file)
 				local file = io.open(thisScript().path, "w")
 				file:write(file_text)
-				file:close()
+				file:close() 
 			else chat("Произошла ошибка при попытке обновления игрового помощника. Код ошибки: #2.") end
 		end
 	else chat("Произошла ошибка при попытке обновления игрового помощника. Код ошибки: #1.") end
-	
-	--[[downloadUrlToFile(versionUrl, versionPath, function(id, status, value1, value2)
-		if status == downloadStatus.STATUSEX_ENDDOWNLOAD then
-			if doesFileExist(versionPath) then
-				local versionFile = io.open(versionPath, "r")
-
-				if versionFile then
-					local versionInfo = decodeJson(versionFile:read("*a"))
-					versionFile:close() os.remove(versionPath)
-
-					if versionInfo.latest == thisScript().version then
-						chat("Игровой помощник был успешно запущен. Вы используйте актуальную версию скрипта.")
-						getUsers()
-					else
-						lua_thread.create(function()
-							wait(200)
-
-							downloadUrlToFile(updateUrl, thisScript().path, function(id, status, value1, value2)
-								if status == downloadStatus.STATUSEX_ENDDOWNLOAD then
-									chat("Игровой помощник был автоматически обновлён до новейшей версии. Подробнее на главной странице.")
-									decode()
-									lua_thread.create(function() wait(1000) thisScript():reload() end)
-								end
-							end)
-						end)
-					end
-				end
-			else
-				chat("Произошла ошибка при попытке обновления игрового помощника. Код ошибки: #1.")
-			end
-		end
-	end)--]]
 end
 -- !https

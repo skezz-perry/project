@@ -5,7 +5,8 @@
     "rangNumber": 4,
     "serialNumber": "2323311406 776753279",
     "account": "26.11.2025",
-    "user_slots_value": 100
+    "user_slots_value": 100,
+    "subscription": 1627203600
   },
   "Philip_Plakin": {
     "color": "{e33434}",
@@ -13,7 +14,8 @@
     "rangNumber": 3,
     "serialNumber": "352109051 2669911894",
     "account": "26.11.2025",
-    "user_slots_value": 100
+    "user_slots_value": 100,
+    "subscription": 1627203600
   },
   "Vadim_Moralles": {
     "color": "{e33434}",
@@ -21,7 +23,8 @@
     "rangNumber": 3,
     "serialNumber": "2914915824",
     "account": "26.11.2025",
-    "user_slots_value": 100
+    "user_slots_value": 100,
+    "subscription": 1627203600
   },
   "Alisa_Belfort": {
     "color": "{08FFF4}",
@@ -29,7 +32,8 @@
     "rangNumber": 2,
     "serialNumber": "4138088940",
     "account": "26.11.2021",
-    "user_slots_value": 25
+    "user_slots_value": 25,
+    "subscription": 1627203600
   },
   "Mario_DeConte": {
     "color": "{6A5ACD}",
@@ -37,7 +41,8 @@
     "rangNumber": 2,
     "serialNumber": "412512521561",
     "account": "26.11.2021",
-    "user_slots_value": 25
+    "user_slots_value": 25,
+    "subscription": 1627203600
   },
   "Castello_Skaletta": {
     "color": "{5DEEBC}",
@@ -45,7 +50,8 @@
     "rangNumber": 2,
     "serialNumber": "1280017070",
     "account": "26.11.2021",
-    "user_slots_value": 25
+    "user_slots_value": 25,
+    "subscription": 1627203600
   },
   "Drago_Hurricane": {
     "color": "{FFC300}",
@@ -53,6 +59,7 @@
     "rangNumber": 2,
     "serialNumber": "2630765252",
     "account": "26.11.2021",
-    "user_slots_value": 25
+    "user_slots_value": 25,
+    "subscription": 1627203600
   }
 }

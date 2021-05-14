@@ -1,6 +1,6 @@
 script_name("helper-for-mia (v2.0)")
 script_author("Joachim von Ribbentrop")
-script_version("0.0.3")
+script_version("0.0.4")
 
 require "deps" {
 	"fyp:mimgui@1.4.1",
@@ -20,10 +20,9 @@ local encoding = require "encoding"
 local memory = require "memory"
 local xconf = require "xconf" 
 local inicfg = require "inicfg"
-local gauth = require "gauth"
+local gauth = require "gauth" 
 local https = require "ssl.https" 
 local downloadStatus = require("moonloader").download_status
-local player_serial
 lsampev, sampev = pcall(require, "lib.samp.events")
 encoding.default = "CP1251"
 u8 = encoding.UTF8
@@ -32,10 +31,11 @@ imgui.HotKey = mimgui_addons.HotKey
 
 -- global value
 local update_log = {
+	{["0.0.4"] = {"Добавлен CamHack (c + 1).", "Улучшен разделитель строк по пробелам, теперь не кикает из игры."}},
 	{["0.0.3"] = {"Добавлена отправка сообщения о авторизации конкретного пользователя в телеграм-бот.", "Добавлена возможность печатать при прицеливании (правый ctrl)."}},
 	{["0.0.2"] = {"Добавлена система авто-обновлений."}},
 	{["0.0.1"] = {"Начало разработки..."}}
-}
+} 
 
 local fontSuspect4 = renderCreateFont("Tahoma", 6, font_flag.BOLD + font_flag.SHADOW)
 
@@ -60,7 +60,7 @@ local t_vehicle_name = {"Landstalker", "Bravura", "Buffalo", "Linerunner", "Perr
 local t_vehicle_type_name = {"Автомобиль", "Мотоцикл", "Вертолёт", "Самолёт", "Прицеп", "Лодка", "Другое", "Поезд", "Велосипед"}
 local tf_vehicle_type_name = {
 	{"автомобиля", "мотоцикла", "вертолёта", "самолёта", "прицепа", "лодки", "", "поезда", "велосипеда"},
-	{"автомобилем", "мотоциклом", "вертолётом", "самолётом", "прицепом", "лодкой", "поездом", "велосипедом"}
+	{"автомобилем", "мотоциклом", "вертолётом", "самолётом", "прицепом", "лодкой", "поездом", "велосипедом"} 
 }
 
 local t_vehicle_speed = {43, 40, 51, 30, 36, 45, 30, 41, 27, 43, 36, 61, 46, 30, 29, 53, 42, 30, 32, 41, 40, 42, 38, 27, 37,
@@ -196,7 +196,8 @@ if configuration_main1 then
 			[1] = {status = true, name = u8("Диалог списка лидеров (/leaders)")},
 			[2] = {status = true, name = u8("Диалог списка сотрудников (/find)")},
 			[3] = {status = true, name = u8("Диалог списка розыскиваемых (/wanted)")},
-			[4] = {status = true, name = u8("Диалог службы точного времени (/c 60)")}
+			[4] = {status = true, name = u8("Диалог службы точного времени (/c 60)")},
+			[5] = {status = true, name = u8("Диалог информации о АЗС (/fuel)")},
 		},
 		system_commands = {
 			[1] = {name = "mh", status = true, callback = "command_mh", variations = {}, description = u8("Открывает основное меню.")},
@@ -835,6 +836,9 @@ local imgui_patrol_current = new.int(0)
 local imgui_patrol_number = new.char[256]()
 local imgui_custom_float = new.float(0)
 local pricel
+local flymode
+local camera = {}
+local player_serial
 -- !local value
 
 -- const 
@@ -847,6 +851,29 @@ local abbreviated_codes = {
 	["cod 0"] = {"$m to DISP, CODE 0, требуется срочная помощь в район $p, недоступен.", function() patrol_status["status"] = 0 end},
 	["cod 1"] = {"$m to DISP, CODE 1, требуется помощь в район $p, недоступен.", function() patrol_status["status"] = 1 end}, 
 	["s 99"] = {"$m to DISP, 10-99 по последней ситуации, CODE: 4, доступен.", function() patrol_status["status"] = 4 end}
+}
+local t_fuel_station = {
+	[0] = {x = 1941.6208496094, y = -1769.3118896484, z = 13.640625},
+	[1] = {x = 1000.4306640625, y = -937.40905761719, z = 42.328125},
+	[2] = {x = 655.79522705078, y = -564.87713623047, z = 15.903906822205},
+	[3] = {x = -2244.2521972656, y = -2560.7556152344, z = 31.488304138184},
+	[4] = {x = -1606.1212158203, y = -2713.9748535156, z = 48.099872589111},
+	[5] = {x = -2025.7088623047, y = 156.74633789063, z = 29.0390625},
+	[6] = {x = -2410.0356445313, y = 976.25115966797, z = 45.425102233887},
+	[7] = {x = -1675.8916015625, y = 412.89123535156, z = 6.7495198249817},
+	[8] = {x = -1328.3719482422, y = 2677.5046386719, z = 49.629257202148},
+	[9] = {x = -91.141693115234, y = -1169.1536865234, z = 1.9911493062973},
+	[10] = {x = 1381.5281982422, y = 459.86477661133, z = 20.345203399658},
+	[11] = {x = 612.16564941406, y = 1695.0120849609, z = 6.5607070922852},
+	[12] = {x = -1471.1192626953, y = 1864.021484375, z = 32.202579498291},
+	[13] = {x = 2202.7873535156, y = 2474.4704589844, z = 10.390445709229},
+	[14] = {x = 2115.2702636719, y = 920.24621582031, z = 10.383306503296},
+	[15] = {x = 2639.9272460938, y = 1106.2498779297, z = 10.390357971191},
+	[16] = {x = 2147.9555664063, y = 2747.6809082031, z = 10.389307022095},
+	[17] = {x = 1595.7800292969, y = 2199.4895019531, z = 10.382888793945},
+	[18] = {x = -1530.6135253906, y = -1590.4718017578, z = 37.813919067383},
+	[19] = {x = -220.83619689941, y = 2601.8581542969, z = 62.273105621338},
+	[20] = {x = -214.10762023926, y = -277.92230224609, z = 0.99726545810699}
 }
 local maximum_number_of_characters = {["me"] = 90, ["do"] = 75, ["r"] = 85, ["f"] = 85}
 local lcons = {}
@@ -985,7 +1012,7 @@ function()
 	imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
 	imgui.SetNextWindowSize(imgui.ImVec2(470, 170))
 	imgui.Begin(u8"ПРЕКРАСНОЕ ТВОРЕНИЕ БЕЗУМЦА!##4", show_setting_up_fast_suspect, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
-		imgui.CenterText(u8(string.format("Статья выбранная для редактирования %s, количество звёзд %d.", setting_up_fast_suspect["reason"], setting_up_fast_suspect["stars"])))
+		imgui.CenterText(u8(string.format("Статья выбранная для редактирования %s, количество звёзд %d.", u8:decode(setting_up_fast_suspect["reason"]), setting_up_fast_suspect["stars"])))
 		imgui.CenterText(u8"Выберите нарушение, за которое будет выдан розыск с причиной выше.")
 		imgui.NewLine()
 		
@@ -1251,7 +1278,7 @@ function()
 					imgui.EndChild()
 				elseif setting_page == 3 then
 					imgui.SetCursorPosX(15)
-					imgui.BeginTitleChild(u8"НАСТРОЙКА УЛУЧШЕННЫХ ДИАЛОГОВ", imgui.ImVec2(305, 115))
+					imgui.BeginTitleChild(u8"НАСТРОЙКА УЛУЧШЕННЫХ ДИАЛОГОВ", imgui.ImVec2(305, 135))
 						for index, value in ipairs(configuration_main["improved_dialogues"]) do
 							imgui.ToggleButton1(value["name"], "improved_dialogues", index)
 						end
@@ -1344,7 +1371,7 @@ function()
 					imgui.BeginTitleChild(u8"КАСТОМИЗАЦИЯ", imgui.ImVec2(685, 355))
 						-- local color = imgui.Col.ImColorFloat(0.0, 0.0, 0.0, 0.0)
 						-- imgui.PushItemWidth(230)
-						-- imgui.ColorPicker3("##basic_custom", imgui_custom_float)
+						-- imgui.ColorEdit3("##basic_custom", imgui_custom_float)
 					imgui.EndChild()
 				elseif setting_page == 9 then
 					imgui.SetCursorPosX(15)
@@ -1578,13 +1605,16 @@ function()
 						end
 					end
 				imgui.EndChild()
+			elseif navigation_page == 6 then
+				-- THIS
 			elseif navigation_page == 7 then
 				imgui.SetCursorPos(imgui.ImVec2(15, 15))
 				imgui.BeginTitleChild(u8"ПОЛЬЗОВАТЕЛИ", imgui.ImVec2(675, 430))
-					imgui.Columns(2)
+					imgui.Columns(3)
 					imgui.Separator()
 					imgui.SetColumnWidth(-1, 30) imgui.CenterColumnText("#") imgui.NextColumn()
 					imgui.SetColumnWidth(-1, 150) imgui.CenterColumnText("Nickname") imgui.NextColumn()
+					imgui.SetColumnWidth(-1, 150) imgui.CenterColumnText("Subscription") imgui.NextColumn()
 					imgui.Separator()
 					
 					for number = 4, 1, -1 do
@@ -1592,7 +1622,7 @@ function()
 							if value["rangNumber"] == number then
 								imgui.CenterColumnText(tostring(value["rangNumber"])) imgui.NextColumn()
 								imgui.CenterColumnText(nickname) imgui.NextColumn()
-								-- imgui.CenterColumnText(value["rang"]) imgui.NextColumn()
+								imgui.CenterColumnText(tostring(value["subscription"])) imgui.NextColumn()
 								-- imgui.CenterColumnText(value["account"]) imgui.NextColumn()
 							end
 						end
@@ -1658,6 +1688,27 @@ function main()
 					end
 				end
 				
+				if wparam == vkeys.VK_1 then
+					consumeWindowMessage(true, false)
+					if msg == 0x101 then
+						if isKeyDown(VK_C) then
+							flymode = not flymode
+							if flymode then
+								lockPlayerControl(true)
+								local x, y, z = getCharCoordinates(playerPed)
+								camera = {
+									origin = {x = x, y = y, z = z},
+									angle = {y = 0.0, z = getCharHeading(playerPed)},
+									speed = 1
+								}
+							else
+								lockPlayerControl(false)
+								restoreCameraJumpcut()
+								setCameraBehindPlayer()
+							end
+						end
+					end
+				end
 				
 				if isKeyDown(VK_RBUTTON) then
 					if wasKeyPressed(vkeys.VK_1) then
@@ -1687,6 +1738,11 @@ function main()
 	
 	-- калибровка генератора псевдослучайных чисел
 	math.randomseed(os.time())
+	
+	sampRegisterChatCommand("savec", function()
+		local x, y, z = getCharCoordinates(playerPed)
+		setClipboardText(string.format("[] = {x = %s, y = %s, z = %s},", x, y, z))
+	end)
 	
 	-- регистрация системных команд
 	local total, successfully = 0, 0
@@ -1736,6 +1792,140 @@ function main()
         end
 		
         if pricel then memory.write(12 + 12006488, 2, 128, false) end
+		
+		if flymode then
+			local mouseX, mouseY = getPcMouseMovement()
+			local mouseX = mouseX / 4.0
+			local mouseY = mouseY / 4.0
+			
+			camera["angle"]["z"] = camera["angle"]["z"] + mouseX
+			camera["angle"]["y"] = camera["angle"]["y"] + mouseY
+			
+			if camera["angle"]["z"] > 360 then camera["angle"]["z"] = camera["angle"]["z"] - 360 end
+			if camera["angle"]["z"] < 0 then camera["angle"]["z"] = camera["angle"]["z"] + 360 end
+			if camera["angle"]["y"] > 89 then camera["angle"]["y"] = 89 end
+			if camera["angle"]["y"] < -89 then camera["angle"]["y"] = -89 end 
+			
+			local currentZ = camera["angle"]["z"] + 180
+			local currentY = camera["angle"]["y"] * -1
+			
+			local radianZ = math.rad(currentZ) 
+			local radianY = math.rad(currentY)                   
+			local sinusZ = math.sin(radianZ)
+			local cosinusZ = math.cos(radianZ)      
+			local sinusY = math.sin(radianY)
+			local cosinusY = math.cos(radianY)  
+			
+			local sinusZ = sinusZ * cosinusY      
+			local cosinusZ = cosinusZ * cosinusY 
+			local sinusZ = sinusZ * 10.0     
+			local cosinusZ = cosinusZ * 10.0       
+			local sinusY = sinusY * 10.0                       
+			local position_plX = camera["origin"]["x"] + sinusZ
+			local position_plY = camera["origin"]["y"] + cosinusZ 
+			local position_plZ = camera["origin"]["z"] + sinusY             
+			local angle_plZ = camera["angle"]["z"] * -1.0
+			
+			if isKeyDown(VK_W) then      
+				local radianZ = math.rad(camera["angle"]["z"]) 
+				local radianY = math.rad(camera["angle"]["y"])                   
+				local sinusZ = math.sin(radianZ)
+				local cosinusZ = math.cos(radianZ)      
+				local sinusY = math.sin(radianY)
+				local cosinusY = math.cos(radianY)       
+				local sinusZ = sinusZ * cosinusY      
+				local cosinusZ = cosinusZ * cosinusY 
+				local sinusZ = sinusZ * camera["speed"]     
+				local cosinusZ = cosinusZ * camera["speed"]        
+				local sinusY = sinusY * camera["speed"]  
+				camera["origin"]["x"] = camera["origin"]["x"] + sinusZ 
+				camera["origin"]["y"] = camera["origin"]["y"] + cosinusZ 
+				camera["origin"]["z"] = camera["origin"]["z"] + sinusY      
+				setFixedCameraPosition(camera["origin"]["x"], camera["origin"]["y"], camera["origin"]["z"], 0.0, 0.0, 0.0)      
+			end 
+
+			if isKeyDown(VK_S) then  
+				local currentZ = camera["angle"]["z"] + 180.0
+				local currentY = camera["angle"]["y"] * -1.0      
+				local radianZ = math.rad(currentZ) 
+				local radianY = math.rad(currentY)                   
+				local sinusZ = math.sin(radianZ)
+				local cosinusZ = math.cos(radianZ)      
+				local sinusY = math.sin(radianY)
+				local cosinusY = math.cos(radianY)       
+				local sinusZ = sinusZ * cosinusY      
+				local cosinusZ = cosinusZ * cosinusY 
+				local sinusZ = sinusZ * camera["speed"]      
+				local cosinusZ = cosinusZ * camera["speed"]       
+				local sinusY = sinusY * camera["speed"]                       
+				camera["origin"]["x"] = camera["origin"]["x"] + sinusZ 
+				camera["origin"]["y"] = camera["origin"]["y"] + cosinusZ 
+				camera["origin"]["z"] = camera["origin"]["z"] + sinusY      
+				setFixedCameraPosition(camera["origin"]["x"], camera["origin"]["y"], camera["origin"]["z"], 0.0, 0.0, 0.0)
+			end 
+					  
+			if isKeyDown(VK_A) then  
+				local currentZ = camera["angle"]["z"] - 90.0
+				local radianZ = math.rad(currentZ)
+				local radianY = math.rad(camera["angle"]["y"])
+				local sinusZ = math.sin(radianZ)
+				local cosinusZ = math.cos(radianZ)
+				local sinusZ = sinusZ * camera["speed"]
+				local cosinusZ = cosinusZ * camera["speed"]
+				camera["origin"]["x"] = camera["origin"]["x"] + sinusZ
+				camera["origin"]["y"] = camera["origin"]["y"] + cosinusZ
+				setFixedCameraPosition(camera["origin"]["x"], camera["origin"]["y"], camera["origin"]["z"], 0.0, 0.0, 0.0)
+			end       
+
+			if isKeyDown(VK_D) then  
+				local currentZ = camera["angle"]["z"] + 90.0
+				local radianZ = math.rad(currentZ)
+				local radianY = math.rad(camera["angle"]["y"])
+				local sinusZ = math.sin(radianZ)
+				local cosinusZ = math.cos(radianZ)       
+				local sinusZ = sinusZ * camera["speed"]
+				local cosinusZ = cosinusZ * camera["speed"]
+				camera["origin"]["x"] = camera["origin"]["x"] + sinusZ
+				camera["origin"]["y"] = camera["origin"]["y"] + cosinusZ      
+				setFixedCameraPosition(camera["origin"]["x"], camera["origin"]["y"], camera["origin"]["z"], 0.0, 0.0, 0.0)
+			end 
+					
+			if isKeyDown(VK_SPACE) then
+				camera["origin"]["z"] = camera["origin"]["z"] + camera["speed"]
+				setFixedCameraPosition(camera["origin"]["x"], camera["origin"]["y"], camera["origin"]["z"], 0.0, 0.0, 0.0)
+			end 
+
+			if isKeyDown(VK_SHIFT) then  
+				camera["origin"]["z"] = camera["origin"]["z"] - camera["speed"]
+				setFixedCameraPosition(camera["origin"]["x"], camera["origin"]["y"], camera["origin"]["z"], 0.0, 0.0, 0.0)
+			end
+					
+			local radianZ = math.rad(camera["angle"]["z"]) 
+			local radianY = math.rad(camera["angle"]["y"])             
+			local sinusZ = math.sin(radianZ)
+			local cosinusZ = math.cos(radianZ)      
+			local sinusY = math.sin(radianY)
+			local cosinusY = math.cos(radianY)       
+			local sinusZ = sinusZ * cosinusY      
+			local cosinusZ = cosinusZ * cosinusY 
+			local sinusZ = sinusZ * 1.0      
+			local cosinusZ = cosinusZ * 1.0     
+			local sinusY = sinusY * 1.0 
+			local point_atX = camera["origin"]["x"] + sinusZ 
+			local point_atY = camera["origin"]["y"] + cosinusZ 
+			local point_atZ = camera["origin"]["z"] + sinusY
+
+			pointCameraAtPoint(point_atX, point_atY, point_atZ, 2)
+
+			if isKeyDown(187) then 
+				camera["speed"] = camera["speed"] + 0.005
+			end 
+								   
+			if isKeyDown(189) then 
+				camera["speed"] = camera["speed"] - 0.005
+				if camera["speed"] < 0.001 then camera["speed"] = 0.001 end
+			end
+		end
 	end
 end
 -- !main
@@ -3241,13 +3431,29 @@ function calculateZone(x, y, z)
     return "Unknown"
 end
 
-function line_break_by_space(text, index)
-	local output = index
-	for char = output, 0, -1 do if string.sub(text, char, char) == " " then output = char break end end
-	if index == 0 then return string.sub(text, 0, index - 1), string.sub(text, index + 1, string.len(text))
-	else 
-		return string.sub(text, 0, output - 1), string.sub(text, output + 1, output + index) 
+function line_break_by_space(text, number)
+	local word_list = {}
+	for word in string.gmatch(text, "[^%s]+") do
+		word_list[#word_list + 1] = {word}
 	end
+	
+	local line_list = {}
+	local line_index = 1
+	for index, value in pairs(word_list) do
+		if not line_list[line_index] then 
+			line_list[line_index] = {value[1]}
+		else
+			local text = string.format("%s %s", line_list[line_index][1], value[1])
+			if string.len(text) > number then
+				line_index = line_index  + 1
+				line_list[line_index] = {value[1], string.len(value[1])}
+			else
+				line_list[line_index] = {text, string.len(text)}
+			end
+		end
+	end
+	
+	return line_list[1][1], line_list[2][1]
 end
 
 function patch_samp_time_set(enable)
@@ -3988,6 +4194,28 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 		end
 	end -- c 60
 	
+	if configuration_main["improved_dialogues"][5]["status"] then
+		if dialogId == 0 and string.match(title, "Заправочные станции") then
+			local fuel_station = {}
+			for line in string.gmatch(text, "[^\n]+") do
+				if string.match(line, "(%d+)\t+(%d+)%$\t+(%d+) л\t+(.+)") then
+					local id, cost, fuel, gas_station = string.match(line, "(%d+)\t+(%d+)%$\t+(%d+) л\t+(.+)")
+					fuel_station[#fuel_station + 1] = {id = id, cost = tonumber(cost), fuel = tonumber(fuel), gas_station = gas_station}
+				end
+			end
+			
+			table.sort(fuel_station, function(a, b) return (a["cost"] < b["cost"]) end)
+			
+			local output = "Название\tСтоимость за 1 литр\tКоличество топлива\tДистанция"
+			local x, y, z = getCharCoordinates(playerPed)
+			for index, value in pairs(fuel_station) do
+				local distance = math.floor(getDistanceBetweenCoords3d(x, y, z, t_fuel_station[tonumber(value["id"])]["x"], t_fuel_station[tonumber(value["id"])]["y"], t_fuel_station[tonumber(value["id"])]["z"]))
+				output = string.format("%s\n%s\t{FFCD00}%s$\t{00CC66}%s л\t%s м", output, value["gas_station"], value["cost"], value["fuel"], distance)
+			end
+			return {dialogId, 5, title, button1, button2, output}
+		end
+	end
+	
 	if passport_check then
 		if configuration_main["settings"]["passport_check"] then
 			if string.find(title, "Паспорт") then
@@ -4035,7 +4263,7 @@ function sampev.onSendCommand(parametrs)
 				sampSendChat(string.format("/do .. %s", l2)) 
 			elseif command == "r" or command == "f" then
 				if string.match(value, "%(%(%s(.+)%s%)%)") then
-					local value = string.sub(string.match(value, "%(%(%s(.+)%s%)%)"), 0, (maximum_number_of_characters[command] - 10) * 2)
+					local value = string.match(value, "%(%(%s(.+)%s%)%)")
 					local l1, l2 = line_break_by_space(value, maximum_number_of_characters[command] - 10)
 					sampSendChat(string.format("/%s (( %s .. ))", command, l1))
 					sampSendChat(string.format("/%s (( .. %s ))", command, l2)) 
@@ -4090,7 +4318,7 @@ function sampev.onSendTakeDamage(playerId, damage, weapon, bodypart)
 			end
 		end
 	end
-end 
+end
 
 function onScriptTerminate(script, bool)
 	if thisScript() == script then
@@ -4166,7 +4394,14 @@ function getUsers()
 					user_slots_value = tonumber(value["user_slots_value"])
 					player_status = tonumber(value["rangNumber"])
 					normal_serial = true
-				end
+					
+					local day = math.floor((value["subscription"] - os.time()) / 3600 / 24)
+					if day > 0 then
+						chat(("На вашем профиле действует подписка, она будет активна ещё {COLOR}%s{} дней."):format(day))
+					else
+						chat("Ваша подписка более не действительна, обратитесь к разработчику для её продления.")
+					end
+				end 
 			end
 		end
 		if normal_serial then 

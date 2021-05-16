@@ -1,6 +1,6 @@
 script_name("helper-for-mia (v2.0)")
 script_author("Joachim von Ribbentrop")
-script_version("0.0.4")
+script_version("0.0.5")
 
 require "deps" {
 	"fyp:mimgui@1.4.1",

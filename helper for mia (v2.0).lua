@@ -1,6 +1,6 @@
 script_name("helper-for-mia (v2.0)")
 script_author("Joachim von Ribbentrop")
-script_version("0.0.5")
+script_version("0.0.4")
 
 require "deps" {
 	"fyp:mimgui@1.4.1",
@@ -3515,9 +3515,6 @@ function line_break_by_space(text, number)
 			end
 		end
 	end
-	
-	chat(string.len(line_list[1][1]), line_list[1][1])
-	chat(string.len(line_list[2][1]), line_list[2][1])
 	
 	return line_list[1][1], line_list[2][1]
 end

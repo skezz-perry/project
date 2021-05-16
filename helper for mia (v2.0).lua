@@ -1,6 +1,6 @@
 script_name("helper-for-mia (v2.0)")
 script_author("Joachim von Ribbentrop")
-script_version("0.0.4")
+script_version("0.0.5")
 
 require "deps" {
 	"fyp:mimgui@1.4.1",
@@ -31,6 +31,7 @@ imgui.HotKey = mimgui_addons.HotKey
 
 -- global value
 local update_log = {
+	{["0.0.5"] = {"Добавлен список дешёвых АЗС с построением маршрута до них (/fuel)."}},
 	{["0.0.4"] = {"Добавлен CamHack (c + 1).", "Улучшен разделитель строк по пробелам, теперь не кикает из игры."}},
 	{["0.0.3"] = {"Добавлена отправка сообщения о авторизации конкретного пользователя в телеграм-бот.", "Добавлена возможность печатать при прицеливании (правый ctrl)."}},
 	{["0.0.2"] = {"Добавлена система авто-обновлений."}},
@@ -749,7 +750,8 @@ if configuration_main1 then
 			}, description = u8("Запрашивает документы с RP-отыгровками.")},
 			[55] = {name = u8"мегафон", status = true, callback = "command_megafon", variations = {}, description = u8("Отправляет требование ближайшему водителю Т/С остановится.")},
 			[56] = {name = "drop_all", status = true, callback = "command_drop_all", variations = {}, description = u8("Быстро выбрасывает всё оружие.")},
-			[57] = {name = "patrol", status = true, callback = "command_patrol", variations = {}, description = u8("Начинает патрулирование и открывает патрульное меню.")}
+			[57] = {name = "patrol", status = true, callback = "command_patrol", variations = {}, description = u8("Начинает патрулирование и открывает патрульное меню.")},
+			[58] = {name = "fuel", status = true, callback = "command_fuel", variatons = {}, description = u8("Отображает список АЗС.")}
 		},
 		blacklist = {},
 		number = {},
@@ -800,6 +802,7 @@ local show_smart_administrative_code = new.bool(false)
 local show_setting_up_fast_suspect = new.bool(false)
 local show_setting_patrol = new.bool(false)
 local show_patrol_bar = new.bool(false)
+local show_gas_station = new.bool(false)
 local navigation_page = 1
 local setting_page = 1
 local setting_take_weapon = false
@@ -822,6 +825,7 @@ local list_users = {}
 local need_to_purchase = {}
 local b_stroboscopes = false
 local quick_suspect = {}
+local quick_report = {}
 local last_suspect_parametrs = {}
 local viewing_criminal_code = false
 local viewing_administrative_code = false
@@ -839,6 +843,8 @@ local pricel
 local flymode
 local camera = {}
 local player_serial
+local t_gas_station = {}
+local map_marker = {}
 -- !local value
 
 -- const 
@@ -875,7 +881,7 @@ local t_fuel_station = {
 	[19] = {x = -220.83619689941, y = 2601.8581542969, z = 62.273105621338},
 	[20] = {x = -214.10762023926, y = -277.92230224609, z = 0.99726545810699}
 }
-local maximum_number_of_characters = {["me"] = 90, ["do"] = 75, ["r"] = 85, ["f"] = 85}
+local maximum_number_of_characters = {["me"] = 90, ["do"] = 75, ["r"] = 70, ["f"] = 70, ["g"] = 80}
 local lcons = {}
 local w, h = getScreenResolution()
 -- !const
@@ -907,6 +913,39 @@ imgui.OnInitialize(function()
 			}
 		end
 	end
+end)
+
+imgui.OnFrame(function() return show_gas_station[0] end,
+function(player)
+	imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
+	imgui.SetNextWindowSize(imgui.ImVec2(470, 500))
+	imgui.Begin(u8"ПРЕКРАСНОЕ ТВОРЕНИЕ БЕЗУМЦА!##7", show_gas_station, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
+		imgui.Columns(5)
+		imgui.Separator()
+		imgui.SetColumnWidth(-1, 20) imgui.CenterColumnText(u8"#") imgui.NextColumn()
+		imgui.SetColumnWidth(-1, 150) imgui.CenterColumnText(u8"НАЗВАНИЕ") imgui.NextColumn()
+		imgui.SetColumnWidth(-1, 100) imgui.CenterColumnText(u8"СТОИМОСТЬ") imgui.NextColumn()
+		imgui.SetColumnWidth(-1, 100) imgui.CenterColumnText(u8"ТОПЛИВО") imgui.NextColumn()
+		imgui.SetColumnWidth(-1, 100) imgui.CenterColumnText(u8"РАССТОЯНИЕ") imgui.NextColumn()
+		imgui.Separator()
+		
+		local x, y, z = getCharCoordinates(playerPed)
+		for index, value in ipairs(t_gas_station) do
+			local distance = math.floor(getDistanceBetweenCoords3d(x, y, z, t_fuel_station[tonumber(value["id"])]["x"], t_fuel_station[tonumber(value["id"])]["y"], t_fuel_station[tonumber(value["id"])]["z"]))
+			imgui.CenterColumnText(tostring(index)) imgui.NextColumn()
+			if imgui.Button(u8(value["gas_station"]), imgui.ImVec2(130, 20)) then
+				map_marker[#map_marker + 1] = {
+					x = t_fuel_station[tonumber(value["id"])]["x"], 
+					y = t_fuel_station[tonumber(value["id"])]["y"], 
+					z = t_fuel_station[tonumber(value["id"])]["z"]
+				} 
+				chat(string.format("На вашем радаре отмечена {COLOR}%s{}, расстояние до неё {COLOR}%s{} м.", value["gas_station"], distance))
+			end imgui.NextColumn()
+			imgui.CenterColumnText(string.format("%s$", value["cost"])) imgui.NextColumn()
+			imgui.CenterColumnText(string.format(u8"%s л", value["fuel"])) imgui.NextColumn()
+			imgui.CenterColumnText(string.format(u8"%s м", distance)) imgui.NextColumn()
+		end
+	imgui.End()
 end)
 
 imgui.OnFrame(function() return show_patrol_bar[0] end,
@@ -1658,13 +1697,13 @@ function main()
 	addEventHandler("onWindowMessage", function(msg, wparam, lparam)   
 		if msg == 0x100 or msg == 0x101 then 
 			if isKeyCheckAvailable() then
-				if wparam == vkeys.VK_ESCAPE and (show_main_menu[0] or show_smart_criminal_code[0] or show_smart_administrative_code[0] or show_setting_patrol[0]) then
+				if wparam == vkeys.VK_ESCAPE and (show_main_menu[0] or show_smart_criminal_code[0] or show_smart_administrative_code[0] or show_setting_patrol[0] or show_gas_station[0]) then
 					consumeWindowMessage(true, false)
 					if msg == 0x101 then 
 						if show_setting_up_fast_suspect[0] then 
 							show_setting_up_fast_suspect[0] = false
 						else
-							show_main_menu[0], show_smart_criminal_code[0], show_smart_administrative_code[0], show_setting_patrol[0] = false, false, false, false 
+							show_main_menu[0], show_smart_criminal_code[0], show_smart_administrative_code[0], show_setting_patrol[0], show_gas_station[0] = false, false, false, false, false
 						end
 					end 
 				end
@@ -1722,7 +1761,9 @@ function main()
 						command_megafon()
 					elseif wasKeyPressed(vkeys.VK_4) then
 						consumeWindowMessage(true, false)
-						chat("Тут мы должны отправить репорт.")
+						if quick_report["playerId"] then
+							chat(string.format("%s %s", quick_report["playerId"], quick_report["reason"]))
+						end
 					elseif wasKeyPressed(vkeys.VK_5) then
 						consumeWindowMessage(true, false)
 						if quick_suspect["playerId"] then
@@ -2139,6 +2180,20 @@ end
 
 function patrol_assistant()
 	while true do wait(0)
+		local x, y, z = getCharCoordinates(playerPed)
+		for index, value in pairs(map_marker) do
+			if not value["marker"] then 
+				map_marker[index]["marker"] = addBlipForCoord(value["x"], value["y"], value["z"])
+				changeBlipColour(map_marker[index]["marker"], 0x28B463FF)
+			end
+			
+			local distance = getDistanceBetweenCoords3d(x, y, z, value["x"], value["y"], value["z"])
+			if distance < 25 then
+				chat("Вы достигли точки назначения.")
+				removeBlip(value["marker"])
+				map_marker[index] = nil
+			end
+		end
 		--[[if patrol_status["status"] then
 			if not accept_the_offer then
 				if isCharInAnyPoliceVehicle(playerPed) then
@@ -2794,7 +2849,7 @@ function command_changeskin(id)
 					local acting = configuration_main["system_commands"][52]["variations"]
 					local male = configuration_main["information"]["sex"] and "female" or "male"
 					local acting = acting[male][math.random(1, #acting)]
-					final_command_handler(acting, {id})
+					final_command_handler(acting, {id}) 
 				end)
 			else chat("Данный игрок находится слишком далеко от Вас.") end
 		else chat("Данный игрок не подключён к серверу, проверьте правильность введёного ID.") end
@@ -2819,7 +2874,7 @@ function command_pas()
 		if configuration_main["settings"]["passport_check"] then passport_check = true end 
 	end)
 end
-
+ 
 function command_megafon()
 	lua_thread.create(function()
 		local playerId, vehicleId = sampGetNearestDriver()
@@ -2836,8 +2891,12 @@ function command_megafon()
 					wait(1000)
 					command_r(string.format("$m to DISP, веду погоню за %s %s с госномером #SA-%s. Находимся в районе %s, CODE: 3, недоступен.", tf_vehicle_type_name[2][t_vehicle_type[normal_vehicleId]], t_vehicle_name[normal_vehicleId], playerId, calculateZone()))
 				end
+				wait(100)
 				chat(string.format("Чтобы объявить {%s}%s{}[%s] в розыск по статье {COLOR}%s{} нажмите сочетание клавиш ПКМ + 5.", sampGetColorByPlayerId(playerId), nickname, playerId, u8:decode(configuration_main["quick_criminal_code"]["insubordination"]["reason"])))
 				quick_suspect = {playerId = playerId, clock = os.clock(), stars = configuration_main["quick_criminal_code"]["insubordination"]["stars"], reason = u8:decode(configuration_main["quick_criminal_code"]["insubordination"]["reason"])}
+				
+				chat(string.format("Чтобы отправить репорт на {%s}%s{}[%s] используйте сочетание клавиш ПКМ + 4.", sampGetColorByPlayerId(playerId), nickname, playerId))
+				quick_report = {playerId = playerId, clock = os.clock(), reason = "последите пожалуйста, может оффнуться / суицид."}
 			end last_requirement = {nickname = nickname, playerId = playerId}
 		else sampSendChat("/m Немедленно остановите ваше транспортное средство и прижмитесь к обочине.") end
 	end)
@@ -2850,6 +2909,10 @@ end
 
 function command_patrol()
 	show_setting_patrol[0] = not show_setting_patrol[0]
+end
+
+function command_fuel()
+	sampSendChat("/fuel")
 end
 -- !callback
 
@@ -3452,6 +3515,9 @@ function line_break_by_space(text, number)
 			end
 		end
 	end
+	
+	chat(string.len(line_list[1][1]), line_list[1][1])
+	chat(string.len(line_list[2][1]), line_list[2][1])
 	
 	return line_list[1][1], line_list[2][1]
 end
@@ -4111,7 +4177,7 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 					if not playerId then output = string.format("%s{696969}%s\t{696969}%s\t{696969}%s\t{ff5c33}Оффлайн\n", output, nickname, position, fraction)
 					else 
 						online = online + 1
-						output = string.format(string.format("%s{%s}%s[%s]\t%s\t%s\t{00cc99}Онлайн\n", output, sampGetColorByPlayerId(playerId), nickname, playerId, position, fraction)) 
+						output = string.format(string.format("%s{%s}%s\t%s\t%s\t{00cc99}Онлайн\n", output, sampGetColorByPlayerId(playerId), nickname, position, fraction)) 
 					end total = total + 1
 				end
 			end
@@ -4206,13 +4272,17 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 			
 			table.sort(fuel_station, function(a, b) return (a["cost"] < b["cost"]) end)
 			
-			local output = "Название\tСтоимость за 1 литр\tКоличество топлива\tДистанция"
+			t_gas_station = fuel_station
+			show_gas_station[0] = not show_gas_station[0]
+			
+			--[[local output = "Название\tСтоимость за 1 литр\tКоличество топлива\tДистанция"
 			local x, y, z = getCharCoordinates(playerPed)
 			for index, value in pairs(fuel_station) do
 				local distance = math.floor(getDistanceBetweenCoords3d(x, y, z, t_fuel_station[tonumber(value["id"])]["x"], t_fuel_station[tonumber(value["id"])]["y"], t_fuel_station[tonumber(value["id"])]["z"]))
 				output = string.format("%s\n%s\t{FFCD00}%s$\t{00CC66}%s л\t%s м", output, value["gas_station"], value["cost"], value["fuel"], distance)
 			end
-			return {dialogId, 5, title, button1, button2, output}
+			return {dialogId, 5, title, button1, button2, output}--]]
+			return false
 		end
 	end
 	
@@ -4255,6 +4325,7 @@ end
  
 function sampev.onSendCommand(parametrs)  
 	local command, value = string.match(parametrs, "/(%S+)[%s](.+)")     
+	
 	if maximum_number_of_characters[command] then
 		if maximum_number_of_characters[command] < string.len(value) then
 			if command == "me" then
@@ -4315,6 +4386,9 @@ function sampev.onSendTakeDamage(playerId, damage, weapon, bodypart)
 			if quick_suspect["playerId"] ~= playerId or (quick_suspect["playerId"] == playerId and (os.clock() - quick_suspect["clock"]) / 60 > 2) then
 				chat(string.format("Чтобы объявить {%s}%s{}[%s] в розыск по статье {COLOR}%s{} нажмите сочетание клавиш ПКМ + 5.", sampGetColorByPlayerId(playerId), nickname, playerId, u8:decode(configuration_main["quick_criminal_code"]["attack"]["reason"])))
 				quick_suspect = {playerId = playerId, clock = os.clock(), stars = configuration_main["quick_criminal_code"]["attack"]["stars"], reason = u8:decode(configuration_main["quick_criminal_code"]["attack"]["reason"])}
+				
+				chat(string.format("Чтобы отправить репорт на {%s}%s{}[%s] используйте сочетание клавиш ПКМ + 4.", sampGetColorByPlayerId(playerId), nickname, playerId))
+				quick_report = {playerId = playerId, clock = os.clock(), reason = "dm"}
 			end
 		end
 	end
@@ -4327,6 +4401,8 @@ function onScriptTerminate(script, bool)
 			local result, index = configuration_custom1:set(configuration_custom)
 			configuration_main1:close() 
 			configuration_custom1:close()
+			
+			for index, value in pairs(map_marker) do if value["marker"] then removeBlip(value["marker"]) end end
 		end
 	end
 end

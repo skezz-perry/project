@@ -1,6 +1,6 @@
 script_name("helper-for-mia (v2.0)")
 script_author("Joachim von Ribbentrop")
-script_version("0.0.5")
+script_version("0.0.6")
 
 require "deps" {
 	"fyp:mimgui@1.4.1",
@@ -31,6 +31,7 @@ imgui.HotKey = mimgui_addons.HotKey
 
 -- global value
 local update_log = {
+	{["0.0.6"] = {"Окончательно исправлена ошибка при разделении длинных строк."}},
 	{["0.0.5"] = {"Добавлен список дешёвых АЗС с построением маршрута до них (/fuel)."}},
 	{["0.0.4"] = {"Добавлен CamHack (c + 1).", "Улучшен разделитель строк по пробелам, теперь не кикает из игры."}},
 	{["0.0.3"] = {"Добавлена отправка сообщения о авторизации конкретного пользователя в телеграм-бот.", "Добавлена возможность печатать при прицеливании (правый ctrl)."}},
@@ -114,7 +115,8 @@ if configuration_main1 then
 			chase_message = true,
 			patrol_assistant = true,
 			user_rang = true, 
-			script_color = "{67BEF8}"
+			script_color = "{67BEF8}",
+			line_break_by_space = true
 		},
 		modification = {
 			id_postfix_after_nickname = true
@@ -881,13 +883,13 @@ local t_fuel_station = {
 	[19] = {x = -220.83619689941, y = 2601.8581542969, z = 62.273105621338},
 	[20] = {x = -214.10762023926, y = -277.92230224609, z = 0.99726545810699}
 }
-local maximum_number_of_characters = {["me"] = 90, ["do"] = 75, ["r"] = 70, ["f"] = 70, ["g"] = 80}
+local maximum_number_of_characters = {["me"] = 90, ["do"] = 75, ["r"] = 65, ["f"] = 65, ["g"] = 65}
 local lcons = {}
 local w, h = getScreenResolution()
 -- !const
  
  -- mimgui
- local function loadIconicFont(fontSize)
+ local function loadIconicFont(fontSize) 
 	-- Load iconic font in merge mode
 	local config = imgui.ImFontConfig()
 	config.MergeMode = true
@@ -1128,12 +1130,14 @@ function()
 						local output = string.len(content["text"]) > 60 and string.sub(content["text"], 0, 65) .. " .." or content["text"]
 						imgui.CenterColumnText(tostring(part)) imgui.NextColumn()
 						if imgui.Button(string.format("%s##%s%s", u8"РОЗЫСК", article, part)) then
-							if not viewing_criminal_code then
-								command_su(string.format("%s %s %s.%s УК", smart_suspect_id, content["stars"], article, part))
-								smart_suspect_id = nil
-							else
-								setting_up_fast_suspect = {stars = content["stars"], reason = string.format(u8"%s.%s УК", article, part)}
-								show_setting_up_fast_suspect[0] = not show_setting_up_fast_suspect[0]
+							if content["stars"] > 0 then
+								if not viewing_criminal_code then
+									command_su(string.format("%s %s %s.%s УК", smart_suspect_id, content["stars"], article, part))
+									smart_suspect_id = nil
+								else
+									setting_up_fast_suspect = {stars = content["stars"], reason = string.format(u8"%s.%s УК", article, part)}
+									show_setting_up_fast_suspect[0] = not show_setting_up_fast_suspect[0]
+								end
 							end
 						end imgui.NextColumn()
 						imgui.Text(u8(output)) showHelpMarker(u8(string.format("Статья %s.%s УК\n%s-й уровень розыска\n%s", article, part, content["stars"], content["text"]))) imgui.NextColumn()
@@ -1414,7 +1418,7 @@ function()
 					imgui.EndChild()
 				elseif setting_page == 9 then
 					imgui.SetCursorPosX(15)
-					imgui.BeginTitleChild(u8"ДОПОЛНИТЕЛЬНЫЕ НАСТРОЙКИ", imgui.ImVec2(370, 115))
+					imgui.BeginTitleChild(u8"ДОПОЛНИТЕЛЬНЫЕ НАСТРОЙКИ", imgui.ImVec2(370, 140))
 						imgui.PushItemWidth(155)
 						if imgui.SliderInt(u8"Задержка, установленная для RK.", t_delay_between_deaths, 1, 30) then
 							configuration_main["settings"]["delay_between_deaths"] = t_delay_between_deaths[0]
@@ -1423,6 +1427,7 @@ function()
 						imgui.ToggleButton(u8"Сообщение в рацию при погоне (в т.ч. пешей погоне).", "settings", "chase_message")
 						imgui.ToggleButton(u8"Патрульный ассистент.", "settings", "patrol_assistant")
 						imgui.ToggleButton(u8"Отображение наименований рангов на пользователях.", "settings", "user_rang")
+						imgui.ToggleButton(u8"Разрыв строки на месте пробела.", "settings", "line_break_by_space")
 					imgui.EndChild() imgui.SameLine()
 					
 					imgui.BeginTitleChild(u8"ИНФОРМАЦИЯ", imgui.ImVec2(305, 65))
@@ -1762,7 +1767,7 @@ function main()
 					elseif wasKeyPressed(vkeys.VK_4) then
 						consumeWindowMessage(true, false)
 						if quick_report["playerId"] then
-							chat(string.format("%s %s", quick_report["playerId"], quick_report["reason"]))
+							command_rep(string.format("%s %s", quick_report["playerId"], quick_report["reason"]))
 						end
 					elseif wasKeyPressed(vkeys.VK_5) then
 						consumeWindowMessage(true, false)
@@ -2765,7 +2770,9 @@ function command_rights()
 		wait(1500)
 		sampSendChat("Если вы не можете оплатить услуги адвоката, он будет предоставлен вам государством.")
 		wait(1500)
-		sampSendChat("Вы понимаете свои права?")
+		sampSendChat("Если вы не гражданин, то вы можете связаться с консулом своей страны, прежде чем отвечать на любые вопросы.")
+		wait(1500)
+		sampSendChat("Всё ли вам понятно?")
 	end)
 end
 
@@ -3494,29 +3501,33 @@ function calculateZone(x, y, z)
     return "Unknown"
 end
 
-function line_break_by_space(text, number)
-	local word_list = {}
-	for word in string.gmatch(text, "[^%s]+") do
-		word_list[#word_list + 1] = {word}
-	end
-	
-	local line_list = {}
-	local line_index = 1
-	for index, value in pairs(word_list) do
-		if not line_list[line_index] then 
-			line_list[line_index] = {value[1]}
-		else
-			local text = string.format("%s %s", line_list[line_index][1], value[1])
-			if string.len(text) > number then
-				line_index = line_index  + 1
-				line_list[line_index] = {value[1], string.len(value[1])}
+function line_break_by_space(text, number, bool)
+	if bool then
+		local word_list = {}
+		for word in string.gmatch(text, "[^%s]+") do
+			word_list[#word_list + 1] = {word}
+		end
+		
+		local line_list = {}
+		local line_index = 1
+		for index, value in pairs(word_list) do
+			if not line_list[line_index] then 
+				line_list[line_index] = {value[1]} 
 			else
-				line_list[line_index] = {text, string.len(text)}
+				local text = string.format("%s %s", line_list[line_index][1], value[1])
+				if string.len(text) > number then
+					line_index = line_index  + 1
+					line_list[line_index] = {value[1], string.len(value[1])}
+				else
+					line_list[line_index] = {text, string.len(text)}
+				end
 			end
 		end
+		
+		return line_list[1][1], line_list[2][1]
+	else
+		return string.sub(text, 0, number), string.sub(text, number + 1, number * 2)
 	end
-	
-	return line_list[1][1], line_list[2][1]
 end
 
 function patch_samp_time_set(enable)
@@ -4308,7 +4319,7 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 				return false
 			end
 		end
-	end
+	end 
 end
  
 function sampev.onSendChat(text) 
@@ -4324,24 +4335,34 @@ function sampev.onSendCommand(parametrs)
 	local command, value = string.match(parametrs, "/(%S+)[%s](.+)")     
 	
 	if maximum_number_of_characters[command] then
+		if not last_on_send_value then 
+			last_on_send_value = value 
+		else
+			if last_on_send_value == value then 
+				return false 
+			else
+				last_on_send_value = value
+			end
+		end
+		
 		if maximum_number_of_characters[command] < string.len(value) then
 			if command == "me" then
-				local l1, l2 = line_break_by_space(value, maximum_number_of_characters[command]) 
-				sampSendChat(string.format("/me %s ..", l1)) 
+				local l1, l2 = line_break_by_space(value, maximum_number_of_characters[command], configuration_main["settings"]["line_break_by_space"]) 
+				sampSendChat(string.format("/me %s ..", l1))
 				sampSendChat(string.format("/do .. %s", l2)) 
 			elseif command == "r" or command == "f" then
 				if string.match(value, "%(%(%s(.+)%s%)%)") then
 					local value = string.match(value, "%(%(%s(.+)%s%)%)")
-					local l1, l2 = line_break_by_space(value, maximum_number_of_characters[command] - 10)
+					local l1, l2 = line_break_by_space(value, maximum_number_of_characters[command] - 10, configuration_main["settings"]["line_break_by_space"])
 					sampSendChat(string.format("/%s (( %s .. ))", command, l1))
 					sampSendChat(string.format("/%s (( .. %s ))", command, l2)) 
 				else 
-					local l1, l2 = line_break_by_space(value, maximum_number_of_characters[command]) 
+					local l1, l2 = line_break_by_space(value, maximum_number_of_characters[command], configuration_main["settings"]["line_break_by_space"]) 
 					sampSendChat(string.format("/%s %s ..", command, l1))
 					sampSendChat(string.format("/%s .. %s", command, l2))
 				end
 			else 
-				local l1, l2 = line_break_by_space(value, maximum_number_of_characters[command]) 
+				local l1, l2 = line_break_by_space(value, maximum_number_of_characters[command], configuration_main["settings"]["line_break_by_space"]) 
 				sampSendChat(string.format("/%s %s ..", command, l1))
 				sampSendChat(string.format("/%s .. %s", command, l2))
 			end return false 
@@ -4470,7 +4491,8 @@ function getUsers()
 					
 					local day = math.floor((value["subscription"] - os.time()) / 3600 / 24)
 					if day > 0 then
-						chat(("На вашем профиле действует подписка, она будет активна ещё {COLOR}%s{} дней."):format(day))
+						local date = os.date("%d.%m.%Y", value["subscription"])
+						chat(("На вашем профиле действует подписка, она будет активна до {COLOR}%s{} ({COLOR}%s{} дней)."):format(date, day))
 					else
 						chat("Ваша подписка более не действительна, обратитесь к разработчику для её продления.")
 					end

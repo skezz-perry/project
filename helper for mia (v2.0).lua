@@ -1,6 +1,6 @@
 script_name("helper-for-mia (v2.0)")
 script_author("Joachim von Ribbentrop")
-script_version("0.0.7")
+script_version("0.0.8")
 
 require "deps" {
 	"fyp:mimgui@1.4.1",
@@ -29,8 +29,9 @@ u8 = encoding.UTF8
 imgui.HotKey = mimgui_addons.HotKey
 -- !require
 
--- global value
+-- global value 
 local update_log = {
+	{["0.0.8"] = {"Тотально окончательное исправление ошибки с разделителем строк."}},
 	{["0.0.6"] = {"Окончательно исправлена ошибка при разделении длинных строк."}},
 	{["0.0.5"] = {"Добавлен список дешёвых АЗС с построением маршрута до них (/fuel)."}},
 	{["0.0.4"] = {"Добавлен CamHack (c + 1).", "Улучшен разделитель строк по пробелам, теперь не кикает из игры."}},
@@ -847,6 +848,7 @@ local camera = {}
 local player_serial
 local t_gas_station = {}
 local map_marker = {}
+local last_on_send_value
 -- !local value
 
 -- const 
@@ -883,7 +885,7 @@ local t_fuel_station = {
 	[19] = {x = -220.83619689941, y = 2601.8581542969, z = 62.273105621338},
 	[20] = {x = -214.10762023926, y = -277.92230224609, z = 0.99726545810699}
 }
-local maximum_number_of_characters = {["me"] = 90, ["do"] = 75, ["r"] = 65, ["f"] = 65, ["g"] = 65}
+local maximum_number_of_characters = {["me"] = 90, ["do"] = 75, ["r"] = 80, ["f"] = 80, ["g"] = 80}
 local lcons = {}
 local w, h = getScreenResolution()
 -- !const
@@ -3491,7 +3493,7 @@ function calculateZone(x, y, z)
     {"Tierra Robada", -2997.470, 1659.680, -242.990, -480.539, 2993.870, 900.000},   
     {"San Fierro", -2997.470, -1115.580, -242.990, -1213.910, 1659.680, 900.000},
     {"Las Venturas", 869.461, 596.349, -242.990, 2997.060, 2993.870, 900.000},
-    {"Red County", -1213.910, -768.027, -242.990, 2997.060, 596.349, 900.000},
+    {"Red County", -1213.910, -768.027, -242.990, 2997.060, 596.349, 900.000}, 
     {"Los Santos", 44.615, -2892.970, -242.990, 2997.060, -768.027, 900.000}}
     for i, v in ipairs(streets) do
         if (x >= v[2]) and (y >= v[3]) and (z >= v[4]) and (x <= v[5]) and (y <= v[6]) and (z <= v[7]) then
@@ -3502,7 +3504,7 @@ function calculateZone(x, y, z)
 end
 
 function line_break_by_space(text, number, bool)
-	if bool then
+	if configuration_main["settings"]["line_break_by_space"] then
 		local word_list = {}
 		for word in string.gmatch(text, "[^%s]+") do
 			word_list[#word_list + 1] = {word}
@@ -3523,10 +3525,10 @@ function line_break_by_space(text, number, bool)
 				end
 			end
 		end
-		
+
 		return line_list[1][1], line_list[2][1]
 	else
-		return string.sub(text, 0, number), string.sub(text, number + 1, number * 2)
+		return string.sub(text, 0, number - 3), string.sub(text, number - 2, string.len(text)) 
 	end
 end
 
@@ -4209,8 +4211,6 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 				end
 			end
 			
-			setClipboardText(text)
-			
 			return {dialogId, style, title, button1, button2, output}
 		end
 
@@ -4347,22 +4347,22 @@ function sampev.onSendCommand(parametrs)
 		
 		if maximum_number_of_characters[command] < string.len(value) then
 			if command == "me" then
-				local l1, l2 = line_break_by_space(value, maximum_number_of_characters[command], configuration_main["settings"]["line_break_by_space"]) 
+				local l1, l2 = line_break_by_space(value, maximum_number_of_characters[command] - 3) 
 				sampSendChat(string.format("/me %s ..", l1))
 				sampSendChat(string.format("/do .. %s", l2)) 
 			elseif command == "r" or command == "f" then
 				if string.match(value, "%(%(%s(.+)%s%)%)") then
 					local value = string.match(value, "%(%(%s(.+)%s%)%)")
-					local l1, l2 = line_break_by_space(value, maximum_number_of_characters[command] - 10, configuration_main["settings"]["line_break_by_space"])
+					local l1, l2 = line_break_by_space(value, maximum_number_of_characters[command] - 10)
 					sampSendChat(string.format("/%s (( %s .. ))", command, l1))
 					sampSendChat(string.format("/%s (( .. %s ))", command, l2)) 
 				else 
-					local l1, l2 = line_break_by_space(value, maximum_number_of_characters[command], configuration_main["settings"]["line_break_by_space"]) 
+					local l1, l2 = line_break_by_space(value, maximum_number_of_characters[command] - 3) 
 					sampSendChat(string.format("/%s %s ..", command, l1))
 					sampSendChat(string.format("/%s .. %s", command, l2))
 				end
 			else 
-				local l1, l2 = line_break_by_space(value, maximum_number_of_characters[command], configuration_main["settings"]["line_break_by_space"]) 
+				local l1, l2 = line_break_by_space(value, maximum_number_of_characters[command] - 3) 
 				sampSendChat(string.format("/%s %s ..", command, l1))
 				sampSendChat(string.format("/%s .. %s", command, l2))
 			end return false 

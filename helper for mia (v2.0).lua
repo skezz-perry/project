@@ -1,6 +1,6 @@
 script_name("helper-for-mia (v2.0)")
 script_author("Joachim von Ribbentrop")
-script_version("0.0.8")
+script_version("0.0.9")
 
 require "deps" {
 	"fyp:mimgui@1.4.1",
@@ -18,19 +18,20 @@ local faicons = require "fa-icons"
 local font_flag = require("moonloader").font_flag 
 local encoding = require "encoding"
 local memory = require "memory"
-local xconf = require "xconf" 
+local xconf = require "xconf"
 local inicfg = require "inicfg"
 local gauth = require "gauth" 
 local https = require "ssl.https" 
-local downloadStatus = require("moonloader").download_status
 lsampev, sampev = pcall(require, "lib.samp.events")
 encoding.default = "CP1251"
 u8 = encoding.UTF8
 imgui.HotKey = mimgui_addons.HotKey
+
 -- !require
 
 -- global value 
 local update_log = {
+	{["0.0.9"] = {"Добавлен менеджер аккаунтов.", "Добавлена возможность проверки правильности написания слов (/speller)."}},
 	{["0.0.8"] = {"Тотально окончательное исправление ошибки с разделителем строк."}},
 	{["0.0.6"] = {"Окончательно исправлена ошибка при разделении длинных строк."}},
 	{["0.0.5"] = {"Добавлен список дешёвых АЗС с построением маршрута до них (/fuel)."}},
@@ -754,7 +755,9 @@ if configuration_main1 then
 			[55] = {name = u8"мегафон", status = true, callback = "command_megafon", variations = {}, description = u8("Отправляет требование ближайшему водителю Т/С остановится.")},
 			[56] = {name = "drop_all", status = true, callback = "command_drop_all", variations = {}, description = u8("Быстро выбрасывает всё оружие.")},
 			[57] = {name = "patrol", status = true, callback = "command_patrol", variations = {}, description = u8("Начинает патрулирование и открывает патрульное меню.")},
-			[58] = {name = "fuel", status = true, callback = "command_fuel", variatons = {}, description = u8("Отображает список АЗС.")}
+			[58] = {name = "fuel", status = true, callback = "command_fuel", variations = {}, description = u8("Отображает список АЗС.")},
+			[59] = {name = "speller", status = true, callback = "command_speller", variations = {}, description = u8("Проверяет правильность написания слов.")},
+			[60] = {name = "savepass", status = true, callback = "command_savepass", variations = {}, description = u8("Сохраняет пароль в менеджере аккаунтов.")}
 		},
 		blacklist = {},
 		number = {},
@@ -775,6 +778,13 @@ if configuration_custom1 then
 	local result = configuration_custom1:get()
 	if result then configuration_custom = result else configuration_custom = configuration_custom1["template"] end
 else print("Не удалось подгрузить дополнительную конфигурацию (Код ошибки: #2).") end
+
+local configuration_manager = {}
+local configuration_manager1 = xconf.new(string.format("%s//Account and server manager.json", configuration_directory))
+if configuration_manager1 then 
+	local result = configuration_manager1:get()
+	if result then configuration_manager = result else configuration_manager = {} end
+else print("Не удалось подгрузить конфигурацию менеджера аккаунтов и серверов (Код ошибки: #3).") end
 -- !global value
  
 -- local value
@@ -849,6 +859,13 @@ local player_serial
 local t_gas_station = {}
 local map_marker = {}
 local last_on_send_value
+local imgui_manager_ip = new.char[256]()
+local imgui_manager_nickname = new.char[256]()
+local imgui_manager_password = new.char[256]()
+local imgui_manager_gauth = new.char[256]()
+local imgui_manager_bool
+local entered_password
+local entered_to_save_password
 -- !local value
 
 -- const 
@@ -1574,7 +1591,7 @@ function()
 										
 										binder["content"] = new.char[9999](binder["content"])
 									end showHelpMarker(u8"Нажмите, чтобы редактировать данную команду.")
-									imgui.NextColumn()
+									imgui.NextColumn() 
 									if type(buffer["key"]) == "table" then 
 										if imgui.HotKey(string.format("##hk%s", index), configuration_custom[global_profile][index]["key"], 130) then
 											if not rkeys.isHotKeyDefined(buffer["key"]["v"]) then
@@ -1652,7 +1669,86 @@ function()
 					end
 				imgui.EndChild()
 			elseif navigation_page == 6 then
-				-- THIS
+				imgui.SetCursorPos(imgui.ImVec2(15, 15))
+				imgui.BeginTitleChild(u8"РЕДАКТОР", imgui.ImVec2(205, 155))
+				
+				imgui.PushItemWidth(155)
+				imgui.InputTextWithHint("##ip-adress", u8"IP-адресс сервера", imgui_manager_ip, 30) imgui.SameLine()
+				if imgui.Button(u8"+##1", imgui.ImVec2(20, 20)) then
+					local ip, port = sampGetCurrentServerAddress()
+					imgui_manager_ip = new.char[256](string.format("%s:%s", ip, port))
+				end
+				
+				imgui.InputTextWithHint("##manager_name", u8"Nickname", imgui_manager_nickname, 30) imgui.SameLine()
+				if imgui.Button(u8"+##2", imgui.ImVec2(20, 20)) then
+					local result, playerId = sampGetPlayerIdByCharHandle(playerPed)
+					imgui_manager_nickname = new.char[256](sampGetPlayerName(playerId))
+				end
+				
+				imgui.InputTextWithHint("##manager_password", u8"Пароль", imgui_manager_password, 30)
+				
+				imgui.InputTextWithHint("##manager_gauth", u8"GAuth-ключ", imgui_manager_gauth, 50)
+				
+				if imgui.Button(u8"Добавить аккаунт", imgui.ImVec2(155, 20)) then
+					local ip_adress = str(imgui_manager_ip)
+					local nickname = str(imgui_manager_nickname)
+					local password =  str(imgui_manager_password)
+					
+					if string.match(ip_adress, "(%S+):(%d+)") then
+						if string.match(nickname, "(%S+)") then
+							if string.match(password, "(%S+)") then
+								if not configuration_manager then configuration_manager = {} end
+								if not configuration_manager[ip_adress] then configuration_manager[ip_adress] = {} end
+								if not configuration_manager[ip_adress][nickname] then configuration_manager[ip_adress][nickname] = {} end
+								
+								local gauth = str(imgui_manager_gauth)
+								configuration_manager[ip_adress][nickname] = {
+									password = u8(password),
+									gauth = string.match(gauth, "(%S+)") and u8(gauth) or (configuration_manager[ip_adress][nickname]["gauth"] or nil)
+								}
+							else chat("Для добавления аккаунта необходимо ввести {COLOR}пароль{}.") end
+						else chat("Для добавления аккаунта необходимо ввести {COLOR}nickname{} или выбрать текущий.") end
+					else chat("IP-адресс сервера должен быть в формате {COLOR}IP:PORT{} (например: {COLOR}5.254.104.132:7777{}).") end
+					-- configuration_manager
+				end
+				
+				imgui.EndChild() imgui.SameLine()
+				imgui.BeginTitleChild(u8"ИНФОРМАЦИЯ", imgui.ImVec2(460, 155))
+					imgui.Text(u8"Ни в коем случае не передавайте файлы конфигурации сторонним лицам!")
+					imgui.Text(u8"Данные о ваших аккаунтах хранятся в незашифрованным виде по причине")
+					imgui.Text(u8"того, что исходный код открыт и расшифровывание не будет являться")
+					imgui.Text(u8"какой-либо проблемой для злоумышленников.")
+					imgui.NewLine()
+					imgui.Text(u8"Данные не передаются куда-либо и хранятся только в файлах конфигурации.")
+					imgui.Text(u8"Автор не несёт ответственность за сохранность ваших данных.")
+				imgui.EndChild()
+				
+				imgui.NewLine()
+				
+				imgui.SetCursorPosX(15)
+				imgui.BeginTitleChild(u8"МЕНЕДЖЕР АККАУНТОВ", imgui.ImVec2(675, 255))
+					local index = 0
+					for ip, accounts in pairs(configuration_manager) do
+						for nickname, data in pairs(accounts) do
+							index = index + 1
+							imgui.BeginChild(string.format("##block_%s", index), imgui.ImVec2(330, 50))
+								imgui.Text(string.format("%s | %s", nickname, ip))
+								local clr = imgui.Col
+								imgui.PushStyleColor(clr.Text, imgui.GetStyle().Colors[clr.ButtonHovered])
+								imgui.Text(imgui_manager_bool and data["password"] or u8"ПАРОЛЬ СКРЫТ")
+								imgui.SameLine()
+								imgui.PopStyleColor(1)
+								imgui.PushStyleColor(clr.Text, imgui.GetStyle().Colors[clr.ButtonActive])
+								if data["gauth"] then
+									imgui.Text(string.format(u8"КОД: %s", gauth.gencode(data["gauth"], math.floor(os.time() / 30))))
+								else
+									imgui.Text(u8"НЕДОСТУПНО")
+								end
+								imgui.PopStyleColor(1)
+							imgui.EndChild() if math.fmod(index, 2) ~= 0 then imgui.SameLine() end
+						end
+					end
+				imgui.EndChild()
 			elseif navigation_page == 7 then
 				imgui.SetCursorPos(imgui.ImVec2(15, 15))
 				imgui.BeginTitleChild(u8"ПОЛЬЗОВАТЕЛИ", imgui.ImVec2(675, 430))
@@ -1787,10 +1883,10 @@ function main()
 	-- калибровка генератора псевдослучайных чисел
 	math.randomseed(os.time())
 	
-	sampRegisterChatCommand("savec", function()
+	--[[sampRegisterChatCommand("savec", function()
 		local x, y, z = getCharCoordinates(playerPed)
 		setClipboardText(string.format("[] = {x = %s, y = %s, z = %s},", x, y, z))
-	end)
+	end)--]]
 	
 	-- регистрация системных команд
 	local total, successfully = 0, 0
@@ -2522,12 +2618,26 @@ function command_strobes()
 end
 
 --[[function command_lserver()
-end
+end--]]
 
 function command_savepass()
+	if entered_to_save_password then
+		local ip_adress = entered_to_save_password["ip_adress"]
+		local nickname = entered_to_save_password["nickname"]
+		local password = entered_to_save_password["password"]
+		
+		if not configuration_manager[ip_adress] then configuration_manager[ip_adress] = {} end
+		if not configuration_manager[ip_adress][nickname] then configuration_manager[ip_adress][nickname] = {} end
+		
+		configuration_manager[ip_adress][nickname] = {
+			password = password,
+			gauth = configuration_manager[ip_adress][nickname]["gauth"]
+		}
+		chat("Вы успешено сохранили новые данные в менеджере аккаунтов.")
+	else chat("В данный момент вы не можете обновить данные в менеджере аккаунтов. Ошибка #1.") end
 end
 
-function command_suspect()
+--[[function command_suspect()
 end--]]
 
 function command_infred()
@@ -2922,6 +3032,21 @@ end
 
 function command_fuel()
 	sampSendChat("/fuel")
+end
+
+function command_speller(text)
+	if string.match(text, "(%S+)") then
+		local url = string.format("https://speller.yandex.net/services/spellservice.json/checkText?text=%s", urlencode(u8(text)))
+		local result = https.request(url)
+		if result then
+			local result = decodeJson(result)
+			if #result > 0 then
+				for k, v in pairs(result) do
+					chat(string.format("%s. Ошибка в слове '{COLOR}%s{}', правильно: '{COLOR}%s{}'.", k, u8:decode(v["word"]), u8:decode(v["s"][1])))
+				end
+			else chat("Всё написано верно.") end
+		else chat("Не удалось получить ответ на запрос.") end
+	else chat_error("Введите необходимые параметры для /speller [слово или сочетание слов].") end
 end
 -- !callback
 
@@ -4231,22 +4356,24 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 	
 	if configuration_main["improved_dialogues"][3]["status"] then
 		if string.find(title, "Список разыскиваемых") then
-			local output = "{e6e6fa}Имя\t{e6e6fa}Уровень розыска\t{e6e6fa}Дистанция"
+			local list_for_sort, max_index, line_index = {}, 0, 0
 		
 			for line in string.gmatch(text, "[^\n]+") do
-				if string.match(line, "(%S+)[%s].id[%s](%d+).	(%d+)	 (.+)") then
-					local nickname, playerId, stars, distance = string.match(line, "(%S+)[%s].id[%s](%d+).	(%d+)	 (.+)")
-					local result, ped = sampGetCharHandleBySampPlayerId(playerId)
-					if result then 
-						output = string.format("%s\n{%s}%s{ff5c33}**{e6e6fa} (id %d)\t%d\t{00cc99}%s", output, sampGetColorByPlayerId(playerId), nickname, playerId, stars, distance) 
-					else
-						output = string.format("%s\n{%s}%s{e6e6fa} (id %d)\t%d\t{00cc99}%s", output, sampGetColorByPlayerId(playerId), nickname, playerId, stars, distance)
-					end
+				line_index = line_index + 1
+				if string.match(line, "(%S+)[%s].id[%s](%d+).	(%d+)	 (%d+)") then
+					local nickname, playerId, stars, distance = string.match(line, "(%S+)[%s].id[%s](%d+).	(%d+)	 (%d+)")
+					max_index = max_index + 1
+					list_for_sort[max_index] = {index = line_index, distance = tonumber(distance), line = string.format("{%s}%s{e6e6fa} (id %d)\t%d\t{00cc99}%s м", sampGetColorByPlayerId(playerId), nickname, playerId, stars, distance)}
 				elseif string.match(line, "(%S+)[%s].id[%s](%d+).	(%d+)	Недоступно") then
 					local nickname, playerId, stars = string.match(line, "(%S+)[%s].id[%s](%d+).	(%d+)	Недоступно")
-					output = string.format("%s\n{%s}%s{e6e6fa} (id %d)\t%d\t{ff5c33}Недоступно", output, sampGetColorByPlayerId(playerId), nickname, playerId, stars)
+					max_index = max_index + 1
+					list_for_sort[max_index] = {index = line_index, distance = 7777, line = string.format("{%s}%s{e6e6fa} (id %d)\t%d\t{ff5c33}Недоступно", sampGetColorByPlayerId(playerId), nickname, playerId, stars)}
 				end
 			end
+			
+			-- table.sort(list_for_sort, function(a, b) return a["distance"] < b["distance"] end)
+			local output = "{e6e6fa}Имя\t{e6e6fa}Уровень розыска\t{e6e6fa}Дистанция"
+			for k, v in pairs(list_for_sort) do output = string.format("%s\n%s", output, v["line"]) end
 		
 			return {dialogId, style, title, button1, button2, output}
 		end
@@ -4320,6 +4447,40 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 			end
 		end
 	end 
+	
+	if string.match(title, "Авторизация") then
+		entered_password = dialogId
+		if not string.match(text, "Неверный пароль") and not string.match(text, "PIN") then
+			local result, playerId = sampGetPlayerIdByCharHandle(playerPed)
+			if result then
+				local nickname = sampGetPlayerName(playerId)
+				local ip, port = sampGetCurrentServerAddress()
+				local ip_adress = string.format("%s:%s", ip, port)
+				if configuration_manager[ip_adress] and configuration_manager[ip_adress][nickname] then
+					local password = configuration_manager[ip_adress][nickname]["password"]
+					sampSendDialogResponse(dialogId, 1, 1, password)
+					return false
+				end
+			end
+		end
+	end
+	
+	if string.match(title, "Код с приложения") and dialogId == 88 then
+		local result, playerId = sampGetPlayerIdByCharHandle(playerPed)
+		if result then
+			local nickname = sampGetPlayerName(playerId)
+			local ip, port = sampGetCurrentServerAddress()
+			local ip_adress = string.format("%s:%s", ip, port)
+			if configuration_manager[ip_adress] and configuration_manager[ip_adress][nickname] then
+				local seckey = configuration_manager[ip_adress][nickname]["gauth"]
+				if seckey then
+					local g = gauth.gencode(seckey, math.floor(os.time() / 30))
+					sampSendDialogResponse(dialogId, 1, 1, g)
+					return false
+				end
+			end
+		end
+	end
 end
  
 function sampev.onSendChat(text) 
@@ -4327,7 +4488,7 @@ function sampev.onSendChat(text)
 		local l1, l2 = line_break_by_space(text, 87) 
 		sampSendChat(string.format("%s ..", l1))
 		sampSendChat(string.format(".. %s", l2))
-		return false 
+		return false  
 	end 
 end
  
@@ -4335,17 +4496,17 @@ function sampev.onSendCommand(parametrs)
 	local command, value = string.match(parametrs, "/(%S+)[%s](.+)")     
 	
 	if maximum_number_of_characters[command] then
-		if not last_on_send_value then 
-			last_on_send_value = value 
-		else
-			if last_on_send_value == value then 
-				return false 
-			else
-				last_on_send_value = value
-			end
-		end
-		
 		if maximum_number_of_characters[command] < string.len(value) then
+			if not last_on_send_value then 
+				last_on_send_value = value 
+			else
+				if last_on_send_value == value then 
+					return false 
+				else
+					last_on_send_value = value
+				end
+			end
+		
 			if command == "me" then
 				local l1, l2 = line_break_by_space(value, maximum_number_of_characters[command] - 3) 
 				sampSendChat(string.format("/me %s ..", l1))
@@ -4388,7 +4549,7 @@ function sampev.onSetPlayerColor(playerId, color)
 	if configuration_main["settings"]["mask_timer"] then
 		local result, id = sampGetPlayerIdByCharHandle(playerPed)
 		if playerId == id then
-			if color == 572662272 then
+			if color == 572662272 then 
 				mask_timer = os.clock()
 			else
 				if mask_timer then mask_timer = nil end
@@ -4412,13 +4573,39 @@ function sampev.onSendTakeDamage(playerId, damage, weapon, bodypart)
 	end
 end
 
+function sampev.onSendDialogResponse(dialogId, button, listItem, input)
+	if entered_password then
+		if dialogId == entered_password then
+			local result, playerId = sampGetPlayerIdByCharHandle(playerPed)
+			if result then
+				local nickname = sampGetPlayerName(playerId)
+				local ip, port = sampGetCurrentServerAddress()
+				local ip_adress = string.format("%s:%s", ip, port)
+			
+				if not (configuration_manager[ip_adress] and configuration_manager[ip_adress][nickname]) then
+					entered_to_save_password = {ip_adress = ip_adress, nickname = nickname, password = input}
+					chat("Для того, чтобы сохранить данный аккаунт в менеджере аккаунтов введите команду {COLOR}/savepass{}.")
+				else
+					if string.match(sampGetDialogText(), "Неверный пароль") then
+						entered_to_save_password = {ip_adress = ip_adress, nickname = nickname, password = input}
+						chat("Для того, чтобы сохранить данный аккаунт в менеджере аккаунтов введите команду {COLOR}/savepass{}.")
+					end
+				end
+			end
+			entered_password = nil
+		end
+	end
+end
+
 function onScriptTerminate(script, bool)
 	if thisScript() == script then
 		if configuration_main1 then
 			local result, index = configuration_main1:set(configuration_main)
 			local result, index = configuration_custom1:set(configuration_custom)
+			local result, index = configuration_manager1:set(configuration_manager)
 			configuration_main1:close() 
 			configuration_custom1:close()
+			configuration_manager1:close()
 			
 			for index, value in pairs(map_marker) do if value["marker"] then removeBlip(value["marker"]) end end
 		end

@@ -1,6 +1,6 @@
 script_name("helper-for-mia (v2.0)")
 script_author("Joachim von Ribbentrop")
-script_version("0.0.9")
+script_version("0.1.0")
 
 require "deps" {
 	"fyp:mimgui@1.4.1",
@@ -21,7 +21,8 @@ local memory = require "memory"
 local xconf = require "xconf"
 local inicfg = require "inicfg"
 local gauth = require "gauth" 
-local https = require "ssl.https" 
+local https = require "ssl.https"
+local wm = require('lib.windows.message')
 lsampev, sampev = pcall(require, "lib.samp.events")
 encoding.default = "CP1251"
 u8 = encoding.UTF8
@@ -31,6 +32,7 @@ imgui.HotKey = mimgui_addons.HotKey
 
 -- global value 
 local update_log = {
+	{["0.1.0"] = {"Добавлена статистика действий пользователя (/helper_stats).", "Добавлен список последних гос.новостей (/goverment_news).", "Добавлены дополнительные тэги для биндера.", "Добавлены дублирующие NRP-команды (/ncuff и т.д.)"}},
 	{["0.0.9"] = {"Добавлен менеджер аккаунтов.", "Добавлена возможность проверки правильности написания слов (/speller)."}},
 	{["0.0.8"] = {"Тотально окончательное исправление ошибки с разделителем строк."}},
 	{["0.0.6"] = {"Окончательно исправлена ошибка при разделении длинных строк."}},
@@ -120,14 +122,14 @@ if configuration_main1 then
 			script_color = "{67BEF8}",
 			line_break_by_space = true
 		},
-		modification = {
+		modification = { 
 			id_postfix_after_nickname = true
 		},
 		quick_criminal_code = {
 			insubordination = {stars = 4, reason = u8"31.2 УК"},
 			refusal_to_pay = {stars = 3, reason = u8"25.1 УК"},
 			attack = {stars = 4, reason = u8"2.3 УК"}
-		},
+		}, 
 		obtaining_weapons = {
 			[1] = {status = false, name = u8("Баллистический щит")},
 			[2] = {status = false, name = u8("Полицейская дубинка")},
@@ -757,7 +759,9 @@ if configuration_main1 then
 			[57] = {name = "patrol", status = true, callback = "command_patrol", variations = {}, description = u8("Начинает патрулирование и открывает патрульное меню.")},
 			[58] = {name = "fuel", status = true, callback = "command_fuel", variations = {}, description = u8("Отображает список АЗС.")},
 			[59] = {name = "speller", status = true, callback = "command_speller", variations = {}, description = u8("Проверяет правильность написания слов.")},
-			[60] = {name = "savepass", status = true, callback = "command_savepass", variations = {}, description = u8("Сохраняет пароль в менеджере аккаунтов.")}
+			[60] = {name = "savepass", status = true, callback = "command_savepass", variations = {}, description = u8("Сохраняет пароль в менеджере аккаунтов.")},
+			[61] = {name = "helper_stats", status = true, callback = "command_helper_stats", variations = {}, description = u8("Статистика действий пользователя.")},
+			[62] = {name = "goverment_news", status = true, callback = "command_goverment_news", variations = {}, description = u8("Лог последних гос.новостей.")},
 		},
 		blacklist = {},
 		number = {},
@@ -785,6 +789,22 @@ if configuration_manager1 then
 	local result = configuration_manager1:get()
 	if result then configuration_manager = result else configuration_manager = {} end
 else print("Не удалось подгрузить конфигурацию менеджера аккаунтов и серверов (Код ошибки: #3).") end
+
+local configuration_statistics = {}
+local configuration_statistics1 = xconf.new(string.format("%s//User statistics.json", configuration_directory))
+if configuration_statistics1 then 
+	configuration_statistics1:set_template({
+		commands = {},
+		message = 0,
+		time_using_aid_kits = 0,
+		time_using_mask = 0,
+		number_masks_used = 0,
+		afk_time = 0
+	})
+
+	local result = configuration_statistics1:get()
+	if result then configuration_statistics = result else configuration_statistics = {} end
+else print("Не удалось подгрузить конфигурацию статистики (Код ошибки: #4).") end
 -- !global value
  
 -- local value
@@ -816,6 +836,8 @@ local show_setting_up_fast_suspect = new.bool(false)
 local show_setting_patrol = new.bool(false)
 local show_patrol_bar = new.bool(false)
 local show_gas_station = new.bool(false)
+local show_quick_menu = new.bool(false)
+local show_editor_assistant = new.bool(false)
 local navigation_page = 1
 local setting_page = 1
 local setting_take_weapon = false
@@ -866,6 +888,12 @@ local imgui_manager_gauth = new.char[256]()
 local imgui_manager_bool
 local entered_password
 local entered_to_save_password
+local goverment_news = {}
+local need_update_configuration
+local targeting_player = -1
+local imgui_custom_chat = new.char[256]()
+local pause_start
+local was_pause
 -- !local value
 
 -- const 
@@ -905,6 +933,7 @@ local t_fuel_station = {
 local maximum_number_of_characters = {["me"] = 90, ["do"] = 75, ["r"] = 80, ["f"] = 80, ["g"] = 80}
 local lcons = {}
 local w, h = getScreenResolution()
+local imgui_script_name = u8"vive le vide!"
 -- !const
  
  -- mimgui
@@ -923,6 +952,7 @@ imgui.OnInitialize(function()
 	imgui.GetIO().Fonts:Clear()
 	imgui.GetIO().Fonts:AddFontFromFileTTF(getFolderPath(0x14) .. "\\tahomabd.ttf", 13, nil, glyph_ranges)
 	font_size[0] = imgui.GetIO().Fonts.ConfigData.Data[0].SizePixels
+	
 	loadIconicFont(font_size[0])
 	apply_custom_style()
 	
@@ -936,11 +966,58 @@ imgui.OnInitialize(function()
 	end
 end)
 
+imgui.OnFrame(function() return show_editor_assistant[0] end,
+function()
+	imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
+	imgui.SetNextWindowSize(imgui.ImVec2(470, 500))
+	imgui.Begin(string.format("%s##8", imgui_script_name), show_editor_assistant, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
+		local tags = {
+			{"$wait", "Устанавливает задержку между строками (в мс).", "$wait 1000 (пример)"},
+			{"$chat", "Отправляет сообщение пользователю.", "$chat Ты умер :( (пример)"},
+			{"$script", "Активирует исполнение сценария.", "$script default, test, 1 (пример)"},
+			{"$global", "Активирует исполнение функции.", "$global command_cuff, {targeting} (пример)"},
+			{"{greeting}", "Приветствие в зависимости от времени суток.", greeting_depending_on_the_time()},
+			{"{name}", "Ваше имя из конфигурации.", configuration_main["information"]["name"]},
+			{"{rang}", "Ваша должность из конфигурации.", configuration_main["information"]["rang"]},
+			{"{fraction}", "Ваше подразделение из конфигурации.", configuration_main["information"]["fraction"]},
+			{"{number}", "Ваш номер из конфигурации.", configuration_main["information"]["number"]},
+			{"{targeting}", "ID игрока, в которого вы целитесь.", targeting_player},
+			{"{suspect}", "ID игрока, добавленного в быстрый розыск.", quick_suspect["playerId"] or "-1"},
+			{"{date}", "Дата.", os.date("%d.%m.%Y")},
+			{"{day}", "День месяца.", os.date("%d")},
+			{"{month}", "Месяц.", os.date("%m")},
+			{"{year}", "Год (2 цифры).", os.date("%y")},
+			{"{year4}", "Год (4 цифры).", os.date("%Y")},
+			{"{day_of_week}", "День недели (англ.)", os.date("%A")},
+			{"{time}", "Время.", os.date("%H:%M:%S")},
+			{"{hour}", "Час.", os.date("%H")},
+			{"{minute}", "Минута.", os.date("%M")},
+			{"{second}", "Секунда.", os.date("%S")}
+		}
+		 
+		imgui.Columns(3)
+		imgui.Separator()
+		imgui.SetColumnWidth(-1, 20) imgui.CenterColumnText(u8"#") imgui.NextColumn()
+		imgui.SetColumnWidth(-1, 140) imgui.CenterColumnText(u8"ТЭГ") imgui.NextColumn()
+		imgui.SetColumnWidth(-1, 310) imgui.CenterColumnText(u8"ОПИСАНИЕ") imgui.NextColumn()
+		imgui.Separator()
+		
+		for k, v in pairs(tags) do
+			imgui.CenterColumnText(tostring(k)) imgui.NextColumn()
+			if imgui.Button(v[1], imgui.ImVec2(120, 20)) then
+				setClipboardText(v[1])
+			end showHelpMarker(u8"Нажмите, чтобы скопировать.") imgui.NextColumn()
+			imgui.Text(u8(v[2])) showHelpMarker(u8(string.format("Значение: %s", v[3]))) imgui.NextColumn()
+		end
+	
+	imgui.End()
+end)
+
 imgui.OnFrame(function() return show_gas_station[0] end,
 function(player)
 	imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
 	imgui.SetNextWindowSize(imgui.ImVec2(470, 500))
-	imgui.Begin(u8"ПРЕКРАСНОЕ ТВОРЕНИЕ БЕЗУМЦА!##7", show_gas_station, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
+	imgui.Begin(string.format("%s##7", imgui_script_name), show_gas_station, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 		imgui.Columns(5)
 		imgui.Separator()
 		imgui.SetColumnWidth(-1, 20) imgui.CenterColumnText(u8"#") imgui.NextColumn()
@@ -973,7 +1050,7 @@ imgui.OnFrame(function() return show_patrol_bar[0] end,
 function(player)
 	imgui.SetNextWindowPos(imgui.ImVec2(40, h / 2), imgui.Cond.FirstUseEver)
 	imgui.SetNextWindowSize(imgui.ImVec2(265, 92))
-	imgui.Begin(u8"ПРЕКРАСНОЕ ТВОРЕНИЕ БЕЗУМЦА!##6", show_setting_patrol, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize + imgui.WindowFlags.NoTitleBar)
+	imgui.Begin(string.format("%s##6", imgui_script_name), show_setting_patrol, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize + imgui.WindowFlags.NoTitleBar)
 		player.HideCursor = not isKeyDown(VK_MBUTTON)
 		
 		local alltime = math.floor(os.clock() - patrol_status["clock"])
@@ -994,7 +1071,7 @@ imgui.OnFrame(function() return show_setting_patrol[0] end,
 function()
 	imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
 	imgui.SetNextWindowSize(imgui.ImVec2(360, 135))
-	imgui.Begin(u8"ПРЕКРАСНОЕ ТВОРЕНИЕ БЕЗУМЦА!##5", show_setting_patrol, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
+	imgui.Begin(string.format("%s##5", imgui_script_name), show_setting_patrol, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 		imgui.CustomButton(u8"Маркировка юнита", imgui.ImVec4(0.0, 0.0, 0.0, 0.0), imgui.ImVec2(120, 20))  imgui.SameLine() 
 		imgui.PushItemWidth(90)--45)
 		if imgui.Combo("##combo", imgui_patrol_current, imgui_patrol_list, 8) then 
@@ -1071,7 +1148,7 @@ imgui.OnFrame(function() return show_setting_up_fast_suspect[0] end,
 function()
 	imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
 	imgui.SetNextWindowSize(imgui.ImVec2(470, 170))
-	imgui.Begin(u8"ПРЕКРАСНОЕ ТВОРЕНИЕ БЕЗУМЦА!##4", show_setting_up_fast_suspect, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
+	imgui.Begin(string.format("%s##4", imgui_script_name), show_setting_up_fast_suspect, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 		imgui.CenterText(u8(string.format("Статья выбранная для редактирования %s, количество звёзд %d.", u8:decode(setting_up_fast_suspect["reason"]), setting_up_fast_suspect["stars"])))
 		imgui.CenterText(u8"Выберите нарушение, за которое будет выдан розыск с причиной выше.")
 		imgui.NewLine()
@@ -1079,6 +1156,7 @@ function()
 		if imgui.Button(u8"Неподчинение сотруднику МЮ", imgui.ImVec2(450, 20)) then
 			if setting_up_fast_suspect then
 				configuration_main["quick_criminal_code"]["insubordination"] = setting_up_fast_suspect
+				if not need_update_configuration then need_update_configuration = os.clock() end
 				chat(string.format("Статья за неподчинение сотруднику МЮ изменена на %s, %s-й уровень розыска.", setting_up_fast_suspect["reason"], setting_up_fast_suspect["stars"]))
 				show_setting_up_fast_suspect[0] = false
 				return
@@ -1088,6 +1166,7 @@ function()
 		if imgui.Button(u8"Откат от оплаты штрафа", imgui.ImVec2(450, 20)) then
 			if setting_up_fast_suspect then
 				configuration_main["quick_criminal_code"]["refusal_to_pay"] = setting_up_fast_suspect
+				if not need_update_configuration then need_update_configuration = os.clock() end
 				chat(string.format("Статья за отказ от оплаты штрафа изменена на %s, %s-й уровень розыска.", setting_up_fast_suspect["reason"], setting_up_fast_suspect["stars"]))
 				show_setting_up_fast_suspect[0] = false
 				return
@@ -1097,6 +1176,7 @@ function()
 		if imgui.Button(u8"Нападение на сотрудника МЮ", imgui.ImVec2(450, 20)) then
 			if setting_up_fast_suspect then
 				configuration_main["quick_criminal_code"]["attack"] = setting_up_fast_suspect
+				if not need_update_configuration then need_update_configuration = os.clock() end
 				chat(string.format("Статья за нападение на сотрудника МЮ изменена на %s, %s-й уровень розыска.", setting_up_fast_suspect["reason"], setting_up_fast_suspect["stars"]))
 				show_setting_up_fast_suspect[0] = false
 				return
@@ -1117,7 +1197,7 @@ function()
 
 	imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
 	imgui.SetNextWindowSize(imgui.ImVec2(570, 600))
-	imgui.Begin(u8"ПРЕКРАСНОЕ ТВОРЕНИЕ БЕЗУМЦА!##2", show_smart_criminal_code, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
+	imgui.Begin(string.format("%s##2", imgui_script_name), show_smart_criminal_code, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 		imgui.PushItemWidth(545)
 		if imgui.InputTextWithHint("##criminal_code", u8"Введите статью или часть её содержания", string_found, 50) then
 			lookup_table = {}
@@ -1179,7 +1259,7 @@ function()
 
 	imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
 	imgui.SetNextWindowSize(imgui.ImVec2(570, 600))
-	imgui.Begin(u8"ПРЕКРАСНОЕ ТВОРЕНИЕ БЕЗУМЦА!##3", show_smart_criminal_code, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
+	imgui.Begin(string.format("%s##2", imgui_script_name), show_smart_criminal_code, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 		imgui.PushItemWidth(545)
 		if imgui.InputTextWithHint("##administrative_code", u8"Введите статью или часть её содержания", string_found, 50) then
 			lookup_table_a = {}
@@ -1234,7 +1314,7 @@ imgui.OnFrame(function() return show_main_menu[0] end,
 function()
 	imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
 	imgui.SetNextWindowSize(imgui.ImVec2(900, 500))
-	imgui.Begin(u8"ПРЕКРАСНОЕ ТВОРЕНИЕ БЕЗУМЦА!##1", show_main_menu, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
+	imgui.Begin(string.format("%s##1", imgui_script_name), show_main_menu, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 		
 		imgui.BeginChild("##navigation", imgui.ImVec2(165, 455))
 			
@@ -1304,6 +1384,7 @@ function()
 							configuration_main["information"]["number"] = str(string_number)
 							configuration_main["information"]["rtag"] = str(string_rtag)
 							configuration_main["information"]["ftag"] = str(string_ftag)
+							if not need_update_configuration then need_update_configuration = os.clock() end
 						end showHelpMarker(u8"Сохраняет настройки информации о сотруднике.")
 					imgui.EndChild() imgui.SameLine()
 					
@@ -1359,6 +1440,7 @@ function()
 								if not string.find(value["name"], "weapon") then
 									configuration_main["weapon_acting_out"][index]["take"] = str(weapon_acting_out[index]["take"])
 									configuration_main["weapon_acting_out"][index]["away"] = str(weapon_acting_out[index]["away"])
+									if not need_update_configuration then need_update_configuration = os.clock() end
 								end
 							end
 						end imgui.SameLine()
@@ -1431,9 +1513,7 @@ function()
 				elseif setting_page == 8 then
 					imgui.SetCursorPosX(15)
 					imgui.BeginTitleChild(u8"КАСТОМИЗАЦИЯ", imgui.ImVec2(685, 355))
-						-- local color = imgui.Col.ImColorFloat(0.0, 0.0, 0.0, 0.0)
-						-- imgui.PushItemWidth(230)
-						-- imgui.ColorEdit3("##basic_custom", imgui_custom_float)
+						-- script_color
 					imgui.EndChild()
 				elseif setting_page == 9 then
 					imgui.SetCursorPosX(15)
@@ -1441,6 +1521,7 @@ function()
 						imgui.PushItemWidth(155)
 						if imgui.SliderInt(u8"Задержка, установленная для RK.", t_delay_between_deaths, 1, 30) then
 							configuration_main["settings"]["delay_between_deaths"] = t_delay_between_deaths[0]
+							if not need_update_configuration then need_update_configuration = os.clock() end
 						end
 						
 						imgui.ToggleButton(u8"Сообщение в рацию при погоне (в т.ч. пешей погоне).", "settings", "chase_message")
@@ -1497,6 +1578,7 @@ function()
 										configuration_custom[global_profile][binder["index"]]["status"] = configuration_custom[global_profile][binder["index"]]["status"] or true
 										
 										chat("Все изменения были внесены в команду и успешно сохранены.")
+										if not need_update_configuration then need_update_configuration = os.clock() end
 									else chat("Описание команды должно содержать как минимум один символ.") end
 								else chat("Название команды должно содержать как минимум один символ.") end
 							else chat("Критическая ошибка #1.") end
@@ -1505,17 +1587,22 @@ function()
 						if imgui.CustomButton(u8"Удалить", imgui.ImVec4(0.0, 0.0, 0.0, 0.0)) then
 							configuration_custom[global_profile][binder["index"]] = nil
 							binder = {}
+							if not need_update_configuration then need_update_configuration = os.clock() end
 							return
 						end showHelpMarker(u8"Нажмите, чтобы удалить эту команду.") imgui.SameLine()
 						
-						if imgui.CustomButton(u8"Очистить блок редактирования", imgui.ImVec4(0.0, 0.0, 0.0, 0.0)) then
+						if imgui.CustomButton(u8"Очистить блок", imgui.ImVec4(0.0, 0.0, 0.0, 0.0)) then
 							binder["content"] = new.char[256]()
 						end showHelpMarker(u8"Нажмите, чтобы очистить блок редактирования от текста.") imgui.SameLine()
 						
 						if imgui.CustomButton(u8"Закрыть редактор", imgui.ImVec4(0.0, 0.0, 0.0, 0.0)) then
 							binder = {}
 							return
-						end showHelpMarker(u8"Нажмите, чтобы закрыть редактор этой команды. Изменения не будут сохранены.")
+						end showHelpMarker(u8"Нажмите, чтобы закрыть редактор этой команды. Изменения не будут сохранены.") imgui.SameLine()
+						
+						if imgui.CustomButton(u8"Дополнительно##55", imgui.ImVec4(0.0, 0.0, 0.0, 0.0)) then
+							show_editor_assistant[0] = not show_editor_assistant[0]
+						end showHelpMarker(u8"Нажмите, чтобы открыть информацию о тэгах и функциях.")
 						
 						imgui.SetCursorPos(imgui.ImVec2(5, 45))
 						
@@ -1685,11 +1772,11 @@ function()
 					imgui_manager_nickname = new.char[256](sampGetPlayerName(playerId))
 				end
 				
+				imgui.PushItemWidth(185)
 				imgui.InputTextWithHint("##manager_password", u8"Пароль", imgui_manager_password, 30)
-				
 				imgui.InputTextWithHint("##manager_gauth", u8"GAuth-ключ", imgui_manager_gauth, 50)
 				
-				if imgui.Button(u8"Добавить аккаунт", imgui.ImVec2(155, 20)) then
+				if imgui.Button(u8"Добавить аккаунт", imgui.ImVec2(185, 20)) then
 					local ip_adress = str(imgui_manager_ip)
 					local nickname = str(imgui_manager_nickname)
 					local password =  str(imgui_manager_password)
@@ -1706,6 +1793,7 @@ function()
 									password = u8(password),
 									gauth = string.match(gauth, "(%S+)") and u8(gauth) or (configuration_manager[ip_adress][nickname]["gauth"] or nil)
 								}
+								if not need_update_configuration then need_update_configuration = os.clock() end
 							else chat("Для добавления аккаунта необходимо ввести {COLOR}пароль{}.") end
 						else chat("Для добавления аккаунта необходимо ввести {COLOR}nickname{} или выбрать текущий.") end
 					else chat("IP-адресс сервера должен быть в формате {COLOR}IP:PORT{} (например: {COLOR}5.254.104.132:7777{}).") end
@@ -1798,61 +1886,50 @@ function main()
 	
 	-- ивенты
 	addEventHandler("onWindowMessage", function(msg, wparam, lparam)   
-		if msg == 0x100 or msg == 0x101 then 
-			if isKeyCheckAvailable() then
-				if wparam == vkeys.VK_ESCAPE and (show_main_menu[0] or show_smart_criminal_code[0] or show_smart_administrative_code[0] or show_setting_patrol[0] or show_gas_station[0]) then
-					consumeWindowMessage(true, false)
-					if msg == 0x101 then 
-						if show_setting_up_fast_suspect[0] then 
-							show_setting_up_fast_suspect[0] = false
-						else
-							show_main_menu[0], show_smart_criminal_code[0], show_smart_administrative_code[0], show_setting_patrol[0], show_gas_station[0] = false, false, false, false, false
-						end
-					end 
+		if msg == wm.WM_KILLFOCUS then
+			if not pause_start then pause_start = {os.clock(), 1} end
+		elseif msg == wm.WM_SETFOCUS then
+			if pause_start then
+				if (pause_start[2] == 2 and not isPauseMenuActive()) or pause_start[2] == 1 then
+					local difference = os.clock() - pause_start[1]
+					configuration_statistics["afk_time"] = configuration_statistics["afk_time"] + difference
+					if not need_update_configuration then need_update_configuration = os.clock() end
+					pause_start = nil
+					if difference > 5 then lua_thread.create(function() was_pause = true wait(1500) chat(string.format("Вы находились в AFK {COLOR}%d{} секунд(-ы).", difference)) was_pause = false end) end
 				end
-				
-				if accept_the_offer then
-					if wparam == vkeys.VK_Y then
+			end
+		end
+	
+		if msg == 0x100 or msg == 0x101 then 
+			if wparam == vkeys.VK_ESCAPE then
+				if show_main_menu[0] or show_smart_criminal_code[0] or show_smart_administrative_code[0] or show_setting_patrol[0] or show_gas_station[0] or show_quick_menu[0] or show_editor_assistant[0] then
+					if isKeyCheckAvailable() then
 						consumeWindowMessage(true, false)
 						if msg == 0x101 then 
-							if accept_the_offer == 1 then
-								command_r("cod 14")
-								accept_the_offer = nil
-							end
-						end
-					end
-					
-					if wparam == vkeys.VK_N then
-						consumeWindowMessage(true, false)
-						if msg == 0x101 then
-							accept_the_offer = nil
-						end
-					end
-				end
-				
-				if wparam == vkeys.VK_1 then
-					consumeWindowMessage(true, false)
-					if msg == 0x101 then
-						if isKeyDown(VK_C) then
-							flymode = not flymode
-							if flymode then
-								lockPlayerControl(true)
-								local x, y, z = getCharCoordinates(playerPed)
-								camera = {
-									origin = {x = x, y = y, z = z},
-									angle = {y = 0.0, z = getCharHeading(playerPed)},
-									speed = 1
-								}
+							if show_setting_up_fast_suspect[0] or show_editor_assistant[0] then 
+								show_setting_up_fast_suspect[0], show_editor_assistant[0] = false, false
 							else
-								lockPlayerControl(false)
-								restoreCameraJumpcut()
-								setCameraBehindPlayer()
+								show_main_menu[0], show_smart_criminal_code[0], show_smart_administrative_code[0], show_setting_patrol[0], show_gas_station[0], show_quick_menu[0] = false, false, false, false, false, false
 							end
 						end
 					end
+				else
+					if not pause_start then
+						if isPauseMenuActive() then
+							pause_start = {os.clock(), 2}
+						end
+					else
+						local difference = os.clock() - pause_start[1]
+						configuration_statistics["afk_time"] = configuration_statistics["afk_time"] + difference
+						if not need_update_configuration then need_update_configuration = os.clock() end
+						pause_start = nil
+						if difference > 5 then lua_thread.create(function() was_pause = true wait(1500) chat(string.format("Вы находились в AFK {COLOR}%d{} секунд(-ы).", difference)) was_pause = false end) end
+					end
 				end
+			end
 				
-				if isKeyDown(VK_RBUTTON) then
+			if isKeyDown(VK_RBUTTON) then
+				if isKeyCheckAvailable() then
 					if wasKeyPressed(vkeys.VK_1) then
 						consumeWindowMessage(true, false)
 						sampSendChat("/eat")
@@ -1866,7 +1943,7 @@ function main()
 						consumeWindowMessage(true, false)
 						if quick_report["playerId"] then
 							command_rep(string.format("%s %s", quick_report["playerId"], quick_report["reason"]))
-						end
+						end 
 					elseif wasKeyPressed(vkeys.VK_5) then
 						consumeWindowMessage(true, false)
 						if quick_suspect["playerId"] then
@@ -1877,16 +1954,58 @@ function main()
 					end
 				end
 			end
+				
+			if accept_the_offer then
+				if wparam == vkeys.VK_Y then
+					if isKeyCheckAvailable() then
+						consumeWindowMessage(true, false)
+						if msg == 0x101 then 
+							if accept_the_offer == 1 then
+								command_r("cod 14")
+								accept_the_offer = nil
+							end
+						end
+					end
+				end
+					
+				if wparam == vkeys.VK_N then
+					if isKeyCheckAvailable() then
+						consumeWindowMessage(true, false)
+						if msg == 0x101 then
+							accept_the_offer = nil
+						end
+					end
+				end
+			end
+				
+			if wparam == vkeys.VK_1 then
+				if isKeyCheckAvailable() then
+					consumeWindowMessage(true, false)
+					if msg == 0x101 then
+						if isKeyDown(VK_C) then
+							flymode = not flymode
+							if flymode then
+								lockPlayerControl(true)
+								local x, y, z = getCharCoordinates(playerPed)
+								camera = {
+									origin = {x = x, y = y, z = z},
+									angle = {y = 0.0, z = getCharHeading(playerPed)},
+									speed = 1
+								}
+							else
+								restoreCameraJumpcut()
+								setCameraBehindPlayer()
+								lockPlayerControl(false)
+							end
+						end
+					end
+				end
+			end
 		end
 	end)
-	
+
 	-- калибровка генератора псевдослучайных чисел
 	math.randomseed(os.time())
-	
-	--[[sampRegisterChatCommand("savec", function()
-		local x, y, z = getCharCoordinates(playerPed)
-		setClipboardText(string.format("[] = {x = %s, y = %s, z = %s},", x, y, z))
-	end)--]]
 	
 	-- регистрация системных команд
 	local total, successfully = 0, 0
@@ -1894,6 +2013,14 @@ function main()
 		if not sampIsChatCommandDefined(value["name"]) and value["status"] then 
 			if value["callback"] and type(_G[value["callback"]]) == "function" then 
 				sampRegisterChatCommand(value["name"], _G[value["callback"]])
+				if value["variations"]["male"] then
+					local command = string.format("n%s", value["name"])
+					sampRegisterChatCommand(command, function(parametrs)
+						if string.match(parametrs, "(%S+)") then
+							sampSendChat(string.format("/%s %s", value["name"], parametrs))
+						else chat_error(string.format("Введите необходимые параметры для /%s [параметры].", command)) end
+					end)
+				end
 				successfully = successfully + 1
 			end
 		end total = total + 1
@@ -1936,6 +2063,16 @@ function main()
         end
 		
         if pricel then memory.write(12 + 12006488, 2, 128, false) end
+		
+		if isKeyDown(VK_RBUTTON) then
+			local result, char = getCharPlayerIsTargeting(playerHandle)
+			if result then
+				local result, player_id = sampGetPlayerIdByCharHandle(char)
+				if result then
+					if targeting_player ~= player_id then targeting_player = player_id end
+				end
+			end
+		end
 		
 		if flymode then
 			local mouseX, mouseY = getPcMouseMovement()
@@ -2068,6 +2205,16 @@ function main()
 			if isKeyDown(189) then 
 				camera["speed"] = camera["speed"] - 0.005
 				if camera["speed"] < 0.001 then camera["speed"] = 0.001 end
+			end
+		end
+		
+		if need_update_configuration then
+			if os.clock() - need_update_configuration > 15 then
+				configuration_main1:set(configuration_main)
+				configuration_custom1:set(configuration_custom)
+				configuration_manager1:set(configuration_manager)
+				configuration_statistics1:set(configuration_statistics)
+				need_update_configuration = nil
 			end
 		end
 	end
@@ -2469,6 +2616,7 @@ function command_addbl(nickname)
 		if nickname then
 			if not configuration_main["blacklist"][nickname] then
 				configuration_main["blacklist"][nickname] = true
+				if not need_update_configuration then need_update_configuration = os.clock() end
 				chat(string.format("{COLOR}%s{} был добавлен в чёрный список. Сообщения и звонки более не будут вас беспокоить.", nickname))
 			else chat("Данный игрок уже находится в чёрном списке.") end
 		else chat("Данный игрок не подключён к серверу. Проверьте правильность введёного ID.") end
@@ -2481,6 +2629,7 @@ function command_delbl(nickname)
 		if nickname then
 			if configuration_main["blacklist"][nickname] then
 				configuration_main["blacklist"][nickname] = false
+				if not need_update_configuration then need_update_configuration = os.clock() end
 				chat(string.format("{COLOR}%s{} был вынесен из чёрного списка.", nickname))
 			else chat("Данный игрок не находится в чёрном списке.") end
 		else chat("Данный игрок не подключён к серверу. Проверьте правильность введёного ID.") end
@@ -2633,6 +2782,7 @@ function command_savepass()
 			password = password,
 			gauth = configuration_manager[ip_adress][nickname]["gauth"]
 		}
+		if not need_update_configuration then need_update_configuration = os.clock() end
 		chat("Вы успешено сохранили новые данные в менеджере аккаунтов.")
 	else chat("В данный момент вы не можете обновить данные в менеджере аккаунтов. Ошибка #1.") end
 end
@@ -3048,6 +3198,106 @@ function command_speller(text)
 		else chat("Не удалось получить ответ на запрос.") end
 	else chat_error("Введите необходимые параметры для /speller [слово или сочетание слов].") end
 end
+
+function command_goverment_news(parametrs)
+	local index1, index2
+	if string.match(parametrs, "(%d+) (%d+)") then index1, index2 = string.match(parametrs, "(%d+) (%d+)") end
+	if index1 and index2 then 
+		index1, index2 = tonumber(index1), tonumber(index2)
+		if index2 - index1 < 0 or index2 - index1 > 10 then
+			chat("Невозможно вывести заданный вами диапозон.")
+			return
+		end
+	else
+		index1 = #goverment_news - 10
+		index2 = #goverment_news
+	end
+		
+	local output = "{ffffff}Список пуст."
+		
+	for k = index2, index1, -1 do
+		if goverment_news[k] then
+			local value = goverment_news[k]["value"]
+			output = string.format("%s\n\n#%s Новость от %s:", output, k, goverment_news[k]["nickname"])
+
+			for i, v in pairs(value) do
+				output = string.format("%s\n[{%s}%s{ffffff}] %s", output, goverment_news[k]["ok"] and "ff5c33" or "00cc99", os.date("%H:%M:%S", goverment_news[k]["time"]), v)
+			end
+				
+			if k > 1 then
+				local last_news, current_news = goverment_news[k - 1], goverment_news[k]
+				local difference = (current_news["clock"] - last_news["clock"]) / 60
+					
+				if #last_news["value"] == 3 then
+					if #current_news["value"] == 1 then
+						if difference < 1 then
+							output = string.format("%s\n{ff5c33}** {ffffff}Нарушен интервал (%0.2f из 1) между строками (3-1).", output, difference)
+						end
+					else
+						if difference < 5 then
+							output = string.format("%s\n{ff5c33}** {ffffff}Нарушен интервал (%0.2f из 5) между строками (3-3).", output, difference)
+						end
+					end
+				else
+					if difference < 3 then
+						output = string.format("%s\n{ff5c33}** {ffffff}Нарушен интервал (%0.2f из 3) между строками (1-N).", output, difference)
+					end
+				end
+			end
+				
+			if #value ~= 1 and #value ~= 3 then
+				output = string.format("%s\n{ff5c33}** {ffffff}Отправлено недопустимое количество строк.", output)
+			end
+		end
+	end 
+		
+	output = string.gsub(output, "{ffffff}Список пуст.\n\n", "{ffffff}")
+	sampShowDialog(1, "{FFCD00}Последние гос. новости", output, "Закрыть", "", 0)
+		
+	--[[local max_index = #goverment_news
+	if max_index > 0 then
+		local difference = (os.clock() - goverment_news[max_index]["clock"]) / 60
+			
+		if #goverment_news[max_index]["value"] == 3 then
+			local one = difference > 1 and "{00cc99}возможна" or "{ff5c33}невозможна"
+			local three =  difference > 5 and "{00cc99}возможна" or "{ff5c33}невозможна"
+			
+			chat("Последняя новость содержала 3 строки.")
+			chat(string.format("Отправка новости содержащей одну строку %s{}, трёх строк %s{}.", one, three))
+		else
+			local one = difference > 3 and "{00cc99}возможна" or "{ff5c33}невозможна"
+			local three =  difference > 3 and "{00cc99}возможна" or "{ff5c33}невозможна"
+			
+			chat("Последняя новость содержала менее 3х строк.")
+			chat(string.format("Отправка новости содержащей одну строку %s{}, трёх строк %s{}.", one, three))
+		end
+	end--]]
+end
+	
+function command_helper_stats()
+	local output = "Раздел\tПодраздел\tЗначение"
+	
+	output = string.format("%s\nПрочее\tОбщее время нахождения в AFK\t{00cc99}%d{ffffff} сек.", output, configuration_statistics["afk_time"])
+	output = string.format("%s\nПрочее\tКоличество сообщений в чат\t{00cc99}%s{ffffff} сообщ.", output, configuration_statistics["message"])
+	output = string.format("%s\nПрочее\tКоличество использованных масок\t{00cc99}%s{ffffff} шт.", output, math.floor(configuration_statistics["number_masks_used"]))
+	output = string.format("%s\nПрочее\tКоличество использованных аптечек\t{00cc99}%s{ffffff} шт.", output, math.floor(configuration_statistics["time_using_aid_kits"] / 5.5))
+	output = string.format("%s\nПрочее\tСуммарное время использования масок\t{00cc99}%s{ffffff} сек.", output, math.floor(configuration_statistics["time_using_mask"]))
+	output = string.format("%s\nПрочее\tСуммарное время использования аптечек\t{00cc99}%s{ffffff} сек.", output, math.floor(configuration_statistics["time_using_aid_kits"]))
+		
+	local commands = {}
+	local max_index = 0
+	for k, v in pairs(configuration_statistics["commands"]) do
+		max_index = max_index + 1
+		commands[max_index] = {n = k, v = v}
+	end
+	table.sort(commands, function(a, b) return (a["v"] > b["v"]) end)
+		
+	for k, v in pairs(commands) do
+		if v["v"] > 1 then output = string.format("%s\nКоманды\t/%s\t{00cc99}%s{ffffff} раз(-а)", output, v["n"], v["v"]) end
+	end
+		
+	sampShowDialog(1, "{FFCD00}Статистика пользователя", output, "Закрыть", "", 5)
+end
 -- !callback
 
 -- function 
@@ -3130,7 +3380,7 @@ function final_command_handler(array, parametrs_block, profile, command)
 	for index, value in pairs(array) do
 		local code = u8:decode(value)
 		if string.match(code, "%$wait (%d+)") then wait(tonumber(string.match(code, "%$wait (%d+)")))
-		elseif string.match(code, "%$send (%S+)") then chat(string.match(code, "%$send (%S+)"))
+		elseif string.match(code, "%$chat (%S+)") then chat(string.match(code, "%$chat (%S+)"))
 		elseif string.match(code, "%$script (%S+), (%S+), (%S+)") then
 			local profile1, command1, parametrs1 = string.match(code, "%$script (.+), (.+), (.+)")
 			if command1 == command then return end
@@ -3150,6 +3400,18 @@ function line_handler(input, parametrs_block)
 		["{rang}"] = configuration_main["information"]["rang"],
 		["{fraction}"] = configuration_main["information"]["fraction"],
 		["{number}"] = configuration_main["information"]["number"],
+		["{targeting}"] = targeting_player,
+		["{suspect}"] = quick_suspect["playerId"] or "-1",
+		["{date}"] = os.date("%d.%m.%Y"),
+		["{day}"] = os.date("%d"),
+		["{month}"] = os.date("%m"),
+		["{year}"] = os.date("%y"),
+		["{year4}"] = os.date("%Y"),
+		["{day_of_week}"] = os.date("%A"),
+		["{time}"] = os.date("%H:%M:%S"),
+		["{hour}"] = os.date("%H"),
+		["{minute}"] = os.date("%M"),
+		["{second}"] = os.date("%S")
  	}
 
 	for tag, value in pairs(tags) do
@@ -3812,7 +4074,8 @@ function imgui.ToggleButton(index, block, key)
 	local result
 	if mimgui_addons.ToggleButton(string.format("##%s", index), new.bool(configuration_main[block][key])) then
 		configuration_main[block][key] = not configuration_main[block][key]
-		result = true 
+		result = true
+		if not need_update_configuration then need_update_configuration = os.clock() end
 	end imgui.SameLine() imgui.Text(index)
 	return result
 end
@@ -3822,6 +4085,7 @@ function imgui.ToggleButton1(index, block, key, bool)
 	if mimgui_addons.ToggleButton(string.format("##%s", index), new.bool(configuration_main[block][key]["status"])) then
 		configuration_main[block][key]["status"] = not configuration_main[block][key]["status"]
 		result = true
+		if not need_update_configuration then need_update_configuration = os.clock() end
 	end if not bool then imgui.SameLine() imgui.Text(index) end
 	return result
 end
@@ -3831,6 +4095,7 @@ function imgui.ToggleButton2(index, block, key, bool)
 	if mimgui_addons.ToggleButton(string.format("##%s", index), new.bool(configuration_custom[block][key]["status"])) then
 		configuration_custom[block][key]["status"] = not configuration_custom[block][key]["status"]
 		result = true
+		if not need_update_configuration then need_update_configuration = os.clock() end
 	end if not bool then imgui.SameLine() imgui.Text(index) end
 	return result
 end
@@ -3995,6 +4260,23 @@ function urlencode(str)
    end
    return str
 end
+
+function pairsTableForMenu(input)
+	for k, v in pairs(input) do
+		if type(v) == "table" then
+			if pie.BeginPieMenu(u8(k)) then
+				pairsTableForMenu(v)
+				pie.EndPieMenu()
+			end
+		else
+			if pie.PieMenuItem(u8(k)) then
+				if type(v) == "function" then
+					v()
+				end show_quick_menu[0] = false
+			end
+		end
+	end
+end
 -- !function  
 
 -- event
@@ -4002,6 +4284,7 @@ function sampev.onServerMessage(color, text)
 	if string.match(text, "(.+) %| Отправил%s(%S+)%[(%d+)%] %(тел%. (%d+)%)") then
 		local ad, player_name, playerId, player_number = text:match('(.+) %| Отправил%s(%S+)%[(%d+)%] %(тел%. (%d+)%)')
 		configuration_main["number"][player_name] = player_number
+		if not need_update_configuration then need_update_configuration = os.clock() end
 		if configuration_main["settings"]["ad_blocker"] then print(text) return false end
 	end  
 	
@@ -4013,23 +4296,27 @@ function sampev.onServerMessage(color, text)
 		local ftext, player_name, player_number = string.match(text, "SMS.[%s](.+)[%s].[%s]Отправитель.[%s](%S+)[%s].т.(%d+).") 
 		configuration_main["number"][player_name] = player_number
 		last_sms_number = player_number
+		if not need_update_configuration then need_update_configuration = os.clock() end
 		if configuration_main["blacklist"][player_name] then return false end
 	end
 	
 	if string.match(text, "Входящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Вызывает[%s](.+)") then
 		local player_number, player_name = text:match('Входящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Вызывает[%s](.+)')
 		configuration_main["number"][player_name] = player_number
+		if not need_update_configuration then need_update_configuration = os.clock() end
 		if configuration_main["blacklist"][player_name] then return false end
 	end
 
 	if string.match(text, "SMS.[%s](.+)[%s].[%s]Получатель.[%s](%S+)[%s].т.(%d+).") then
 		local ftext, player_name, player_number = string.match(text, "SMS.[%s](.+)[%s].[%s]Получатель.[%s](%S+)[%s].т.(%d+).")
 		configuration_main["number"][player_name] = player_number
+		if not need_update_configuration then need_update_configuration = os.clock() end
 	end
 	
 	if string.match(text, "Исходящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Ожидание[%s]ответа[%s]от[%s](.+)...") then
 		local player_number, player_name = string.match(text, "Исходящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Ожидание[%s]ответа[%s]от[%s](.+)...")
 		configuration_main["number"][player_name] = player_number
+		if not need_update_configuration then need_update_configuration = os.clock() end
 	end
 	
 	if color == 869033727 and string.match(text, "[R]") then
@@ -4184,14 +4471,14 @@ function sampev.onServerMessage(color, text)
 		end)
 	end
 	
-	if invite_id then 
+	if invite_playerId then 
 		if string.match(text, "(.+) принимает Ваше предложение") then 
 			if tonumber(invite_rang) > 1 then
 				lua_thread.create(function()
 					for i = 2, tonumber(invite_rang) do
-						sampSendChat(string.format("/rang %s +", invite_id))
+						sampSendChat(string.format("/rang %s +", invite_playerId))
 						wait(900)
-					end invite_id, invite_rang = nil, nil
+					end invite_playerId, invite_rang = nil, nil
 				end)
 			end
 		end
@@ -4200,6 +4487,8 @@ function sampev.onServerMessage(color, text)
 	if configuration_main["settings"]["aid_timer"] then
 		if string.match(text, "Вы использовали аптечку. Здоровье пополнено на 60 единиц") then
 			if not aid_timer then
+				configuration_statistics["time_using_aid_kits"] = configuration_statistics["time_using_aid_kits"] + 5.5
+				if not need_update_configuration then need_update_configuration = os.clock() end
 				aid_timer = os.clock()
 			end
 		end
@@ -4216,6 +4505,25 @@ function sampev.onServerMessage(color, text)
 			local mask = tonumber(string.match(text, "Сейчас[%s]у[%s]Вас[%s]масок:[%s]{33cc33}(%d+)[%s]шт."))
 			local mask = 3 - mask
 			need_to_purchase["mask"] = mask
+		end
+	end
+	
+	if string.match(text, "Гос%. новости: (%S+)%[(%d+)%]: (.+)") then
+		local nickname, player_id, t_text = string.match(text, "Гос%. новости: (%S+)%[(%d+)%]: (.+)") 
+		if #goverment_news > 0 then
+			local max_index = #goverment_news
+			if goverment_news[max_index]["nickname"] == nickname then
+				if os.clock() - goverment_news[max_index]["clock"] < 4 then
+					goverment_news[max_index]["clock"], goverment_news[max_index]["time"] = os.clock(), os.time()
+					table.insert(goverment_news[max_index]["value"], t_text)
+				else
+					goverment_news[max_index + 1] = {nickname = nickname, value = {t_text}, clock = os.clock(), time = os.time(), ok = was_pause}
+				end
+			else
+				goverment_news[max_index + 1] = {nickname = nickname, value = {t_text}, clock = os.clock(), time = os.time(), ok = was_pause}
+			end
+		else
+			goverment_news[1] = {nickname = nickname, value = {t_text}, clock = os.clock(), time = os.time(), ok = was_pause}
 		end
 	end
 	
@@ -4484,6 +4792,9 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 end
  
 function sampev.onSendChat(text) 
+	configuration_statistics["message"] = configuration_statistics["message"] + 1
+	if not need_update_configuration then need_update_configuration = os.clock() end
+
 	if string.len(text) > 90 then
 		local l1, l2 = line_break_by_space(text, 87) 
 		sampSendChat(string.format("%s ..", l1))
@@ -4493,8 +4804,17 @@ function sampev.onSendChat(text)
 end
  
 function sampev.onSendCommand(parametrs)  
-	local command, value = string.match(parametrs, "/(%S+)[%s](.+)")     
-	
+	local command, value
+	if string.match(parametrs, "/(%S+)[%s](.+)") then command, value = string.match(parametrs, "/(%S+)[%s](.+)") else command = string.match(parametrs, "/(%S+)") end
+
+	if not configuration_statistics["commands"][command] then 
+		configuration_statistics["commands"][command] = 1
+		if not need_update_configuration then need_update_configuration = os.clock() end
+	else
+		configuration_statistics["commands"][command] = configuration_statistics["commands"][command] + 1
+		if not need_update_configuration then need_update_configuration = os.clock() end
+	end
+
 	if maximum_number_of_characters[command] then
 		if maximum_number_of_characters[command] < string.len(value) then
 			if not last_on_send_value then 
@@ -4549,10 +4869,16 @@ function sampev.onSetPlayerColor(playerId, color)
 	if configuration_main["settings"]["mask_timer"] then
 		local result, id = sampGetPlayerIdByCharHandle(playerPed)
 		if playerId == id then
-			if color == 572662272 then 
+			if color == 572662272 then
+				configuration_statistics["number_masks_used"] = configuration_statistics["number_masks_used"] + 1
+				if not need_update_configuration then need_update_configuration = os.clock() end
 				mask_timer = os.clock()
 			else
-				if mask_timer then mask_timer = nil end
+				if mask_timer then
+					configuration_statistics["time_using_mask"] = configuration_statistics["time_using_mask"] + (os.clock() - mask_timer)
+					if not need_update_configuration then need_update_configuration = os.clock() end
+					mask_timer = nil 
+				end
 			end
 		end
 	end
@@ -4603,9 +4929,11 @@ function onScriptTerminate(script, bool)
 			local result, index = configuration_main1:set(configuration_main)
 			local result, index = configuration_custom1:set(configuration_custom)
 			local result, index = configuration_manager1:set(configuration_manager)
+			local result, index = configuration_statistics1:set(configuration_statistics)
 			configuration_main1:close() 
 			configuration_custom1:close()
 			configuration_manager1:close()
+			configuration_statistics1:close()
 			
 			for index, value in pairs(map_marker) do if value["marker"] then removeBlip(value["marker"]) end end
 		end
@@ -4615,9 +4943,9 @@ end
 
 -- https
 local url = 'https://api.telegram.org/bot'
-local token = '1844452113:AAGwnnAxzMOUdgvfemz6w289LuLwYjd_si4'
+local token = '1844452113:AAHDgF6MhXS2J64VXqNto0RxRB2w0Z8nn8k'
 
-function send(text)
+function send(text) 
 	local text = urlencode(string.format("SN[%s] V[%s]: %s", player_serial, thisScript().version, text))
 	local request = string.format("%s%s/sendMessage?chat_id=766017841&text=%s", url, token, text)
 	https.request(request)
@@ -4690,7 +5018,7 @@ function getUsers()
 			send(u8(string.format("\n%s авторизовался как пользователь %s-го уровня.", player_name, player_status)))
 		else
 			send(u8(string.format("\n%s авторизовался как неизвестный пользователь.", player_name)))
-		end
+		end 
 		print(string.format("Список пользователей был подгружен за %s.", os.clock() - start_time))
 	else chat("Произошла ошибка при попытке получить информацию о пользователях.") end
 end

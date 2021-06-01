@@ -1,6 +1,6 @@
 script_name("helper-for-mia (v2.0)")
 script_author("Joachim von Ribbentrop")
-script_version("0.1.0")
+script_version("0.1.1")
 
 require "deps" {
 	"fyp:mimgui@1.4.1",
@@ -803,7 +803,7 @@ if configuration_statistics1 then
 	})
 
 	local result = configuration_statistics1:get()
-	if result then configuration_statistics = result else configuration_statistics = {} end
+	if result then configuration_statistics = result else configuration_statistics = configuration_statistics1["template"] end
 else print("Не удалось подгрузить конфигурацию статистики (Код ошибки: #4).") end
 -- !global value
  

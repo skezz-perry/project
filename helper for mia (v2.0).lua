@@ -1,6 +1,6 @@
 script_name("helper-for-mia (v2.0)")
 script_author("Joachim von Ribbentrop")
-script_version("0.1.1")
+script_version("0.1.2")
 
 require "deps" {
 	"fyp:mimgui@1.4.1",
@@ -32,6 +32,7 @@ imgui.HotKey = mimgui_addons.HotKey
 
 -- global value 
 local update_log = {
+	{["0.1.2"] = {"Добавлена возможность редактировать системные команды и создавать новые вариации.", "В настройках добавлена возможность кастомизировать цвет интерфейса и префикса чата."}},
 	{["0.1.0"] = {"Добавлена статистика действий пользователя (/helper_stats).", "Добавлен список последних гос.новостей (/goverment_news).", "Добавлены дополнительные тэги для биндера.", "Добавлены дублирующие NRP-команды (/ncuff и т.д.)"}},
 	{["0.0.9"] = {"Добавлен менеджер аккаунтов.", "Добавлена возможность проверки правильности написания слов (/speller)."}},
 	{["0.0.8"] = {"Тотально окончательное исправление ошибки с разделителем строк."}},
@@ -120,7 +121,8 @@ if configuration_main1 then
 			patrol_assistant = true,
 			user_rang = true, 
 			script_color = "{67BEF8}",
-			line_break_by_space = true
+			line_break_by_space = true,
+			customization = false
 		},
 		modification = { 
 			id_postfix_after_nickname = true
@@ -894,6 +896,8 @@ local targeting_player = -1
 local imgui_custom_chat = new.char[256]()
 local pause_start
 local was_pause
+local binder_sc = {}
+local color_picker = configuration_main["customization"]["Button"] and new.float[3](configuration_main["customization"]["Button"]["r"], configuration_main["customization"]["Button"]["g"], configuration_main["customization"]["Button"]["b"]) or new.float[3]()
 -- !local value
 
 -- const 
@@ -1510,10 +1514,65 @@ function()
 							imgui.Text(value["description"]) imgui.NextColumn()
 						end
 					imgui.EndChild()
-				elseif setting_page == 8 then
+				elseif setting_page == 8 then 
 					imgui.SetCursorPosX(15)
-					imgui.BeginTitleChild(u8"КАСТОМИЗАЦИЯ", imgui.ImVec2(685, 355))
-						-- script_color
+					imgui.BeginTitleChild(u8"КАСТОМИЗАЦИЯ", imgui.ImVec2(365, 355)) -- 685
+						imgui.PushItemWidth(275)
+						if imgui.ColorPicker3("##TEST", color_picker) then
+							if configuration_main["settings"]["customization"] then
+								imgui.GetStyle().Colors[imgui.Col.ButtonActive] = imgui.ImVec4(color_picker[0], color_picker[1] + 0.1, color_picker[2] + 0.1, 0.93)
+								imgui.GetStyle().Colors[imgui.Col.ButtonHovered] = imgui.ImVec4(color_picker[0], color_picker[1] + 0.1, color_picker[2] + 0.1, 0.89)
+								imgui.GetStyle().Colors[imgui.Col.Button] = imgui.ImVec4(color_picker[0], color_picker[1], color_picker[2], 0.85)
+								
+								imgui.GetStyle().Colors[imgui.Col.HeaderActive] = imgui.ImVec4(color_picker[0], color_picker[1] + 0.1, color_picker[2] + 0.1, 0.93)
+								imgui.GetStyle().Colors[imgui.Col.HeaderHovered] = imgui.ImVec4(color_picker[0], color_picker[1] + 0.1, color_picker[2] + 0.1, 0.89)
+								imgui.GetStyle().Colors[imgui.Col.Header] = imgui.ImVec4(color_picker[0], color_picker[1], color_picker[2], 0.85)
+								
+								imgui.GetStyle().Colors[imgui.Col.SeparatorActive] = imgui.ImVec4(color_picker[0], color_picker[1] + 0.1, color_picker[2] + 0.1, 0.93)
+								imgui.GetStyle().Colors[imgui.Col.SeparatorHovered] = imgui.ImVec4(color_picker[0], color_picker[1] + 0.1, color_picker[2] + 0.1, 0.89)
+								imgui.GetStyle().Colors[imgui.Col.Separator] = imgui.ImVec4(color_picker[0], color_picker[1], color_picker[2], 0.85)
+								
+								imgui.GetStyle().Colors[imgui.Col.SliderGrabActive] = imgui.ImVec4(color_picker[0], color_picker[1] + 0.1, color_picker[2] + 0.1, 0.93)
+								imgui.GetStyle().Colors[imgui.Col.SliderGrab] = imgui.ImVec4(color_picker[0], color_picker[1], color_picker[2], 0.85)
+								
+								configuration_main["customization"]["ButtonActive"] = {r = color_picker[0], g = color_picker[1] + 0.1, b = color_picker[2] + 0.1, a = 0.93}
+								configuration_main["customization"]["ButtonHovered"] = {r = color_picker[0], g = color_picker[1] + 0.1, b = color_picker[2] + 0.1, a = 0.89}
+								configuration_main["customization"]["Button"] = {r = color_picker[0], g = color_picker[1], b = color_picker[2], a = 0.85}
+								
+								configuration_main["customization"]["SeparatorActive"] = {r = color_picker[0], g = color_picker[1] + 0.1, b = color_picker[2] + 0.1, a = 0.93}
+								configuration_main["customization"]["SeparatorHovered"] = {r = color_picker[0], g = color_picker[1] + 0.1, b = color_picker[2] + 0.1, a = 0.89}
+								configuration_main["customization"]["Separator"] = {r = color_picker[0], g = color_picker[1], b = color_picker[2], a = 0.85}
+								
+								configuration_main["customization"]["HeaderActive"] = {r = color_picker[0], g = color_picker[1] + 0.1, b = color_picker[2] + 0.1, a = 0.93}
+								configuration_main["customization"]["HeaderHovered"] = {r = color_picker[0], g = color_picker[1] + 0.1, b = color_picker[2] + 0.1, a = 0.89}
+								configuration_main["customization"]["Header"] = {r = color_picker[0], g = color_picker[1], b = color_picker[2], a = 0.85}
+								
+								configuration_main["customization"]["SliderGrabActive"] = {r = color_picker[0], g = color_picker[1] + 0.1, b = color_picker[2] + 0.1, a = 0.93}
+								configuration_main["customization"]["SliderGrab"] = {r = color_picker[0], g = color_picker[1], b = color_picker[2], a = 0.85}
+								
+								local r, g, b = color_picker[0] * 255, color_picker[1] * 255, color_picker[2] * 255
+								configuration_main["settings"]["script_color"] = string.format("{%s}", argb_to_hex(join_argb(255, r, g, b)))
+							end
+						end
+					imgui.EndChild() imgui.SameLine()
+					
+					imgui.BeginTitleChild(u8"ИНФОРМАЦИЯ И НАСТРОЙКА", imgui.ImVec2(310, 210))
+						if imgui.ToggleButton(u8"Кастомизация", "settings", "customization") then
+							apply_custom_style()
+						end
+						
+						imgui.NewLine()
+						
+						imgui.Text(u8"Для активации включите переключатель сверху.")
+						imgui.Text(u8"Вы в любой момент можете вернуться к обычному")
+						imgui.Text(u8"интерфейсу просто отключив переключатель.")
+						
+						imgui.NewLine()
+						
+						imgui.Text(u8"Изменяя основной цвет, каждый элемент mimgui")
+						imgui.Text(u8"и цвет префикса сообщений подстроится под него")
+						imgui.Text(u8"и станет идентичным, не считая прозрачности,")
+						imgui.Text(u8"которая будет своя для каждого элемента.")
 					imgui.EndChild()
 				elseif setting_page == 9 then
 					imgui.SetCursorPosX(15)
@@ -1557,7 +1616,7 @@ function()
 									if description and string.match(description, "(%S+)") then
 										if not configuration_custom[global_profile][binder["index"]] then configuration_custom[global_profile][binder["index"]] = {} end
 										if not configuration_custom[global_profile][binder["index"]]["parametrs"] then configuration_custom[global_profile][binder["index"]]["parametrs"] = {} end
-										if not configuration_custom[global_profile][binder["index"]]["content"] then configuration_custom[global_profile][binder["index"]]["content"] = {} end
+										configuration_custom[global_profile][binder["index"]]["content"] = {}
 										local index = 1
 										
 										for line in string.gmatch(str(binder["content"]), "[^\n]+") do
@@ -1636,6 +1695,88 @@ function()
 						end imgui.NewLine()
 						
 						imgui.InputTextMultiline("##input_command_content", binder["content"], 9999, imgui.ImVec2(655, sizeY))
+					elseif binder_sc["index"] then
+						imgui.CustomButton(string.format("ID: %s", binder_sc["index"]), imgui.ImVec4(0.0, 0.0, 0.0, 0.0))
+						imgui.SameLine()
+						imgui.Button(string.format("/%s", binder_sc["command"]), imgui.ImVec2(118, 20))
+						imgui.SameLine()
+						
+						if imgui.CustomButton(u8"Сохранить", imgui.ImVec4(0.0, 0.0, 0.0, 0.0)) then
+							if configuration_main["system_commands"][binder_sc["index"]] then
+								local male = configuration_main["information"]["sex"] and "female" or "male"
+								configuration_main["system_commands"][binder_sc["index"]]["variations"][male][binder_sc["current_variations"]] = {}
+								
+								local index = 0
+								
+								for line in string.gmatch(str(binder_sc["content"]), "[^\n]+") do
+									index = index + 1
+									configuration_main["system_commands"][binder_sc["index"]]["variations"][male][binder_sc["current_variations"]][index] = line
+								end
+								
+								chat("Все изменения были внесены в команду и успешно сохранены.")
+								if not need_update_configuration then need_update_configuration = os.clock() end
+							else chat("Критическая ошибка #1.") end
+						end showHelpMarker(u8"Нажмите, чтобы сохранить эту вариацию команды.") imgui.SameLine()
+					
+						if imgui.CustomButton(u8"Удалить", imgui.ImVec4(0.0, 0.0, 0.0, 0.0)) then
+							local male = configuration_main["information"]["sex"] and "female" or "male"
+							
+							if #configuration_main["system_commands"][binder_sc["index"]]["variations"][male] > 1 then
+								configuration_main["system_commands"][binder_sc["index"]]["variations"][male][binder_sc["current_variations"]] = nil
+								binder_sc = {}
+								if not need_update_configuration then need_update_configuration = os.clock() end
+								return
+							else chat("Невозможно удалить единственную вариацию команды.") end
+						end showHelpMarker(u8"Нажмите, чтобы удалить эту вариацию команды.") imgui.SameLine()
+					
+						if imgui.CustomButton(u8"Очистить блок", imgui.ImVec4(0.0, 0.0, 0.0, 0.0)) then
+							binder_sc["content"] = new.char[9999]()
+						end showHelpMarker(u8"Нажмите, чтобы очистить блок редактирования от текста.") imgui.SameLine() 
+						
+						if imgui.CustomButton(u8"Закрыть редактор", imgui.ImVec4(0.0, 0.0, 0.0, 0.0)) then
+							binder_sc = {}
+							return
+						end showHelpMarker(u8"Нажмите, чтобы закрыть редактор этой команды. Изменения не будут сохранены.") imgui.SameLine()
+						
+						if imgui.CustomButton(u8"Дополнительно##66", imgui.ImVec4(0.0, 0.0, 0.0, 0.0)) then
+							show_editor_assistant[0] = not show_editor_assistant[0]
+						end showHelpMarker(u8"Нажмите, чтобы открыть информацию о тэгах и функциях.")
+						
+						imgui.SetCursorPos(imgui.ImVec2(5, 45))
+						local sizeY = 337
+						
+						if imgui.TreeNodeStr(u8"Дополнительные настройки команды (вариации).") then
+							imgui.CustomButton(u8"Количество вариаций:", imgui.ImVec4(0.0, 0.0, 0.0, 0.0))
+							showHelpMarker(u8"Эта настройка отвечает за количество возможных вариаций выполнения команды.")
+							imgui.SameLine()
+							imgui.PushItemWidth(85)
+							if imgui.InputInt("##variations", binder_sc["variations_amount"]) then
+								if binder_sc["variations_amount"][0] < 1 then binder_sc["variations_amount"][0] = 1
+								elseif binder_sc["variations_amount"][0] > 5 then binder_sc["variations_amount"][0] = 5 end
+							end
+							
+							for index = 1, binder_sc["variations_amount"][0] do
+								if imgui.Button(string.format(u8"Вариация #%s", index), imgui.ImVec2(85, 20)) then
+									local value = configuration_main["system_commands"][binder_sc["index"]]
+									
+									if value["variations"]["male"][index] then
+										local content = "\n"
+										for k, v in pairs(value["variations"]["male"][index]) do content = string.format("%s\n%s", content, v) end 
+										local content = string.gsub(content, "\n\n", "")
+										binder_sc["content"] = new.char[9999](content)
+									else
+										binder_sc["content"] = new.char[9999]()
+									end
+									
+									binder_sc["current_variations"] = index
+								end showHelpMarker(u8"Переключится к настройке этой вариации (изменения не будут сохранены).") imgui.SameLine()
+							end imgui.NewLine()
+							
+							sizeY = 286
+							imgui.TreePop()
+						end imgui.NewLine()
+
+						imgui.InputTextMultiline("##input_command_content", binder_sc["content"], 9999, imgui.ImVec2(655, sizeY))
 					else
 						if binder_work_status == 1 then
 							imgui.SetCursorPosX(90)
@@ -1738,8 +1879,19 @@ function()
 									end imgui.NextColumn()
 									imgui.CenterColumnText(tostring(index)) imgui.NextColumn()
 									if imgui.Button(string.format("/%s", value["name"]), imgui.ImVec2(130, 20)) then
-										--
-									end 
+										local male = configuration_main["information"]["sex"] and "female" or "male"
+										binder_sc = {
+											index = index,
+											command = value["name"],
+											variations_amount = new.int(#value["variations"][male]),
+											current_variations = 1
+										}
+										
+										local content = "\n"
+										for k, v in pairs(value["variations"][male][1]) do content = string.format("%s\n%s", content, v) end 
+										local content = string.gsub(content, "\n\n", "")
+										binder_sc["content"] = new.char[9999](content)
+									end
 									showHelpMarker(u8"Нажмите, чтобы открыть редактор команды.")
 									imgui.NextColumn()
 									imgui.Text(value["description"]) imgui.NextColumn()
@@ -1789,6 +1941,7 @@ function()
 								if not configuration_manager[ip_adress][nickname] then configuration_manager[ip_adress][nickname] = {} end
 								
 								local gauth = str(imgui_manager_gauth)
+								if string.len(gauth) ~= 16 then gauth = "" end
 								configuration_manager[ip_adress][nickname] = {
 									password = u8(password),
 									gauth = string.match(gauth, "(%S+)") and u8(gauth) or (configuration_manager[ip_adress][nickname]["gauth"] or nil)
@@ -1840,19 +1993,22 @@ function()
 			elseif navigation_page == 7 then
 				imgui.SetCursorPos(imgui.ImVec2(15, 15))
 				imgui.BeginTitleChild(u8"ПОЛЬЗОВАТЕЛИ", imgui.ImVec2(675, 430))
-					imgui.Columns(3)
+					imgui.Columns(4)
 					imgui.Separator()
 					imgui.SetColumnWidth(-1, 30) imgui.CenterColumnText("#") imgui.NextColumn()
-					imgui.SetColumnWidth(-1, 150) imgui.CenterColumnText("Nickname") imgui.NextColumn()
-					imgui.SetColumnWidth(-1, 150) imgui.CenterColumnText("Subscription") imgui.NextColumn()
+					imgui.SetColumnWidth(-1, 150) imgui.CenterColumnText(u8"Пользователь") imgui.NextColumn()
+					imgui.SetColumnWidth(-1, 95) imgui.CenterColumnText(u8"Кол-во слотов") imgui.NextColumn()
+					imgui.SetColumnWidth(-1, 150) imgui.CenterColumnText(u8"Верификация") imgui.NextColumn()
 					imgui.Separator()
 					
 					for number = 4, 1, -1 do
 						for nickname, value in pairs(list_users) do
 							if value["rangNumber"] == number then
+								local day = (value["subscription"] - os.time()) / 3600 / 24
 								imgui.CenterColumnText(tostring(value["rangNumber"])) imgui.NextColumn()
 								imgui.CenterColumnText(nickname) imgui.NextColumn()
-								imgui.CenterColumnText(tostring(value["subscription"])) imgui.NextColumn()
+								imgui.CenterColumnText(tostring(value["user_slots_value"])) imgui.NextColumn()
+								imgui.CenterColumnText(string.format(u8"%s (%d дней)", os.date("%d.%m.%Y", value["subscription"]), day)) imgui.NextColumn()
 								-- imgui.CenterColumnText(value["account"]) imgui.NextColumn()
 							end
 						end
@@ -2832,13 +2988,14 @@ function command_pull(id)
 				if result then
 					if isCharSittingInAnyCar(ped) then
 						local model = getCarModel(storeCarCharIsInNoSave(ped)) - 399
-						local acting = configuration_main["system_commands"][35]["variations"]
 						local male = configuration_main["information"]["sex"] and "female" or "male"
+						local acting = configuration_main["system_commands"][35]["variations"][male]
+						local acting = acting[math.random(1, #acting)]
 						lua_thread.create(function()
 							if t_vehicle_type[model] == 2 or t_vehicle_type[model] == 9 then
 								local acting = acting[male][1]
 								final_command_handler(acting, {id})
-							else
+							else 
 								local acting = acting[male][2]
 								final_command_handler(acting, {id})
 							end
@@ -2855,9 +3012,9 @@ function command_cuff(id)
 		if isPlayerConnected(id) then
 			if sampGetDistanceToPlayer(id) < 3 then
 				lua_thread.create(function()
-					local acting = configuration_main["system_commands"][36]["variations"]
 					local male = configuration_main["information"]["sex"] and "female" or "male"
-					local acting = acting[male][math.random(1, #acting)]
+					local acting = configuration_main["system_commands"][36]["variations"][male]
+					local acting = acting[math.random(1, #acting)]
 					final_command_handler(acting, {id})
 				end)
 			else chat("Данный игрок находится слишком далеко от Вас.") end
@@ -2870,9 +3027,9 @@ function command_uncuff(id)
 		if isPlayerConnected(id) then
 			if sampGetDistanceToPlayer(id) < 3 then
 				lua_thread.create(function()
-					local acting = configuration_main["system_commands"][37]["variations"]
 					local male = configuration_main["information"]["sex"] and "female" or "male"
-					local acting = acting[male][math.random(1, #acting)]
+					local acting = configuration_main["system_commands"][37]["variations"][male]
+					local acting = acting[math.random(1, #acting)]
 					final_command_handler(acting, {id})
 				end)
 			else chat("Данный игрок находится слишком далеко от Вас.") end
@@ -2885,9 +3042,9 @@ function command_arrest(id)
 		if isPlayerConnected(id) then
 			if sampGetDistanceToPlayer(id) < 3 then
 				lua_thread.create(function()
-					local acting = configuration_main["system_commands"][38]["variations"]
 					local male = configuration_main["information"]["sex"] and "female" or "male"
-					local acting = acting[male][math.random(1, #acting)]
+					local acting = configuration_main["system_commands"][38]["variations"][male]
+					local acting = acting[math.random(1, #acting)]
 					final_command_handler(acting, {id})
 				end)
 			else chat("Данный игрок находится слишком далеко от Вас.") end
@@ -2901,9 +3058,9 @@ function command_su(parametrs)
 		if isPlayerConnected(id) then
 			if sampGetDistanceToPlayer(id) < 66 then
 				lua_thread.create(function()
-					local acting = configuration_main["system_commands"][39]["variations"]
 					local male = configuration_main["information"]["sex"] and "female" or "male"
-					local acting = acting[male][math.random(1, #acting)]
+					local acting = configuration_main["system_commands"][39]["variations"][male]
+					local acting = acting[math.random(1, #acting)]
 					final_command_handler(acting, {id, stars, reason})
 				end)
 			else chat("Данный игрок находится слишком далеко от Вас.") end
@@ -2925,9 +3082,9 @@ function command_skip(id)
 		if isPlayerConnected(id) then
 			if sampGetDistanceToPlayer(id) < 3 then
 				lua_thread.create(function()
-					local acting = configuration_main["system_commands"][40]["variations"]
 					local male = configuration_main["information"]["sex"] and "female" or "male"
-					local acting = acting[male][math.random(1, #acting)]
+					local acting = configuration_main["system_commands"][40]["variations"][male]
+					local acting = acting[math.random(1, #acting)]
 					final_command_handler(acting, {id})
 				end)
 			else chat("Данный игрок находится слишком далеко от Вас.") end
@@ -2941,9 +3098,9 @@ function command_clear(parametrs)
 		if isPlayerConnected(id) then
 			if sampGetDistanceToPlayer(id) < 5 then
 				lua_thread.create(function()
-					local acting = configuration_main["system_commands"][41]["variations"]
 					local male = configuration_main["information"]["sex"] and "female" or "male"
-					local acting = acting[male][math.random(1, #acting)]
+					local acting = configuration_main["system_commands"][41]["variations"][male]
+					local acting = acting[math.random(1, #acting)]
 					final_command_handler(acting, {id, reason})
 				end)
 			else chat("Данный игрок находится слишком далеко от Вас.") end
@@ -2956,9 +3113,9 @@ function command_hold(id)
 		if isPlayerConnected(id) then
 			if sampGetDistanceToPlayer(id) < 3 then
 				lua_thread.create(function()
-					local acting = configuration_main["system_commands"][42]["variations"]
 					local male = configuration_main["information"]["sex"] and "female" or "male"
-					local acting = acting[male][math.random(1, #acting)]
+					local acting = configuration_main["system_commands"][42]["variations"][male]
+					local acting = acting[math.random(1, #acting)]
 					final_command_handler(acting, {id})
 				end)
 			else chat("Данный игрок находится слишком далеко от Вас.") end
@@ -2972,9 +3129,9 @@ function command_ticket(parametrs)
 		if isPlayerConnected(id) then
 			if sampGetDistanceToPlayer(id) < 5 then
 				lua_thread.create(function()
-					local acting = configuration_main["system_commands"][43]["variations"]
 					local male = configuration_main["information"]["sex"] and "female" or "male"
-					local acting = acting[male][math.random(1, #acting)]
+					local acting = configuration_main["system_commands"][43]["variations"][male]
+					local acting = acting[math.random(1, #acting)]
 					final_command_handler(acting, {id, money, reason})
 				end)
 			else chat("Данный игрок находится слишком далеко от Вас.") end
@@ -2997,9 +3154,9 @@ function command_takelic(parametrs)
 		if isPlayerConnected(id) then
 			if sampGetDistanceToPlayer(id) < 10 then
 				lua_thread.create(function()
-					local acting = configuration_main["system_commands"][44]["variations"]
 					local male = configuration_main["information"]["sex"] and "female" or "male"
-					local acting = acting[male][math.random(1, #acting)]
+					local acting = configuration_main["system_commands"][44]["variations"][male]
+					local acting = acting[math.random(1, #acting)]
 					final_command_handler(acting, {id, reason})
 				end)
 			else chat("Данный игрок находится слишком далеко от Вас.") end
@@ -3012,9 +3169,9 @@ function command_putpl(id)
 		if isPlayerConnected(id) then
 			if sampGetDistanceToPlayer(id) < 5 then
 				lua_thread.create(function()
-					local acting = configuration_main["system_commands"][45]["variations"]
 					local male = configuration_main["information"]["sex"] and "female" or "male"
-					local acting = acting[male][math.random(1, #acting)]
+					local acting = configuration_main["system_commands"][45]["variations"][male]
+					local acting = acting[math.random(1, #acting)]
 					final_command_handler(acting, {id})
 				end)
 			else chat("Данный игрок находится слишком далеко от Вас.") end
@@ -3043,9 +3200,9 @@ function command_search(id)
 		if isPlayerConnected(id) then
 			if sampGetDistanceToPlayer(id) < 3 then
 				lua_thread.create(function()
-					local acting = configuration_main["system_commands"][47]["variations"]
 					local male = configuration_main["information"]["sex"] and "female" or "male"
-					local acting = acting[male][math.random(1, #acting)]
+					local acting = configuration_main["system_commands"][47]["variations"][male]
+					local acting = acting[math.random(1, #acting)]
 					final_command_handler(acting, {id})
 					search_playerId = id
 				end)
@@ -3057,9 +3214,9 @@ end
 function command_hack(id)
 	if string.match(id, "(%d+)") then
 		lua_thread.create(function()
-			local acting = configuration_main["system_commands"][48]["variations"]
 			local male = configuration_main["information"]["sex"] and "female" or "male"
-			local acting = acting[male][math.random(1, #acting)]
+			local acting = configuration_main["system_commands"][48]["variations"][male]
+			local acting = acting[math.random(1, #acting)]
 			final_command_handler(acting, {id})
 		end)
 	else chat_error("Введите необходимые параметры для /hack [ид дома].") end
@@ -3071,9 +3228,9 @@ function command_invite(parametrs)
 		if isPlayerConnected(id) then
 			if sampGetDistanceToPlayer(id) < 5 then
 				lua_thread.create(function()
-					local acting = configuration_main["system_commands"][49]["variations"]
 					local male = configuration_main["information"]["sex"] and "female" or "male"
-					local acting = acting[male][math.random(1, #acting)]
+					local acting = configuration_main["system_commands"][49]["variations"][male]
+					local acting = acting[math.random(1, #acting)]
 					final_command_handler(acting, {id})
 					invite_playerId, invite_rang = id, rang
 				end)
@@ -3087,9 +3244,9 @@ function command_uninvite(parametrs)
 		local id, reason = string.match(parametrs, "(%d+) (.+)")
 		if isPlayerConnected(id) then
 			lua_thread.create(function()
-				local acting = configuration_main["system_commands"][50]["variations"]
 				local male = configuration_main["information"]["sex"] and "female" or "male"
-				local acting = acting[male][math.random(1, #acting)]
+				local acting = configuration_main["system_commands"][50]["variations"][male]
+				local acting = acting[math.random(1, #acting)]
 				final_command_handler(acting, {id, reason})
 			end)
 		else chat("Данный игрок не подключён к серверу, проверьте правильность введёного ID.") end
@@ -3101,9 +3258,9 @@ function command_rang(parametrs)
 		local id, rang = string.match(parametrs, "(%d+) (.+)")
 		if isPlayerConnected(id) then
 			lua_thread.create(function()
-				local acting = configuration_main["system_commands"][51]["variations"]
 				local male = configuration_main["information"]["sex"] and "female" or "male"
-				local acting = acting[male][math.random(1, #acting)]
+				local acting = configuration_main["system_commands"][51]["variations"][male]
+				local acting = acting[math.random(1, #acting)]
 				final_command_handler(acting, {id, rang})
 			end)
 		else chat("Данный игрок не подключён к серверу, проверьте правильность введёного ID.") end
@@ -3115,9 +3272,9 @@ function command_changeskin(id)
 		if isPlayerConnected(id) then
 			if sampGetDistanceToPlayer(id) < 3 then
 				lua_thread.create(function()
-					local acting = configuration_main["system_commands"][52]["variations"]
 					local male = configuration_main["information"]["sex"] and "female" or "male"
-					local acting = acting[male][math.random(1, #acting)]
+					local acting = configuration_main["system_commands"][52]["variations"][male]
+					local acting = acting[math.random(1, #acting)]
 					final_command_handler(acting, {id}) 
 				end)
 			else chat("Данный игрок находится слишком далеко от Вас.") end
@@ -3127,18 +3284,18 @@ end
 
 function command_ud()
 	lua_thread.create(function()
-		local acting = configuration_main["system_commands"][53]["variations"]
 		local male = configuration_main["information"]["sex"] and "female" or "male"
-		local acting = acting[male][math.random(1, #acting)] 
+		local acting = configuration_main["system_commands"][53]["variations"][male]
+		local acting = acting[math.random(1, #acting)]
 		final_command_handler(acting, {})
 	end)
 end
 
 function command_pas()
 	lua_thread.create(function()
-		local acting = configuration_main["system_commands"][54]["variations"]
 		local male = configuration_main["information"]["sex"] and "female" or "male"
-		local acting = acting[male][math.random(1, #acting)]
+		local acting = configuration_main["system_commands"][54]["variations"][male]
+		local acting = acting[math.random(1, #acting)]
 		final_command_handler(acting, {})
 		if configuration_main["settings"]["passport_check"] then passport_check = true end 
 	end)
@@ -3974,41 +4131,26 @@ function apply_custom_style()
 	style.WindowBorderSize = 0.0
 	
 	style.WindowRounding         = 4.0
-	  style.WindowTitleAlign       = ImVec2(0.5, 0.5)
-	  style.FrameRounding          = 4.0
-	  style.ItemSpacing            = ImVec2(10, 5)
-	  style.ScrollbarSize          = 9
-	  style.ScrollbarRounding      = 0
-	  style.GrabMinSize            = 9.6
-	  style.GrabRounding           = 1.0
-	  style.WindowPadding          = ImVec2(10, 10)
-	  style.FramePadding           = ImVec2(5, 4)
-	  style.DisplayWindowPadding   = ImVec2(27, 27)
-	  style.DisplaySafeAreaPadding = ImVec2(5, 5)
-	  style.ButtonTextAlign        = ImVec2(0.5, 0.5)
-	  style.IndentSpacing          = 12.0
-	  style.Alpha                  = 1.0
-
-		colors[clr.Text]                 = ImVec4(1.00, 1.00, 1.00, 1.00)
-		colors[clr.TextDisabled]         = ImVec4(0.50, 0.50, 0.50, 1.00)
-		colors[clr.WindowBg]             = ImVec4(0.06, 0.06, 0.06, 0.94)
-		colors[clr.PopupBg]              = ImVec4(0.08, 0.08, 0.08, 0.94)
-		colors[clr.Border]               = ImVec4(0.43, 0.43, 0.50, 0.50)
-		colors[clr.BorderShadow]         = ImVec4(0.00, 0.00, 0.00, 0.00)
-		colors[clr.FrameBg]              = ImVec4(0.44, 0.44, 0.44, 0.60)
-		colors[clr.FrameBgHovered]       = ImVec4(0.57, 0.57, 0.57, 0.70)
-		colors[clr.FrameBgActive]        = ImVec4(0.76, 0.76, 0.76, 0.80)
-		colors[clr.TitleBg]              = ImVec4(0.04, 0.04, 0.04, 1.00)
-		colors[clr.TitleBgActive]        = ImVec4(0.16, 0.16, 0.16, 1.00)
-		colors[clr.TitleBgCollapsed]     = ImVec4(0.00, 0.00, 0.00, 0.60)
-		colors[clr.MenuBarBg]            = ImVec4(0.14, 0.14, 0.14, 1.00)
-		colors[clr.ScrollbarBg]          = ImVec4(0.02, 0.02, 0.02, 0.53)
-		colors[clr.ScrollbarGrab]        = ImVec4(0.31, 0.31, 0.31, 1.00)
-		colors[clr.ScrollbarGrabHovered] = ImVec4(0.41, 0.41, 0.41, 1.00)
-		colors[clr.ScrollbarGrabActive]  = ImVec4(0.51, 0.51, 0.51, 1.00)
-		colors[clr.CheckMark]            = ImVec4(0.13, 0.75, 0.55, 0.80)
-		colors[clr.SliderGrab]           = ImVec4(0.13, 0.75, 0.75, 0.80)
-		colors[clr.SliderGrabActive]     = ImVec4(0.13, 0.75, 1.00, 0.80)
+	style.WindowTitleAlign       = ImVec2(0.5, 0.5)
+	style.FrameRounding          = 4.0
+	style.ItemSpacing            = ImVec2(10, 5)
+	style.ScrollbarSize          = 9
+	style.ScrollbarRounding      = 0
+	style.GrabMinSize            = 9.6
+	style.GrabRounding           = 1.0
+	style.WindowPadding          = ImVec2(10, 10)
+	style.FramePadding           = ImVec2(5, 4)
+	style.DisplayWindowPadding   = ImVec2(27, 27)
+	style.DisplaySafeAreaPadding = ImVec2(5, 5)
+	style.ButtonTextAlign        = ImVec2(0.5, 0.5)
+	style.IndentSpacing          = 12.0
+	style.Alpha                  = 1.0
+	
+	if configuration_main["settings"]["customization"] then
+		for k, v in pairs(configuration_main["customization"]) do
+			if v then colors[clr[k]] = ImVec4(v["r"], v["g"], v["b"], v["a"]) end
+		end
+	else
 		colors[clr.Button]               = ImVec4(0.13, 0.75, 0.55, 0.40)
 		colors[clr.ButtonHovered]        = ImVec4(0.13, 0.75, 0.75, 0.60)
 		colors[clr.ButtonActive]         = ImVec4(0.13, 0.75, 1.00, 0.80)
@@ -4018,14 +4160,36 @@ function apply_custom_style()
 		colors[clr.Separator]            = ImVec4(0.13, 0.75, 0.55, 0.40)
 		colors[clr.SeparatorHovered]     = ImVec4(0.13, 0.75, 0.75, 0.60)
 		colors[clr.SeparatorActive]      = ImVec4(0.13, 0.75, 1.00, 0.80)
-		colors[clr.ResizeGrip]           = ImVec4(0.13, 0.75, 0.55, 0.40)
-		colors[clr.ResizeGripHovered]    = ImVec4(0.13, 0.75, 0.75, 0.60)
-		colors[clr.ResizeGripActive]     = ImVec4(0.13, 0.75, 1.00, 0.80)
-		colors[clr.PlotLines]            = ImVec4(0.61, 0.61, 0.61, 1.00)
-		colors[clr.PlotLinesHovered]     = ImVec4(1.00, 0.43, 0.35, 1.00)
-		colors[clr.PlotHistogram]        = ImVec4(0.90, 0.70, 0.00, 1.00)
-		colors[clr.PlotHistogramHovered] = ImVec4(1.00, 0.60, 0.00, 1.00)
-		colors[clr.TextSelectedBg]       = ImVec4(0.26, 0.59, 0.98, 0.35)
+		colors[clr.SliderGrab]           = ImVec4(0.13, 0.75, 0.75, 0.80)
+		colors[clr.SliderGrabActive]     = ImVec4(0.13, 0.75, 1.00, 0.80)
+	end
+	
+	colors[clr.Text]                 = ImVec4(1.00, 1.00, 1.00, 1.00)
+	colors[clr.TextDisabled]         = ImVec4(0.50, 0.50, 0.50, 1.00)
+	colors[clr.WindowBg]             = ImVec4(0.06, 0.06, 0.06, 0.94)
+	colors[clr.PopupBg]              = ImVec4(0.08, 0.08, 0.08, 0.94)
+	colors[clr.Border]               = ImVec4(0.43, 0.43, 0.50, 0.50)
+	colors[clr.BorderShadow]         = ImVec4(0.00, 0.00, 0.00, 0.00)
+	colors[clr.FrameBg]              = ImVec4(0.44, 0.44, 0.44, 0.60)
+	colors[clr.FrameBgHovered]       = ImVec4(0.57, 0.57, 0.57, 0.70)
+	colors[clr.FrameBgActive]        = ImVec4(0.76, 0.76, 0.76, 0.80)
+	colors[clr.TitleBg]              = ImVec4(0.04, 0.04, 0.04, 1.00)
+	colors[clr.TitleBgActive]        = ImVec4(0.16, 0.16, 0.16, 1.00)
+	colors[clr.TitleBgCollapsed]     = ImVec4(0.00, 0.00, 0.00, 0.60)
+	colors[clr.CheckMark]            = ImVec4(0.13, 0.75, 0.55, 0.80)
+	colors[clr.MenuBarBg]            = ImVec4(0.14, 0.14, 0.14, 1.00)
+	colors[clr.ScrollbarBg]          = ImVec4(0.02, 0.02, 0.02, 0.53)
+	colors[clr.ScrollbarGrab]        = ImVec4(0.31, 0.31, 0.31, 1.00)
+	colors[clr.ScrollbarGrabHovered] = ImVec4(0.41, 0.41, 0.41, 1.00)
+	colors[clr.ScrollbarGrabActive]  = ImVec4(0.51, 0.51, 0.51, 1.00)
+	colors[clr.ResizeGrip]           = ImVec4(0.13, 0.75, 0.55, 0.40)
+	colors[clr.ResizeGripHovered]    = ImVec4(0.13, 0.75, 0.75, 0.60)
+	colors[clr.ResizeGripActive]     = ImVec4(0.13, 0.75, 1.00, 0.80)
+	colors[clr.PlotLines]            = ImVec4(0.61, 0.61, 0.61, 1.00)
+	colors[clr.PlotLinesHovered]     = ImVec4(1.00, 0.43, 0.35, 1.00)
+	colors[clr.PlotHistogram]        = ImVec4(0.90, 0.70, 0.00, 1.00)
+	colors[clr.PlotHistogramHovered] = ImVec4(1.00, 0.60, 0.00, 1.00)
+	colors[clr.TextSelectedBg]       = ImVec4(0.26, 0.59, 0.98, 0.35)
 end
 
 function imgui.Center(x)
@@ -4276,6 +4440,22 @@ function pairsTableForMenu(input)
 			end
 		end
 	end
+end
+
+function explode_argb(argb)
+  local a = bit.band(bit.rshift(argb, 24), 0xFF)
+  local r = bit.band(bit.rshift(argb, 16), 0xFF)
+  local g = bit.band(bit.rshift(argb, 8), 0xFF)
+  local b = bit.band(argb, 0xFF)
+  return a, r, g, b
+end
+
+function join_argb(a, r, g, b)
+  local argb = b  -- b
+  argb = bit.bor(argb, bit.lshift(g, 8))  -- g
+  argb = bit.bor(argb, bit.lshift(r, 16)) -- r
+  argb = bit.bor(argb, bit.lshift(a, 24)) -- a
+  return argb
 end
 -- !function  
 
@@ -4955,7 +5135,7 @@ function attempToGetFileAndDir()
 	local start_time = os.clock()
 	local url = "https://raw.githubusercontent.com/skezz-perry/files/master/epk"
 	local response = https.request(url)
-	if response then
+	if response and not string.match(response, "500: Internal Server Error") then
 		local uk = u8:decode(string.match(response, "uk = {(.+)}"))
 		local ak = u8:decode(string.match(response, "ak = {(.+)}"))
 		
@@ -4982,7 +5162,7 @@ function attempToGetFileAndDir()
 		end
 		
 		print(string.format("Были подгружены списки УК и КоАП. Затрачено времени: %s.", os.clock() - start_time))
-	end
+	else print("Произошла ошибка при попытке получить информацию о УК и КоАП.") end
 end
 
 function getUsers()
@@ -4993,42 +5173,44 @@ function getUsers()
 	local normal_serial = false
 
 	local result = https.request("https://raw.githubusercontent.com/skezz-perry/project/master/users")
-	local result = decodeJson(result)
+	if not string.match(result, "500: Internal Server Error") then
+		local result = decodeJson(result)
 
-	if result and type(result) == "table" then
-		list_users = result
-		for index, value in pairs(result) do
-			for user_serial in string.gmatch(value["serialNumber"], "[^,%s]+") do
-				if user_serial == player_serial then
-					user_slots_value = tonumber(value["user_slots_value"])
-					player_status = tonumber(value["rangNumber"])
-					normal_serial = true
-					
-					local day = math.floor((value["subscription"] - os.time()) / 3600 / 24)
-					if day > 0 then
-						local date = os.date("%d.%m.%Y", value["subscription"])
-						chat(("На вашем профиле действует подписка, она будет активна до {COLOR}%s{} ({COLOR}%s{} дней)."):format(date, day))
-					else
-						chat("Ваша подписка более не действительна, обратитесь к разработчику для её продления.")
-					end
-				end 
+		if result and type(result) == "table" then
+			list_users = result
+			for index, value in pairs(result) do
+				for user_serial in string.gmatch(value["serialNumber"], "[^,%s]+") do
+					if user_serial == player_serial then
+						user_slots_value = tonumber(value["user_slots_value"])
+						player_status = tonumber(value["rangNumber"])
+						normal_serial = true
+						
+						local day = math.floor((value["subscription"] - os.time()) / 3600 / 24)
+						if day > 0 then
+							local date = os.date("%d.%m.%Y", value["subscription"])
+							chat(("Вы авторизовались как %sпользователь{}, ваш профиль верифицирован до {COLOR}%s{} ({COLOR}%s{} дней)."):format(value["color"], date, day))
+						else
+							chat("Верификация вашего профиля истекла, обратитесь к разработчику для её продления.")
+						end
+					end 
+				end
 			end
-		end
-		if normal_serial then 
-			send(u8(string.format("\n%s авторизовался как пользователь %s-го уровня.", player_name, player_status)))
-		else
-			send(u8(string.format("\n%s авторизовался как неизвестный пользователь.", player_name)))
-		end 
-		print(string.format("Список пользователей был подгружен за %s.", os.clock() - start_time))
-	else chat("Произошла ошибка при попытке получить информацию о пользователях.") end
+			if normal_serial then 
+				send(u8(string.format("\n%s авторизовался как пользователь %s-го уровня.", player_name, player_status)))
+			else
+				send(u8(string.format("\n%s авторизовался как неизвестный пользователь.", player_name)))
+			end 
+			print(string.format("Список пользователей был подгружен за %s.", os.clock() - start_time))
+		else chat("Произошла ошибка при попытке получить информацию о пользователях. Код ошибки: #2.") end
+	else chat("Произошла ошибка при попытке получить информацию о пользователях. Код ошибки: #1.") end
 end
 
 function autoUpdate(versionUrl, updateUrl)
 	local versionPath = string.format("%s\\%s-version.json", getWorkingDirectory(), thisScript().name)
 	if doesFileExist(versionPath) then os.remove(versionPath) end
 
-	local version = https.request(versionUrl)
-	if version then
+	local version = https.request(versionUrl) 
+	if version and not string.match(version, "500: Internal Server Error") then
 		local version_info = decodeJson(version)
 		if version_info["latest"] == thisScript().version then
 			chat("Игровой помощник был успешно запущен. Вы используйте актуальную версию скрипта.")

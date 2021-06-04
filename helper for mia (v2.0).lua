@@ -1,6 +1,6 @@
 script_name("helper-for-mia (v2.0)")
 script_author("Joachim von Ribbentrop")
-script_version("0.1.2")
+script_version("0.1.3")
 
 require "deps" {
 	"fyp:mimgui@1.4.1",
@@ -807,6 +807,19 @@ if configuration_statistics1 then
 	local result = configuration_statistics1:get()
 	if result then configuration_statistics = result else configuration_statistics = configuration_statistics1["template"] end
 else print("Не удалось подгрузить конфигурацию статистики (Код ошибки: #4).") end
+
+local configuration_database = {}
+local configuration_database1 = xconf.new(string.format("%s//Local database.json", configuration_directory))
+if configuration_database1 then 
+	configuration_database1:set_template({
+		player = {},
+		house = {},
+		vehicle = {}
+	})
+
+	local result = configuration_database1:get()
+	if result then configuration_database = result else configuration_database = configuration_database1["template"] end
+else print("Не удалось подгрузить конфигурацию статистики (Код ошибки: #5).") end
 -- !global value
  
 -- local value
@@ -898,6 +911,10 @@ local pause_start
 local was_pause
 local binder_sc = {}
 local color_picker = configuration_main["customization"]["Button"] and new.float[3](configuration_main["customization"]["Button"]["r"], configuration_main["customization"]["Button"]["g"], configuration_main["customization"]["Button"]["b"]) or new.float[3]()
+local string_database_player = new.char[256]()
+local string_database_house = new.char[256]()
+local lookup_database_player = {}
+local lookup_database_house = {}
 -- !local value
 
 -- const 
@@ -1167,7 +1184,7 @@ function()
 			end
 		end
 		
-		if imgui.Button(u8"Откат от оплаты штрафа", imgui.ImVec2(450, 20)) then
+		if imgui.Button(u8"Отказ от оплаты штрафа", imgui.ImVec2(450, 20)) then
 			if setting_up_fast_suspect then
 				configuration_main["quick_criminal_code"]["refusal_to_pay"] = setting_up_fast_suspect
 				if not need_update_configuration then need_update_configuration = os.clock() end
@@ -1354,6 +1371,53 @@ function()
 						end
 					end
 				end
+			elseif navigation_page == 2 then
+				imgui.SetCursorPos(imgui.ImVec2(15, 15))
+				imgui.BeginTitleChild(u8"БАЗА ДАННЫХ ИГРОКОВ", imgui.ImVec2(670, 340)) -- 430
+					if imgui.InputTextWithHint("##database_player_string", u8"Введите значение для поиска.", string_database_player, 30) then
+						local value = str(string_database_player)
+						lookup_database_player = {}
+						
+						for k, v in pairs(configuration_database["player"]) do
+							if string.match(tostring(k), value) then 
+								lookup_database_player[k] = v
+							else
+								for i, n in pairs(v) do
+									if i ~= "time" then
+										if string.match(tostring(n), value) then
+											lookup_database_player[k] = v
+										end
+									end
+								end
+							end
+						end
+					end
+					
+					displaying_inline_sections(lookup_database_player)
+				imgui.EndChild() imgui.NewLine() imgui.SetCursorPosX(15)
+				
+				imgui.BeginTitleChild(u8"БАЗА ДАННЫХ НЕДВИЖИМОСТИ", imgui.ImVec2(670, 340))
+					if imgui.InputTextWithHint("##database_house_string", u8"Введите значение для поиска.", string_database_house, 30) then
+						local value = str(string_database_house)
+						lookup_database_house = {}
+						
+						for k, v in pairs(configuration_database["house"]) do
+							if string.match(tostring(k), value) then 
+								lookup_database_house[k] = v
+							else
+								for i, n in pairs(v) do
+									if i ~= "time" then
+										if string.match(tostring(n), value) then
+											lookup_database_house[k] = v
+										end
+									end
+								end
+							end
+						end
+					end
+					
+					displaying_inline_sections(lookup_database_house)
+				imgui.EndChild()
 			elseif navigation_page == 4 then
 				imgui.SetCursorPosX(90) if imgui.CustomButton(u8"ОСНОВНЫЕ НАСТРОЙКИ", imgui.ImVec4(0.00, 0.00, 0.00, 0.00)) then setting_page = 1 end imgui.SameLine()
 				if imgui.CustomButton(u8"ПОЛУЧЕНИЕ ОРУЖИЯ НА СКЛАДЕ", imgui.ImVec4(0.00, 0.00, 0.00, 0.00)) then setting_page = 2 end imgui.SameLine()
@@ -2202,12 +2266,15 @@ function main()
 		end total = total + 1
 	end print(string.format("В том числе было найдено несколько пользовательских команд в числе %s, зарегистрировано было %s.", total, successfully))
 	
+	sampRegisterChatCommand("hf", function() found_house = not found_house end)
+	
 	-- потекли потоки
 	lua_thread.create(dynamic_time_update)
 	lua_thread.create(render_player_text)
 	lua_thread.create(t_weapon_acting_out)
 	lua_thread.create(t_stroboscopes)
 	lua_thread.create(patrol_assistant)
+	lua_thread.create(house_founder)
 	
 	print(string.format("Общее время загрузки игрового помощника: %s\n\n", os.clock() - start_time))
 	
@@ -2370,6 +2437,8 @@ function main()
 				configuration_custom1:set(configuration_custom)
 				configuration_manager1:set(configuration_manager)
 				configuration_statistics1:set(configuration_statistics)
+				configuration_database1:set(configuration_database)
+				
 				need_update_configuration = nil
 			end
 		end
@@ -2378,6 +2447,78 @@ end
 -- !main
 
 -- thread
+function house_founder()
+	local type_pickup = { 
+		[1273] = {1, 0xFF17A589},
+		[19522] = {2, 0xFFE74C3C},
+		[19523] = {3, 0xFFF5B041}
+	}
+	
+	local renderFont = renderCreateFont("tahoma", 8, font_flag.BOLD + font_flag.SHADOW)
+	
+	while true do wait(0)
+		if found_house then
+			local x, y, z = getCharCoordinates(playerPed)
+			for result, handle in pairs(getAllPickups()) do
+				if doesPickupExist(handle) then
+					local model = getPickupModel(handle)
+					if type_pickup[model] then
+						local px, py, pz = getPickupCoordinates(handle)
+						local distance = getDistanceBetweenCoords3d(x, y, z, px, py, pz)
+						if distance < 50 then
+							local bool
+							for index, value in pairs(configuration_database["house"]) do
+								if type(value) == "table" then
+									if getDistanceBetweenCoords3d(px, py, pz, value.position.x, value.position.y, value.position.z) < 0.2 then 
+										local temp = os.date("%x", value.time)
+										if temp == os.date("%x") then bool = true end 
+									end
+								end
+							end
+							if not bool then 
+								if isPointOnScreen(px, py, pz) then
+									local sx1, sy1 = convert3DCoordsToScreen(x, y, z + 1)
+									local sx2, sy2 = convert3DCoordsToScreen(px, py, pz)
+									renderDrawLine(sx1, sy1, sx2, sy2, 2, type_pickup[1273][2])
+								end
+								
+								if add_house_in_base and add_house_in_base.bool then
+									printStringNow("Wait for house be added to the base", 50)
+									if os.clock() - add_house_in_base.clock > 0.5 then add_house_in_base = nil end
+								else
+									add_house_in_base = {bool = true, position = {x = px, y = py, z = pz}, clock = os.clock()}
+									local id = sampGetPickupSampIdByHandle(handle)
+									sampSendPickedUpPickup(id)
+								end
+							end
+						else
+							if isPointOnScreen(px, py, pz) then
+								local bool
+								for index, value in pairs(configuration_database["house"]) do
+									if type(value) == "table" then
+										if getDistanceBetweenCoords3d(px, py, pz, value.position.x, value.position.y, value.position.z)  < 0.2 then
+											local temp = os.date("%x", value.time)
+											if temp == os.date("%x") then bool = true end 
+										end
+									end
+								end
+								if not bool then 
+									local sx1, sy1 = convert3DCoordsToScreen(x, y, z + 1)
+									local sx2, sy2 = convert3DCoordsToScreen(px, py, pz)
+									renderDrawLine(sx1, sy1, sx2, sy2, 2, type_pickup[19523][2])
+									renderFontDrawText(renderFont, string.format("%0.2f", distance), sx2, sy2, type_pickup[19523][2])
+								end
+							end
+						end 
+					end
+					-- getPickupCoordinates(handle)
+					--renderFontDrawText(renderFont, string.format("%s\n%0.2f", handle, distance), pX, pY, type_pickup[model][2])
+				end
+			end
+		end 
+	end
+end
+
 function dynamic_time_update()
 	while true do wait(0)
 		if sampIsLocalPlayerSpawned() then
@@ -2990,13 +3131,12 @@ function command_pull(id)
 						local model = getCarModel(storeCarCharIsInNoSave(ped)) - 399
 						local male = configuration_main["information"]["sex"] and "female" or "male"
 						local acting = configuration_main["system_commands"][35]["variations"][male]
-						local acting = acting[math.random(1, #acting)]
 						lua_thread.create(function()
 							if t_vehicle_type[model] == 2 or t_vehicle_type[model] == 9 then
-								local acting = acting[male][1]
+								local acting = acting[1]
 								final_command_handler(acting, {id})
 							else 
-								local acting = acting[male][2]
+								local acting = acting[2]
 								final_command_handler(acting, {id})
 							end
 						end)
@@ -3060,7 +3200,7 @@ function command_su(parametrs)
 				lua_thread.create(function()
 					local male = configuration_main["information"]["sex"] and "female" or "male"
 					local acting = configuration_main["system_commands"][39]["variations"][male]
-					local acting = acting[math.random(1, #acting)]
+					local acting = acting[math.random(1, #acting)] 
 					final_command_handler(acting, {id, stars, reason})
 				end)
 			else chat("Данный игрок находится слишком далеко от Вас.") end
@@ -4457,6 +4597,37 @@ function join_argb(a, r, g, b)
   argb = bit.bor(argb, bit.lshift(a, 24)) -- a
   return argb
 end
+
+function displaying_inline_sections(input, last)
+	for k, v in pairs(input) do
+		if k == "position" then
+			imgui.Text(tostring(k)) imgui.SameLine(150)
+			if imgui.Button(u8"Поставить метку") then
+				map_marker[#map_marker + 1] = {x = v["x"], y = v["y"], z = v["z"]}
+				local x, y, z = getCharCoordinates(playerPed)
+				local distance = getDistanceBetweenCoords3d(x, y, z, v["x"], v["y"], v["z"])
+				chat(string.format("На вашем радаре отмечен {COLOR}маркер{}, расстояние до него {COLOR}%s{} м.", distance))
+			end
+		elseif k == "time" then
+			imgui.Text(tostring(k)) imgui.SameLine(150)
+			if imgui.Button(os.date("%d.%m.%Y, %H:%M:%S", v)) then
+				setClipboardText(os.date("%d.%m.%Y, %H:%M:%S", v))
+			end
+		else
+			if type(v) == "table" then
+				if imgui.TreeNodeStr(string.format(u8"Таблица '%s'", k)) then
+					displaying_inline_sections(v, k)
+					imgui.TreePop()
+				end
+			else
+				imgui.Text(tostring(k)) imgui.SameLine(150)
+				if imgui.Button(tostring(v)) then
+					setClipboardText(tostring(v))
+				end
+			end
+		end
+	end
+end
 -- !function  
 
 -- event
@@ -4467,7 +4638,7 @@ function sampev.onServerMessage(color, text)
 		if not need_update_configuration then need_update_configuration = os.clock() end
 		if configuration_main["settings"]["ad_blocker"] then print(text) return false end
 	end  
-	
+	 
 	if string.match(text, "  Объявление проверил сотрудник СМИ") then
 		if configuration_main["settings"]["ad_blocker"] then print(text, "\n") return false end
 	end
@@ -4707,6 +4878,41 @@ function sampev.onServerMessage(color, text)
 		end
 	end
 	
+	if string.match(text, "(.+) (%S+)%[(%d+)%] объявил (%S+)%[(%d+)%] в розыск %[(%d+)%/6], причина: (.+)") then
+		local rang, officer_nickname, officer_id, suspect_nickname, suspect_id, wanted, reason = string.match(text, "(.+) (%S+)%[(%d+)%] объявил (%S+)%[(%d+)%] в розыск %[(%d+)%/6], причина: (.+)")
+		if not configuration_database["player"][suspect_nickname] then configuration_database["player"][suspect_nickname] = {} end
+		if not configuration_database["player"][suspect_nickname]["wanted_log"] then configuration_database["player"][suspect_nickname]["wanted_log"] = {} end
+		
+		table.insert(configuration_database["player"][suspect_nickname]["wanted_log"], {
+			officer_rang = rang,
+			officer_nickname = officer_nickname,
+			suspect_nickname = suspect_nickname,
+			wanted = tonumber(wanted), 
+			reason = u8(reason),
+			time = os.time(),
+			ok = was_pause
+		})
+		
+		if not need_update_configuration then need_update_configuration = os.clock() end
+	end
+	
+	if string.match(text, "(.+) (%S+)%[(%d+)%] снял розыск у (%S+)%[(%d+)%]") then
+		local rang, officer_nickname, officer_id, suspect_nickname, suspect_id = string.match(text, "(.+) (%S+)%[(%d+)%] снял розыск у (%S+)%[(%d+)%]")
+		if not configuration_database["player"][suspect_nickname] then configuration_database["player"][suspect_nickname] = {} end
+		if not configuration_database["player"][suspect_nickname]["wanted_log"] then configuration_database["player"][suspect_nickname]["wanted_log"] = {} end
+		
+		table.insert(configuration_database["player"][suspect_nickname]["wanted_log"], {
+			officer_rang = rang,
+			officer_nickname = officer_nickname,
+			suspect_nickname = suspect_nickname,
+			wanted = 0,
+			time = os.time(),
+			ok = was_pause
+		})
+		
+		if not need_update_configuration then need_update_configuration = os.clock() end
+	end
+	
 	if configuration_main["modification"]["id_postfix_after_nickname"] then
 		if string.match(text, "(%a+)_(%a+)") then
 			if not (string.match(text, "(%a+)_(%a+)%)%[(%d+)%]") or string.match(text, "(%a+)_(%a+)%[(%d+)%]")) then
@@ -4726,6 +4932,46 @@ function sampev.onServerMessage(color, text)
 end
 
 function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
+	if add_house_in_base and add_house_in_base.bool then
+		if string.match(title, "Дом на аукционе") or string.match(title, "Дом свободен") then
+			if string.match(text, "Тип:[\t]+(.+)\nНомер[%s]дома:[\t]+(%d+)\n\nВместимость:[\t]+(%d+)[%s]чел.\nСтоимость:[\t]+(%d+)%$\nЕжедневная[%s]квартплата:[\t]+от[%s](%d+)%$") then
+				local house, number, capacity, price, rent =
+				string.match(text, "Тип:[\t]+(.+)\nНомер[%s]дома:[\t]+(%d+)\n\nВместимость:[\t]+(%d+)[%s]чел.\nСтоимость:[\t]+(%d+)%$\nЕжедневная[%s]квартплата:[\t]+от[%s](%d+)%$")
+				
+				local found = false
+				for k, v in pairs(configuration_database["house"]) do if v["id"] == tonumber(number) then found = k end end
+				if found then
+					configuration_database["house"][found] = {id = tonumber(number), house = u8(house), capacity = tonumber(capacity), price = tonumber(price), rent = tonumber(rent), position = add_house_in_base.position, time = os.time()}
+				else
+					table.insert(configuration_database["house"], {id = tonumber(number), house = u8(house), capacity = tonumber(capacity), price = tonumber(price), rent = tonumber(rent), position = add_house_in_base.position, time = os.time()})
+				end
+				
+				chat_error(string.format("Мы нашли свободный домик [#%s], это не такой успех, но всё же!", number))
+				if not need_update_configuration then need_update_configuration = os.clock() end
+			end
+		end
+		
+		if string.match(title, "Дом занят") then
+			if string.match(text, "Владелец:[\t]+{33CCFF}(%S+)\n\n{FFFFFF}Тип:[\t]+(.+)\nНомер[%s]дома:[\t]+(%d+)\nВместимость:[\t]+(%d+)[%s]чел.\nСтоимость:[\t]+(%d+)%$\nЕжедневная[%s]квартплата:[\t]+от[%s](%d+)%$") then
+				local owner, house, number, capacity, price, rent =
+				string.match(text, "Владелец:[\t]+{33CCFF}(%S+)\n\n{FFFFFF}Тип:[\t]+(.+)\nНомер[%s]дома:[\t]+(%d+)\nВместимость:[\t]+(%d+)[%s]чел.\nСтоимость:[\t]+(%d+)%$\nЕжедневная[%s]квартплата:[\t]+от[%s](%d+)%$")
+				
+				local found = false
+				for k, v in pairs(configuration_database["house"]) do if v.id == tonumber(number) then found = k end end
+				if found then
+					configuration_database["house"][found] = {id = tonumber(number), owner = owner, house = u8(house), capacity = tonumber(capacity), price = tonumber(price), rent = tonumber(rent), position = add_house_in_base.position, time = os.time()}
+				else
+					table.insert(configuration_database["house"], {id = tonumber(number), owner = owner, house = u8(house), capacity = tonumber(capacity), price = tonumber(price), rent = tonumber(rent), position = add_house_in_base.position, time = os.time()})
+				end
+				
+				chat_error(string.format("Мы нашли домик [#%s], которым владеет %s, это успех!", number, owner))
+				if not need_update_configuration then need_update_configuration = os.clock() end
+			end
+		end 
+		add_house_in_base = nil
+		return false
+	end
+
 	if report_text then
 		if string.find(title, "Меню игрока") then 
 			if string.find(text, "6. Связь с администрацией") then
@@ -4909,11 +5155,30 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 		end
 	end
 	
-	if passport_check then
-		if configuration_main["settings"]["passport_check"] then
-			if string.find(title, "Паспорт") then
-				if string.match(text, "Уровень розыска:		{80aaff}(%d+)") then
-					local stars = string.match(text, "Уровень розыска:		{80aaff}(%d+)")
+	if string.find(title, "Паспорт") then
+		local match = "{%S+}Имя:\t+{%S+}(%S+)\n{%S+}Проживание в стране %(лет%):\t+{%S+}(%S+)\n{%S+}Пол:\t+(%S+)\nСемейное положение:\t+(.+)\nПроживание:\t+{%S+}(.+)\n{%S+}Работа: \t+(.+)\nОрганизация:\t+(.+)\nПодразделение:\t+(.+)\nТелефон:\t+{%S+}(%S+)\n{%S+}Уровень розыска:\t+{%S+}(%S+)\n{%S+}Законопослушность:\t+{%S+}(%S+)"
+		
+		if string.match(text, match) then
+			local nickname, residence_in_country, male, marital_status, accommodation, job, organization, department, telephone, wanted, law_abidingness = string.match(text, match)
+			
+			if not configuration_database["player"][nickname] then configuration_database["player"][nickname] = {} end
+			
+			configuration_database["player"][nickname]["residence_in_country"] = tonumber(residence_in_country)
+			configuration_database["player"][nickname]["male"] = u8(male)
+			configuration_database["player"][nickname]["marital_status"] = u8(marital_status)
+			configuration_database["player"][nickname]["accommodation"] = u8(accommodation)
+			configuration_database["player"][nickname]["job"] = u8(job)
+			configuration_database["player"][nickname]["organization"] = u8(organization)
+			configuration_database["player"][nickname]["department"] = u8(department)
+			configuration_database["player"][nickname]["telephone"] = u8(telephone)
+			configuration_database["player"][nickname]["wanted"] = tonumber(wanted)
+			configuration_database["player"][nickname]["law_abidingness"] = tonumber(law_abidingness)
+			configuration_database["player"][nickname]["time"] = os.time()
+			
+			if not need_update_configuration then need_update_configuration = os.clock() end
+			
+			if passport_check then
+				if configuration_main["settings"]["passport_check"] then
 					lua_thread.create(function()
 						if not configuration_main["information"]["sex"] then
 							sampSendChat("/me внимательно изучил паспортные данные и передал информацию диспетчеру.")
@@ -4921,7 +5186,7 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 							sampSendChat("/me внимательно изучила паспортные данные и передала информацию диспетчеру.")
 						end
 
-						if tonumber(stars) > 0 then
+						if tonumber(wanted) > 0 then
 							wait(1500); sampSendChat("/todo Получив информацию от диспетчера*Вы находитесь в федеральном розыске.")
 							wait(1000); sampSendChat("Вам необходимо проехать со мной в ближайщий полицейский департамент.")
 						else
@@ -5110,10 +5375,12 @@ function onScriptTerminate(script, bool)
 			local result, index = configuration_custom1:set(configuration_custom)
 			local result, index = configuration_manager1:set(configuration_manager)
 			local result, index = configuration_statistics1:set(configuration_statistics)
+			local result, index = configuration_database1:set(configuration_database)
 			configuration_main1:close() 
 			configuration_custom1:close()
 			configuration_manager1:close()
 			configuration_statistics1:close()
+			configuration_database1:close()
 			
 			for index, value in pairs(map_marker) do if value["marker"] then removeBlip(value["marker"]) end end
 		end

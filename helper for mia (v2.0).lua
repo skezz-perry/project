@@ -1,6 +1,6 @@
 script_name("helper-for-mia (v2.0)")
 script_author("Joachim von Ribbentrop")
-script_version("0.1.6")
+script_version("0.1.7")
 
 require "deps" {
 	"fyp:mimgui@1.4.1",
@@ -45,7 +45,7 @@ local update_log = {
 	{["0.0.2"] = {"Добавлена система авто-обновлений."}}, 
 	{["0.0.1"] = {"Начало разработки..."}}
 } 
-
+ 
 local fontSuspect4 = renderCreateFont("Tahoma", 6, font_flag.BOLD + font_flag.SHADOW)
 
 local t_vehicle_name = {"Landstalker", "Bravura", "Buffalo", "Linerunner", "Perrenial", "Sentinel", "Dumper", "Firetruck", "Trashmaster", "Stretch", "Manana", "Infernus",
@@ -1605,9 +1605,9 @@ function()
 								imgui.CenterColumnText(value["name"]) imgui.NextColumn()
 								imgui.PushItemWidth(405)
 								if setting_take_weapon then
-									imgui.InputTextWithHint(string.format("##a%s", value["name"]), u8"Отыгровка при скрытии оружия из рук", weapon_acting_out[index]["away"], 100)
+									imgui.InputTextWithHint(string.format("##a%s", value["name"]), u8"Отыгровка при скрытии оружия из рук", weapon_acting_out[index]["away"], 200)
 								else
-									imgui.InputTextWithHint(string.format("##t%s", value["name"]), u8"Отыгровка при взятии оружия в руки", weapon_acting_out[index]["take"], 100)
+									imgui.InputTextWithHint(string.format("##t%s", value["name"]), u8"Отыгровка при взятии оружия в руки", weapon_acting_out[index]["take"], 200)
 								end imgui.NextColumn()
 							end
 						end
@@ -5591,15 +5591,6 @@ end
 -- !event
 
 -- https
-local url = 'https://api.telegram.org/bot'
-local token = '1844452113:AAHDgF6MhXS2J64VXqNto0RxRB2w0Z8nn8k'
-
-function send(text) 
-	local text = urlencode(string.format("SN[%s] V[%s]: %s", player_serial, thisScript().version, text))
-	local request = string.format("%s%s/sendMessage?chat_id=766017841&text=%s", url, token, text)
-	https.request(request)
-end
- 
 function attempToGetFileAndDir()
 	local start_time = os.clock()
 	local url = "https://raw.githubusercontent.com/skezz-perry/files/master/epk"
@@ -5664,11 +5655,6 @@ function getUsers()
 					end 
 				end
 			end
-			if normal_serial then 
-				send(u8(string.format("\n%s авторизовался как пользователь %s-го уровня.", player_name, player_status)))
-			else
-				send(u8(string.format("\n%s авторизовался как неизвестный пользователь.", player_name)))
-			end 
 			print(string.format("Список пользователей был подгружен за %s.", os.clock() - start_time))
 		else chat("Произошла ошибка при попытке получить информацию о пользователях. Код ошибки: #2.") end
 	else chat("Произошла ошибка при попытке получить информацию о пользователях. Код ошибки: #1.") end

@@ -1,6 +1,6 @@
 script_name("helper-for-mia (v2.0)")
 script_author("Joachim von Ribbentrop")
-script_version("0.1.4")
+script_version("0.1.5")
 
 require "deps" {
 	"fyp:mimgui@1.4.1",
@@ -32,6 +32,7 @@ imgui.HotKey = mimgui_addons.HotKey
 
 -- global value 
 local update_log = {
+	{["0.1.5"] = {"В тестовом режиме добавлено быстрое меню (клавиша Z)."}},
 	{["0.1.4"] = {"В тестовом режиме добавлена база данных (в блоке 'Панель управления').", "Улучшена система определения параметров в биндере."}},
 	{["0.1.2"] = {"Добавлена возможность редактировать системные команды и создавать новые вариации.", "В настройках добавлена возможность кастомизировать цвет интерфейса и префикса чата."}},
 	{["0.1.0"] = {"Добавлена статистика действий пользователя (/helper_stats).", "Добавлен список последних гос.новостей (/goverment_news).", "Добавлены дополнительные тэги для биндера.", "Добавлены дублирующие NRP-команды (/ncuff и т.д.)"}},
@@ -41,7 +42,7 @@ local update_log = {
 	{["0.0.5"] = {"Добавлен список дешёвых АЗС с построением маршрута до них (/fuel)."}},
 	{["0.0.4"] = {"Добавлен CamHack (c + 1).", "Улучшен разделитель строк по пробелам, теперь не кикает из игры."}},
 	{["0.0.3"] = {"Добавлена отправка сообщения о авторизации конкретного пользователя в телеграм-бот.", "Добавлена возможность печатать при прицеливании (правый ctrl)."}},
-	{["0.0.2"] = {"Добавлена система авто-обновлений."}},
+	{["0.0.2"] = {"Добавлена система авто-обновлений."}}, 
 	{["0.0.1"] = {"Начало разработки..."}}
 } 
 
@@ -139,11 +140,20 @@ if configuration_main1 then
 			patrol_assistant = true,
 			user_rang = true, 
 			script_color = "{67BEF8}",
+			t_script_color = 0xBA67BEF8,
 			line_break_by_space = true,
 			customization = false
 		},
 		modification = { 
 			id_postfix_after_nickname = true
+		},
+		quick_menu = {
+			[1] = {title = "CUFF", callback = "command_cuff"},
+			[2] = {title = "HOLD", callback = "command_hold"},
+			[3] = {title = "PUTPL", callback = "command_putpl"},
+			[4] = {title = "RIGHTS", callback = "command_rights"},
+			[5] = {title = "ARREST", callback = "command_arrest"},
+			[6] = {title = "SEARCH", callback = "command_search"}
 		},
 		quick_criminal_code = {
 			insubordination = {stars = 4, reason = u8"31.2 УК"},
@@ -783,9 +793,10 @@ if configuration_main1 then
 			[61] = {name = "helper_stats", status = true, callback = "command_helper_stats", variations = {}, description = u8("Статистика действий пользователя.")},
 			[62] = {name = "goverment_news", status = true, callback = "command_goverment_news", variations = {}, description = u8("Лог последних гос.новостей.")},
 		},
-		blacklist = {},
-		number = {},
-		customization = {} -- новая система
+		blacklist = {
+			Joachim_Ribbentrop = false
+		},
+		customization = {}
 	})
 	
 	local result = configuration_main1:get()
@@ -936,6 +947,7 @@ local lookup_database_house = {}
 local found_house
 local add_house_in_base
 local add_player_to_base
+local quick_menu_list = {}
 -- !local value
 
 -- const 
@@ -1006,6 +1018,27 @@ imgui.OnInitialize(function()
 			}
 		end
 	end
+	
+	for index, value in pairs(configuration_main["quick_menu"]) do
+		quick_menu_list[index] = {
+			title = value["title"],
+			callback = function()
+				_G[value["callback"]](targeting_player)
+			end
+		}
+	end
+end)
+
+imgui.OnFrame(function() return show_quick_menu[0] end,
+function()
+	imgui.SetNextWindowBgAlpha(0.0)
+	imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), nil, imgui.ImVec2(0.5, 0.5))
+	imgui.SetNextWindowSize(imgui.ImVec2(400, 400))
+	imgui.Begin("##quickmenu", nil, imgui.WindowFlags.NoTitleBar + imgui.WindowFlags.NoMove + imgui.WindowFlags.NoResize)
+		
+		if displaying_quick_menu(quick_menu_list) then show_quick_menu[0] = false end
+		
+	imgui.End()
 end)
 
 imgui.OnFrame(function() return show_editor_assistant[0] end,
@@ -1593,7 +1626,7 @@ function()
 					imgui.EndChild()
 				elseif setting_page == 6 then
 					imgui.SetCursorPosX(15)
-					imgui.BeginTitleChild(u8"НАСТРОЙКА И ОПИСАНИЕ СИСТЕМНЫХ КОМАНД", imgui.ImVec2(685, 355))
+					imgui.BeginTitleChild(u8"НАСТРОЙКА И ОПИСАНИЕ СИСТЕМНЫХ КОМАНД", imgui.ImVec2(685, 355)) 
 						imgui.Columns(4)
 						imgui.Separator()
 						imgui.SetColumnWidth(-1, 50) imgui.CenterColumnText(faicons("POWER_OFF")) imgui.NextColumn()
@@ -1609,8 +1642,52 @@ function()
 								else sampUnregisterChatCommand(value["name"]) end
 							end imgui.NextColumn()
 							imgui.CenterColumnText(tostring(index)) imgui.NextColumn()
-							imgui.Button(string.format("/%s", value["name"]), imgui.ImVec2(130, 20)) imgui.NextColumn()
+							if imgui.Button(string.format("/%s", value["name"]), imgui.ImVec2(130, 20)) then
+								local found
+								for k, v in pairs(configuration_main["quick_menu"]) do if v["title"] == string.upper(value["name"]) then found = k break end end
+								if found then
+									chat(string.format("Команда {COLOR}%s{}[%s] была исключена из быстрого меню.", string.upper(value["name"]), found))
+									table.remove(configuration_main["quick_menu"], found)
+								else
+									chat(string.format("Команда {COLOR}%s{} была включена в быстрое меню.", string.upper(value["name"])))
+									table.insert(configuration_main["quick_menu"], {
+										title = string.upper(value["name"]),
+										callback = value["callback"]
+									})
+								end
+								
+								quick_menu_list = {}
+								
+								for index, value in pairs(configuration_main["quick_menu"]) do
+									quick_menu_list[index] = {
+										title = value["title"],
+										callback = function()
+											_G[value["callback"]](targeting_player)
+										end
+									}
+								end
+								
+								if not need_update_configuration then need_update_configuration = os.clock() end
+							end showHelpMarker(u8"С помощью этой кнопки вы можете добавить команду в быстро меню, или же, если команда уже там есть, исключить её.") imgui.NextColumn()
 							imgui.Text(value["description"]) imgui.NextColumn()
+						end
+					imgui.EndChild()
+				elseif setting_page == 7 then
+					imgui.SetCursorPosX(15)
+					imgui.BeginTitleChild(u8"ИНФОРМАЦИЯ", imgui.ImVec2(685, 355)) 
+						imgui.Text(u8"На данный момент быстрое меню поддерживает только системные команды.")
+						imgui.Text(u8"Добавить какую-либо команду в быстрое меню вы можете из соответствующего раздела в настройках.")
+						imgui.Text(u8"Для этого вам нужно навести курсор на кнопку команды и нажать на неё.")
+						
+						imgui.NewLine()
+						
+						imgui.Text(u8"К тому же, в команду, что вы используйте в быстром меню, передаётся только ID игрока, на которого вы навелись.")
+						imgui.Text(u8"Будьте внимательны, ведь не все команды поддерживают такой набор входных параметров.")
+
+						imgui.NewLine()
+						
+						if imgui.Button(u8"Перейти в раздел системных команд") then
+							setting_page = 6
 						end
 					imgui.EndChild()
 				elseif setting_page == 8 then 
@@ -1650,7 +1727,11 @@ function()
 								configuration_main["customization"]["SliderGrab"] = {r = color_picker[0], g = color_picker[1], b = color_picker[2], a = 0.85}
 								
 								local r, g, b = color_picker[0] * 255, color_picker[1] * 255, color_picker[2] * 255
-								configuration_main["settings"]["script_color"] = string.format("{%s}", argb_to_hex(join_argb(255, r, g, b)))
+								local color = argb_to_hex(join_argb(255, r, g, b)) 
+								configuration_main["settings"]["script_color"] = string.format("{%s}", color)
+								configuration_main["settings"]["t_script_color"] = tonumber(string.format("0xFF%s", color))
+								
+								if not need_update_configuration then need_update_configuration = os.clock() end
 							end
 						end
 					imgui.EndChild() imgui.SameLine()
@@ -2182,6 +2263,15 @@ function main()
 					end
 				end
 			end
+			
+			if wparam == vkeys.VK_Z then
+				if isKeyCheckAvailable() then
+					consumeWindowMessage(true, false)
+					if msg == 0x101 then 
+						show_quick_menu[0] = not show_quick_menu[0]
+					end
+				end
+			end
 				
 			if isKeyDown(VK_RBUTTON) then
 				if isKeyCheckAvailable() then
@@ -2262,7 +2352,7 @@ function main()
 	-- калибровка генератора псевдослучайных чисел
 	math.randomseed(os.time())
 	
-	-- регистрация системных команд
+	-- регистрация системных команд 
 	local total, successfully = 0, 0
 	for index, value in pairs(configuration_main["system_commands"]) do
 		if not sampIsChatCommandDefined(value["name"]) and value["status"] then 
@@ -2300,6 +2390,20 @@ function main()
 			successfully = successfully + 1
 		end total = total + 1
 	end print(string.format("В том числе было найдено несколько пользовательских команд в числе %s, зарегистрировано было %s.", total, successfully))
+	
+	sampRegisterChatCommand("convert_telephone", function()
+		if configuration_main["number"] then
+			for player_name, player_number in pairs(configuration_main["number"]) do
+				if not configuration_database["player"][player_name] then configuration_database["player"][player_name] = {} end
+				configuration_database["player"][player_name]["telephone"] = player_number
+				configuration_main["number"][player_name] = nil
+			end
+			
+			chat("Данные были успешно конвертированы.")
+			configuration_main["number"] = nil
+			if not need_update_configuration then need_update_configuration = os.clock() end
+		else chat("Вы уже конвертировали базу данных номеров.") end
+	end)
 	
 	-- потекли потоки
 	lua_thread.create(dynamic_time_update)
@@ -2788,7 +2892,7 @@ function patrol_assistant()
 							if fraction_color[color] then
 								if not configuration_database["player"][v[1]] then configuration_database["player"][v[1]] = {} end
 								configuration_database["player"][v[1]]["organization"] = u8(fraction_color[color][1])
-								configuration_database["player"][v[1]]["residence_in_country"] = sampGetPlayerScore(v[2])
+								-- configuration_database["player"][v[1]]["residence_in_country"] = sampGetPlayerScore(v[2])
 								table.remove(add_player_to_base, k)
 								if not need_update_configuration then need_update_configuration = os.clock() end
 							else table.remove(add_player_to_base, k) end
@@ -3020,9 +3124,13 @@ function command_sms(parametrs)
 		
 		if isPlayerConnected(number) then
 			local name = sampGetPlayerName(number)
-			if configuration_main["number"][name] then
-				number = configuration_main["number"][name]
-			else chat("Номер игрока не найден в базе данных.") return end
+			if configuration_database["player"][name] and configuration_database["player"][name]["telephone"] then
+				number = configuration_database["player"][name]["telephone"]
+			else 
+				chat("Номер игрока не найден в базе данных.") 
+				chat("Попробуйте конвертировать старую базу в новую при помощи команды {COLOR}/convert_telephone{}.")
+				return
+			end
 		end
 		
 		if string.len(text) > 60 then
@@ -3148,13 +3256,16 @@ end--]]
 
 function command_call(parametrs)
 	if string.match(parametrs, "(%d+) 1") then
-		local id = string.match(parametrs, "(%d+) 1")
-		if isPlayerConnected(id) then
-			local nickname = sampGetPlayerName(id) 
-			if configuration_main["number"][nickname] then
-				local number = configuration_main["number"][nickname]
-				sampSendChat(string.format("/c %d", number))
-			else chat("Номер игрока не найден в базе данных.") end
+		local number = string.match(parametrs, "(%d+) 1")
+		if isPlayerConnected(number) then
+			local name = sampGetPlayerName(number)
+			if configuration_database["player"][name] and configuration_database["player"][name]["telephone"] then
+				sampSendChat(string.format("/c %s", configuration_database["player"][name]["telephone"]))
+			else 
+				chat("Номер игрока не найден в базе данных.") 
+				chat("Попробуйте конвертировать старую базу в новую при помощи команды {COLOR}/convert_telephone{}.")
+				return
+			end
 		else chat("Данный игрок не подключён к серверу. Проверьте правильность введёного ID.") end
 	elseif string.match(parametrs, "(%d+)") then
 		sampSendChat(string.format("/c %s", parametrs))
@@ -3497,13 +3608,14 @@ function command_megafon()
 					wait(1000)
 					command_r(string.format("$m to DISP, веду погоню за %s %s с госномером #SA-%s. Находимся в районе %s, CODE: 3, недоступен.", tf_vehicle_type_name[2][t_vehicle_type[normal_vehicleId]], t_vehicle_name[normal_vehicleId], playerId, calculateZone()))
 				end
-				wait(100)
-				chat(string.format("Чтобы объявить {%s}%s{}[%s] в розыск по статье {COLOR}%s{} нажмите сочетание клавиш ПКМ + 5.", sampGetColorByPlayerId(playerId), nickname, playerId, u8:decode(configuration_main["quick_criminal_code"]["insubordination"]["reason"])))
-				quick_suspect = {playerId = playerId, clock = os.clock(), stars = configuration_main["quick_criminal_code"]["insubordination"]["stars"], reason = u8:decode(configuration_main["quick_criminal_code"]["insubordination"]["reason"])}
-				
-				chat(string.format("Чтобы отправить репорт на {%s}%s{}[%s] используйте сочетание клавиш ПКМ + 4.", sampGetColorByPlayerId(playerId), nickname, playerId))
-				quick_report = {playerId = playerId, clock = os.clock(), reason = "последите пожалуйста, может оффнуться / суицид."}
 			end last_requirement = {nickname = nickname, playerId = playerId}
+			
+			wait(100)
+			chat(string.format("Чтобы объявить {%s}%s{}[%s] в розыск по статье {COLOR}%s{} нажмите сочетание клавиш ПКМ + 5.", sampGetColorByPlayerId(playerId), nickname, playerId, u8:decode(configuration_main["quick_criminal_code"]["insubordination"]["reason"])))
+			quick_suspect = {playerId = playerId, clock = os.clock(), stars = configuration_main["quick_criminal_code"]["insubordination"]["stars"], reason = u8:decode(configuration_main["quick_criminal_code"]["insubordination"]["reason"])}
+				
+			chat(string.format("Чтобы отправить репорт на {%s}%s{}[%s] используйте сочетание клавиш ПКМ + 4.", sampGetColorByPlayerId(playerId), nickname, playerId))
+			quick_report = {playerId = playerId, clock = os.clock(), reason = "последите пожалуйста, может оффнуться / суицид."}
 		else sampSendChat("/m Немедленно остановите ваше транспортное средство и прижмитесь к обочине.") end
 	end)
 end
@@ -4328,7 +4440,7 @@ function apply_custom_style()
     local clr = imgui.Col
     local ImVec4 = imgui.ImVec4
 	local ImVec2 = imgui.ImVec2
-    
+     
 	style.WindowBorderSize = 0.0
 	
 	style.WindowRounding         = 4.0
@@ -4409,11 +4521,6 @@ end
 function imgui.CenterColumnText(text)
     imgui.SetCursorPosX((imgui.GetColumnOffset() + (imgui.GetColumnWidth() / 2)) - imgui.CalcTextSize(text).x / 2)
     imgui.Text(text)
-end 
-
-function imgui.VerticalSeparator()
-    local p = imgui.GetCursorScreenPos()
-    --imgui.GetWindowDrawList():AddLine(imgui.ImVec2(p.x, p.y), imgui.ImVec2(p.x, p.y + imgui.GetContentRegionMax().y), imgui.GetStyle().Colors[imgui.Col["Separator"]])
 end
 
 function imgui.CustomButton(name, color, size)
@@ -4431,7 +4538,7 @@ function imgui.NavigationButton(index, icon)
 	local clr = imgui.Col
     imgui.PushStyleColor(clr.Button, imgui.ImVec4(0.0, 0.0, 0.0, 0.0))
 	local result = imgui.Button(string.format("%s   %s", icon, index))
-    imgui.PopStyleColor(1)
+	imgui.PopStyleColor(1)
     return result
 end
 
@@ -4462,31 +4569,6 @@ function imgui.ToggleButton2(index, block, key, bool)
 		result = true
 		if not need_update_configuration then need_update_configuration = os.clock() end
 	end if not bool then imgui.SameLine() imgui.Text(index) end
-	return result
-end
-
-function imgui.TestButton(index, icon, main_text, another_text)
-	local result
-	
-	local clr = imgui.Col
-    imgui.PushStyleColor(clr.Button, imgui.ImVec4(0.41, 0.41, 0.41, 1.0))
-	
-	if imgui.Button(string.format("##%s", index), imgui.ImVec2(140, 140)) then result = true end
-	imgui.PopStyleColor(1)
-	local position = imgui.GetCursorPos()
-
-	imgui.SetCursorPos(imgui.ImVec2(position.x + 70 - imgui.CalcTextSize(main_text).x / 2, position.y - 65))
-	imgui.Text(main_text)
-	
-	imgui.PushStyleColor(clr.Text, imgui.ImVec4(0.79, 0.79, 0.79, 1.0))
-	local fix = 0
-	for line in string.gmatch(another_text, "[^\n]+") do
-		imgui.SetCursorPos(imgui.ImVec2(position.x + 70 - imgui.CalcTextSize(line).x / 2, position.y - 45 - fix))
-		imgui.Text(line)
-		fix = fix - 10
-	end
-	
-	imgui.PopStyleColor(1)
 	return result
 end
 
@@ -4626,23 +4708,6 @@ function urlencode(str)
    return str
 end
 
-function pairsTableForMenu(input)
-	for k, v in pairs(input) do
-		if type(v) == "table" then
-			if pie.BeginPieMenu(u8(k)) then
-				pairsTableForMenu(v)
-				pie.EndPieMenu()
-			end
-		else
-			if pie.PieMenuItem(u8(k)) then
-				if type(v) == "function" then
-					v()
-				end show_quick_menu[0] = false
-			end
-		end
-	end
-end
-
 function explode_argb(argb)
   local a = bit.band(bit.rshift(argb, 24), 0xFF)
   local r = bit.band(bit.rshift(argb, 16), 0xFF)
@@ -4667,7 +4732,7 @@ function displaying_inline_sections(input, last)
 				map_marker[#map_marker + 1] = {x = v["x"], y = v["y"], z = v["z"]}
 				local x, y, z = getCharCoordinates(playerPed)
 				local distance = getDistanceBetweenCoords3d(x, y, z, v["x"], v["y"], v["z"])
-				chat(string.format("На вашем радаре отмечен {COLOR}маркер{}, расстояние до него {COLOR}%s{} м.", distance))
+				chat(string.format("На вашем радаре отмечен {COLOR}маркер{}, расстояние до него {COLOR}%s{} м.", math.floor(distance)))
 			end
 		elseif k == "time" then
 			imgui.Text(tostring(k)) imgui.SameLine(150)
@@ -4689,14 +4754,78 @@ function displaying_inline_sections(input, last)
 		end
 	end
 end
+
+function displaying_quick_menu(input) -- original author DonHomka
+	local style = imgui.GetStyle()
+	local minimal_radius = 60.0
+	local maximum_radius = 200.0
+	local minimum_interact_radius = 20.0
+	
+	local DrawList = imgui.GetWindowDrawList()
+	local IM_PI = 3.14159265358979323846
+	local center = imgui.ImVec2(w / 2, h / 2)
+	local drag_delta = imgui.ImVec2(imgui.GetIO().MousePos["x"] - center["x"], imgui.GetIO().MousePos["y"] - center["y"])
+	local drag_distance2 = drag_delta["x"] * drag_delta["x"] + drag_delta["y"] * drag_delta["y"]
+	local count = #input
+		  
+	DrawList:PushClipRectFullScreen()
+	DrawList:PathArcTo(center, (minimal_radius + maximum_radius)*0.5, 0.0, IM_PI*2.0*0.98, 64)
+	DrawList:PathStroke(0x4c010101, true, maximum_radius - minimal_radius)
+		
+	local input_arc_span = 2 * IM_PI / count
+	local drag_angle = math.atan2(drag_delta["y"], drag_delta["x"])
+
+	for index = 1, count do
+		local input_label = input[index].title
+		local inner_spacing = style["ItemInnerSpacing"]["x"] / minimal_radius / 2
+		local input_inner_angle_minimum = input_arc_span * (index - 0.5 + inner_spacing)
+		local input_inner_angle_maximum = input_arc_span * (index + 0.5 - inner_spacing)
+		local input_outer_angle_minimum = input_arc_span * (index - 0.5 + inner_spacing * (minimal_radius / maximum_radius))
+		local input_outer_angle_maximum = input_arc_span * (index + 0.5 - inner_spacing * (minimal_radius / maximum_radius))
+
+		local hovered = false
+		while (drag_angle - input_inner_angle_minimum) < 0.0 do
+			drag_angle = drag_angle + 2.0 * IM_PI
+		end
+		
+		while (drag_angle - input_inner_angle_minimum) > (2.0 * IM_PI) do
+			drag_angle = drag_angle - 2.0 * IM_PI
+		end
+		
+		if drag_distance2 >= (minimum_interact_radius * minimum_interact_radius) then
+			if drag_angle >= input_inner_angle_minimum and drag_angle < input_inner_angle_maximum then
+				hovered = true
+			end
+		end
+
+		local arc_segments = (64 * input_arc_span / (2 * IM_PI)) + 1
+		DrawList:PathArcTo(center, maximum_radius - style["ItemInnerSpacing"]["x"], input_outer_angle_minimum, input_outer_angle_maximum, arc_segments)
+		DrawList:PathArcTo(center, minimal_radius + style["ItemInnerSpacing"]["x"], input_inner_angle_maximum, input_inner_angle_minimum, arc_segments)
+		DrawList:PathFillConvex(hovered and configuration_main["settings"]["t_script_color"] or 0xFF232323)
+
+		local text_size = imgui.CalcTextSize(input_label)
+		local text_pos = imgui.ImVec2(
+			center["x"] + math.cos((input_inner_angle_minimum + input_inner_angle_maximum) * 0.5) * (minimal_radius + maximum_radius) * 0.5 - text_size["x"] * 0.5 + 1,
+			center["y"] + math.sin((input_inner_angle_minimum + input_inner_angle_maximum) * 0.5) * (minimal_radius + maximum_radius) * 0.5 - text_size["y"] * 0.5 + 1)
+		DrawList:AddText(text_pos, 0xFFFFFFFF, input_label)
+
+		if hovered then
+			if imgui.IsMouseClicked(0) then
+				input[index]["callback"]()
+				return true
+			end
+		end
+	end
+	
+	DrawList:PopClipRect()
+end
 -- !function  
 
 -- event
 function sampev.onServerMessage(color, text)
 	if string.match(text, "(.+) %| Отправил%s(%S+)%[(%d+)%] %(тел%. (%d+)%)") then
 		local ad, player_name, playerId, player_number = text:match('(.+) %| Отправил%s(%S+)%[(%d+)%] %(тел%. (%d+)%)')
-		configuration_main["number"][player_name] = player_number
-		
+
 		if not configuration_database["player"][player_name] then configuration_database["player"][player_name] = {} end
 		configuration_database["player"][player_name]["telephone"] = player_number
 		
@@ -4710,8 +4839,7 @@ function sampev.onServerMessage(color, text)
 
 	if string.match(text, "SMS.[%s](.+)[%s].[%s]Отправитель.[%s](%S+)[%s].т.(%d+).") then
 		local ftext, player_name, player_number = string.match(text, "SMS.[%s](.+)[%s].[%s]Отправитель.[%s](%S+)[%s].т.(%d+).") 
-		configuration_main["number"][player_name] = player_number
-		
+
 		if not configuration_database["player"][player_name] then configuration_database["player"][player_name] = {} end
 		configuration_database["player"][player_name]["telephone"] = player_number
 		
@@ -4722,8 +4850,7 @@ function sampev.onServerMessage(color, text)
 	
 	if string.match(text, "Входящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Вызывает[%s](.+)") then
 		local player_number, player_name = text:match('Входящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Вызывает[%s](.+)')
-		configuration_main["number"][player_name] = player_number
-		
+
 		if not configuration_database["player"][player_name] then configuration_database["player"][player_name] = {} end
 		configuration_database["player"][player_name]["telephone"] = player_number
 		
@@ -4733,8 +4860,7 @@ function sampev.onServerMessage(color, text)
 
 	if string.match(text, "SMS.[%s](.+)[%s].[%s]Получатель.[%s](%S+)[%s].т.(%d+).") then
 		local ftext, player_name, player_number = string.match(text, "SMS.[%s](.+)[%s].[%s]Получатель.[%s](%S+)[%s].т.(%d+).")
-		configuration_main["number"][player_name] = player_number
-		
+
 		if not configuration_database["player"][player_name] then configuration_database["player"][player_name] = {} end
 		configuration_database["player"][player_name]["telephone"] = player_number
 		
@@ -4743,8 +4869,7 @@ function sampev.onServerMessage(color, text)
 	
 	if string.match(text, "Исходящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Ожидание[%s]ответа[%s]от[%s](.+)...") then
 		local player_number, player_name = string.match(text, "Исходящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Ожидание[%s]ответа[%s]от[%s](.+)...")
-		configuration_main["number"][player_name] = player_number
-		
+
 		if not configuration_database["player"][player_name] then configuration_database["player"][player_name] = {} end
 		configuration_database["player"][player_name]["telephone"] = player_number
 		
@@ -4840,17 +4965,11 @@ function sampev.onServerMessage(color, text)
 			lua_thread.create(function()
 				wait(850)
 				if not configuration_main["information"]["sex"] then
-					sampSendChat("/me достал планшет и включил его, после зашёл в базу данных.")
-					wait(1500); sampSendChat(string.format("/me взяв один из найденных патронов у %s записал серийный номер в нужной строке.", string.gsub(pname, "_", " ")))
-					wait(1500); sampSendChat("/do Информация из БД: патрон с данным номером числится как краденный.")
-					wait(1500); sampSendChat("/me достал ZIP-пакет и чёрный маркер, открыл ZIP-пакет и сложил туда изъятые боеприпасы.")
-					wait(1500); sampSendChat("/me закрыв ZIP-пакет, написал информацию на нём с помощью чёрного маркера, после убрал их обратно.")
+					sampSendChat("/me достал ZIP-пакет и чёрный маркер, открыл zip-пакет и сложил туда изъятые боеприпасы.")
+					wait(1500); sampSendChat("/me закрыв zip-пакет, написал информацию на нём с помощью чёрного маркера, после убрал их обратно.")
 				else
-					sampSendChat("/me достала планшет и включила его, после зашла в базу данных.")
-					wait(1500); sampSendChat(string.format("/me взяв один из найденных патронов у %s записала серийный номер в нужной строке.", string.gsub(pname, "_", " ")))
-					wait(1500); sampSendChat("/do Информация из БД: патрон с данным номером числится как краденный.")
-					wait(1500); sampSendChat("/me достала ZIP-пакет и чёрный маркер, открыла ZIP-пакет и сложила туда изъятые боеприпасы.")
-					wait(1500); sampSendChat("/me закрыв ZIP-пакет, написала информацию на нём с помощью чёрного маркера, после убрала их обратно.")
+					sampSendChat("/me достала zip-пакет и чёрный маркер, открыла zip-пакет и сложила туда изъятые боеприпасы.")
+					wait(1500); sampSendChat("/me закрыв zip-пакет, написала информацию на нём с помощью чёрного маркера, после убрала их обратно.")
 				end
 			end)
 		end
@@ -4863,13 +4982,13 @@ function sampev.onServerMessage(color, text)
 			lua_thread.create(function()
 				wait(850)
 				if not configuration_main["information"]["sex"] then
-					sampSendChat("/me достал ZIP-пакет и чёрный маркер, затем раскрыл ZIP-пакет и положил туда изъятые неизвестнные в-ва.")
+					sampSendChat("/me достал zip-пакет и чёрный маркер, затем раскрыл zip-пакет и положил туда изъятые неизвестнные в-ва.")
 					wait(1500); sampSendChat("/me держа в левой руке маркер, правой рукой закрыл пакет и промаркировал его.")
-					wait(1500); sampSendChat("/me убрал ZIP-пакет и чёрный маркер обратно.")
+					wait(1500); sampSendChat("/me убрал zip-пакет и чёрный маркер обратно.")
 				else
-					sampSendChat("/me достала ZIP-пакет и чёрный маркер, затем раскрыла ZIP-пакет и положила туда изъятые неизвестнные в-ва.")
+					sampSendChat("/me достала zip-пакет и чёрный маркер, затем раскрыла zip-пакет и положила туда изъятые неизвестнные в-ва.")
 					wait(1500); sampSendChat("/me держа в левой руке маркер, правой рукой закрыла пакет и промаркировала его.")
-					wait(1500); sampSendChat("/me убрала ZIP-пакет и чёрный маркер обратно.")
+					wait(1500); sampSendChat("/me убрала zip-пакет и чёрный маркер обратно.")
 				end
 			end)
 		end
@@ -4879,22 +4998,22 @@ function sampev.onServerMessage(color, text)
 		lua_thread.create(function() wait(150)
 			if not configuration_main["information"]["sex"] then
 				if getCurrentCharWeapon(playerPed) == 3 then
-					local acting = {[0] = {
+					local acting = {
 						[1] = {u8("/me удерживая дубинку в руке, размахнулся и нанёс удар по нарушителю.")},
 						[2] = {u8("/me снял дубинку с пояса и нанёс удар достаточной силы, чтобы оглушить подозреваемого.")}
-					}}
-					local acting = acting[0][math.random(1, #acting)]
+					}
+					local acting = acting[math.random(1, #acting)]
 					final_command_handler(acting, {id, stars, reason})
 				else
 					sampSendChat("/me выхватил тэйзер из держателя, навёлся на нарушителя и нажал на кнопку спуска.")
 				end
 			else
 				if getCurrentCharWeapon(playerPed) == 3 then
-					local acting = {[1] = {
+					local acting = {
 						[1] = {u8("/me удерживая дубинку в руке, размахнулась и нанесла удар по нарушителю.")},
 						[2] = {u8("/me сняла дубинку с пояса и нанесла удар достаточной силы, чтобы оглушить подозреваемого.")}
-					}}
-					local acting = acting[1][math.random(1, #acting)]
+					}
+					local acting = acting[math.random(1, #acting)]
 					final_command_handler(acting, {id, stars, reason})
 				else
 					sampSendChat("/me выхватила тэйзер из держателя, навелась на нарушителя и нажала на кнопку спуска.")
@@ -4977,8 +5096,8 @@ function sampev.onServerMessage(color, text)
 		if not need_update_configuration then need_update_configuration = os.clock() end
 	end
 	
-	if string.match(text, "Вы объявили (%S+)%[(%d+)%] в розыск. Причина: (.+)%. Текущий уровень розыска (%d+)") then
-		local suspect_nickname, suspect_id, reason, wanted = string.match(text, "Вы объявили (%S+)%[(%d+)%] в розыск. Причина: (.+)%. Текущий уровень розыска (%d+)")
+	if string.match(text, "Вы объявили (%S+)%[(%d+)%] в розыск%. Причина: (.+)%. Текущий уровень розыска (%d+)") then
+		local suspect_nickname, suspect_id, reason, wanted = string.match(text, "Вы объявили (%S+)%[(%d+)%] в розыск%. Причина: (.+)%. Текущий уровень розыска (%d+)")
 		local result, officer_id = sampGetPlayerIdByCharHandle(playerPed)
 		local officer_nickname = sampGetPlayerName(officer_id)
 		if not configuration_database["player"][suspect_nickname] then configuration_database["player"][suspect_nickname] = {} end

@@ -1,6 +1,6 @@
 script_name("helper-for-mia (v2.0)")
 script_author("Joachim von Ribbentrop")
-script_version("0.1.5")
+script_version("0.1.6")
 
 require "deps" {
 	"fyp:mimgui@1.4.1",
@@ -1036,7 +1036,7 @@ function()
 	imgui.SetNextWindowSize(imgui.ImVec2(400, 400))
 	imgui.Begin("##quickmenu", nil, imgui.WindowFlags.NoTitleBar + imgui.WindowFlags.NoMove + imgui.WindowFlags.NoResize)
 		
-		if displaying_quick_menu(quick_menu_list) then show_quick_menu[0] = false end
+		displaying_quick_menu(quick_menu_list)
 		
 	imgui.End()
 end)
@@ -1047,6 +1047,8 @@ function()
 	imgui.SetNextWindowSize(imgui.ImVec2(470, 500))
 	imgui.Begin(string.format("%s##8", imgui_script_name), show_editor_assistant, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 		local tags = {
+			{"$name./number/", "Возращает nickname игрока по его ID.", "$name.100, $name.{1}, $name.{targeting} (примеры)"},
+			{"$rpname./number/", "Возращает nickname игрока в RP-формате.", "$rpname.100, $rpname.{1}, $rpname.{targeting} (примеры)"},
 			{"$wait", "Устанавливает задержку между строками (в мс).", "$wait 1000 (пример)"},
 			{"$chat", "Отправляет сообщение пользователю.", "$chat Ты умер :( (пример)"},
 			{"$script", "Активирует исполнение сценария.", "$script default, test, 1 (пример)"},
@@ -1404,7 +1406,6 @@ function()
 			if imgui.NavigationButton(u8"НАСТРОЙКИ", faicons("SLIDERS")) then navigation_page = 4 end
 			if imgui.NavigationButton(u8"БИНДЕР", faicons("CODE")) then navigation_page = 5 end
 			if imgui.NavigationButton(u8"МЕНЕДЖЕР АККАУНТОВ", faicons("ADDRESS_BOOK")) then navigation_page = 6 end
-			if imgui.NavigationButton(u8"ПОЛЬЗОВАТЕЛИ", faicons("USER")) then navigation_page = 7 end
 			
 			imgui.NewLine() imgui.Separator() imgui.NewLine()
 			
@@ -1672,7 +1673,7 @@ function()
 							imgui.Text(value["description"]) imgui.NextColumn()
 						end
 					imgui.EndChild()
-				elseif setting_page == 7 then
+				elseif setting_page == 7 then 
 					imgui.SetCursorPosX(15)
 					imgui.BeginTitleChild(u8"ИНФОРМАЦИЯ", imgui.ImVec2(685, 355)) 
 						imgui.Text(u8"На данный момент быстрое меню поддерживает только системные команды.")
@@ -1727,10 +1728,10 @@ function()
 								configuration_main["customization"]["SliderGrab"] = {r = color_picker[0], g = color_picker[1], b = color_picker[2], a = 0.85}
 								
 								local r, g, b = color_picker[0] * 255, color_picker[1] * 255, color_picker[2] * 255
-								local color = argb_to_hex(join_argb(255, r, g, b)) 
-								configuration_main["settings"]["script_color"] = string.format("{%s}", color)
-								configuration_main["settings"]["t_script_color"] = tonumber(string.format("0xFF%s", color))
-								
+								local color = join_argb(255, r, g, b) -- argb_to_hex(join_argb(255, r, g, b)) 
+								configuration_main["settings"]["script_color"] = string.format("{%s}", argb_to_hex(color))
+								configuration_main["settings"]["t_script_color"] = tonumber(bit.tohex(color), 16)
+
 								if not need_update_configuration then need_update_configuration = os.clock() end
 							end
 						end
@@ -2170,30 +2171,6 @@ function()
 						end
 					end
 				imgui.EndChild()
-			elseif navigation_page == 7 then
-				imgui.SetCursorPos(imgui.ImVec2(15, 15))
-				imgui.BeginTitleChild(u8"ПОЛЬЗОВАТЕЛИ", imgui.ImVec2(675, 430))
-					imgui.Columns(4)
-					imgui.Separator()
-					imgui.SetColumnWidth(-1, 30) imgui.CenterColumnText("#") imgui.NextColumn()
-					imgui.SetColumnWidth(-1, 150) imgui.CenterColumnText(u8"Пользователь") imgui.NextColumn()
-					imgui.SetColumnWidth(-1, 95) imgui.CenterColumnText(u8"Кол-во слотов") imgui.NextColumn()
-					imgui.SetColumnWidth(-1, 150) imgui.CenterColumnText(u8"Верификация") imgui.NextColumn()
-					imgui.Separator()
-					
-					for number = 4, 1, -1 do
-						for nickname, value in pairs(list_users) do
-							if value["rangNumber"] == number then
-								local day = (value["subscription"] - os.time()) / 3600 / 24
-								imgui.CenterColumnText(tostring(value["rangNumber"])) imgui.NextColumn()
-								imgui.CenterColumnText(nickname) imgui.NextColumn()
-								imgui.CenterColumnText(tostring(value["user_slots_value"])) imgui.NextColumn()
-								imgui.CenterColumnText(string.format(u8"%s (%d дней)", os.date("%d.%m.%Y", value["subscription"]), day)) imgui.NextColumn()
-								-- imgui.CenterColumnText(value["account"]) imgui.NextColumn()
-							end
-						end
-					end
-				imgui.EndChild()
 			else imgui.CenterText(u8"Будет доступно в ближайщих обновлениях.")
 				--[[imgui.InputTextWithHint("##icons", u8"Иконка", string_found, 50)
 			
@@ -2411,7 +2388,7 @@ function main()
 	lua_thread.create(t_weapon_acting_out)
 	lua_thread.create(t_stroboscopes)
 	lua_thread.create(patrol_assistant)
-	lua_thread.create(house_founder)
+	-- lua_thread.create(house_founder)
 	
 	print(string.format("Общее время загрузки игрового помощника: %s\n\n", os.clock() - start_time))
 	
@@ -2884,7 +2861,7 @@ function patrol_assistant()
 		
 		if add_player_to_base then
 			for k, v in ipairs(add_player_to_base) do
-				if isPlayerConnected(v[2]) then
+				if isPlayerConnected(v[2]) then 
 					local current_nickname = sampGetPlayerName(v[2])
 					if current_nickname == v[1] then
 						local color = sampGetPlayerColor(v[2])
@@ -3881,7 +3858,8 @@ function line_handler(input, parametrs_block)
 		["{time}"] = os.date("%H:%M:%S"),
 		["{hour}"] = os.date("%H"),
 		["{minute}"] = os.date("%M"),
-		["{second}"] = os.date("%S")
+		["{second}"] = os.date("%S"),
+		["{last_number}"] = tostring(last_sms_number)
  	}
 
 	for tag, value in pairs(tags) do
@@ -3907,10 +3885,6 @@ function line_handler(input, parametrs_block)
 			local player_name = result and result or ""
 			input = string.gsub(input, string.format("$name.%d", value), tostring(player_name))
 		end
-	end
-	
-	if string.match(input, "{last_number}") then
-		input = string.gsub(input, "{last_number}", tostring(last_sms_number))
 	end return input
 end
 

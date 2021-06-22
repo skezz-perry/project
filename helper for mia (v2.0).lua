@@ -1,25 +1,23 @@
 script_name("helper-for-mia (v2.0)")
 script_author("Joachim von Ribbentrop")
-script_version("0.1.7")
+script_version("0.1.8")
 
 require "deps" {
-	"fyp:mimgui@1.4.1",
-	"donhomka:mimgui-addons@latest"
+	"fyp:mimgui",
+	"donhomka:mimgui-addons"
 }
 
 -- require
-require "lib.moonloader"
 local vkeys = require "vkeys" 
 local rkeys = require "rkeys"
 local imgui, ffi = require "mimgui", require "ffi"
-local mimgui_addons = require "mimgui-addons" 
+local mimgui_addons = require "mimgui-addons"
 local new, str = imgui.new, ffi.string
 local faicons = require "fa-icons"
 local font_flag = require("moonloader").font_flag 
 local encoding = require "encoding"
 local memory = require "memory"
 local xconf = require "xconf"
-local inicfg = require "inicfg"
 local gauth = require "gauth" 
 local https = require "ssl.https"
 local wm = require('lib.windows.message')
@@ -32,16 +30,16 @@ imgui.HotKey = mimgui_addons.HotKey
 
 -- global value 
 local update_log = {
+	{["0.1.8"] = {"Добавлен прерыватель исполнения команд (клавиша X)."}},
 	{["0.1.5"] = {"В тестовом режиме добавлено быстрое меню (клавиша Z)."}},
 	{["0.1.4"] = {"В тестовом режиме добавлена база данных (в блоке 'Панель управления').", "Улучшена система определения параметров в биндере."}},
 	{["0.1.2"] = {"Добавлена возможность редактировать системные команды и создавать новые вариации.", "В настройках добавлена возможность кастомизировать цвет интерфейса и префикса чата."}},
 	{["0.1.0"] = {"Добавлена статистика действий пользователя (/helper_stats).", "Добавлен список последних гос.новостей (/goverment_news).", "Добавлены дополнительные тэги для биндера.", "Добавлены дублирующие NRP-команды (/ncuff и т.д.)"}},
 	{["0.0.9"] = {"Добавлен менеджер аккаунтов.", "Добавлена возможность проверки правильности написания слов (/speller)."}},
-	{["0.0.8"] = {"Тотально окончательное исправление ошибки с разделителем строк."}},
 	{["0.0.6"] = {"Окончательно исправлена ошибка при разделении длинных строк."}},
 	{["0.0.5"] = {"Добавлен список дешёвых АЗС с построением маршрута до них (/fuel)."}},
 	{["0.0.4"] = {"Добавлен CamHack (c + 1).", "Улучшен разделитель строк по пробелам, теперь не кикает из игры."}},
-	{["0.0.3"] = {"Добавлена отправка сообщения о авторизации конкретного пользователя в телеграм-бот.", "Добавлена возможность печатать при прицеливании (правый ctrl)."}},
+	{["0.0.3"] = {"Добавлена возможность печатать при прицеливании (правый ctrl)."}},
 	{["0.0.2"] = {"Добавлена система авто-обновлений."}}, 
 	{["0.0.1"] = {"Начало разработки..."}}
 } 
@@ -183,51 +181,51 @@ if configuration_main1 then
 		},
 		weapon_acting_out = {
 			[1] = {status = false, name = u8"skip_weapon_555", take = u8"", away = u8""},
-			[2] = {status = false, name = u8("Клюшка для гольфа"), take = u8(""), away = u8("")},
-			[3] = {status = false, name = u8("Полицейская дубинка"), take = u8(""), away = u8("")},
-			[4] = {status = false, name = u8("Нож"), take = u8(""), away = u8("")},
-			[5] = {status = false, name = u8("Бейсбольная бита"), take = u8(""), away = u8("")},
-			[6] = {status = false, name = u8("Лопата"), take = u8(""), away = u8("")},
-			[7] = {status = false, name = u8("Кий"), take = u8(""), away = u8("")},
-			[8] = {status = false, name = u8("Катана"), take = u8(""), away = u8("")},
-			[9] = {status = false, name = u8("Бензопила"), take = u8(""), away = u8("")},
-			[10] = {status = false, name = u8("Двухсторонний дилдо"), take = u8(""), away = u8("")},
-			[11] = {status = false, name = u8("Дилдо"), take = u8(""), away = u8("")},
-			[12] = {status = false, name = u8("Вибратор"), take = u8(""), away = u8("")},
-			[13] = {status = false, name = u8("Серебряный вибратор"), take = u8(""), away = u8("")},
-			[14] = {status = false, name = u8("Букет цветов"), take = u8(""), away = u8("")},
-			[15] = {status = false, name = u8("Трость"), take = u8(""), away = u8("")}, 
-			[16] = {status = false, name = u8("Граната"), take = u8(""), away = u8("")},
-			[17] = {status = false, name = u8("Слезоточивый газ"), take = u8(""), away = u8("")},
-			[18] = {status = false, name = u8("Коктейль молотова"), take = u8(""), away = u8("")},
+			[2] = {status = false, name = u8("Клюшка для гольфа"), take = u8"", away = u8""},
+			[3] = {status = false, name = u8("Полицейская дубинка"), take = u8"", away = u8""},
+			[4] = {status = false, name = u8("Нож"), take = u8"", away = u8""},
+			[5] = {status = false, name = u8("Бейсбольная бита"), take = u8"", away = u8""},
+			[6] = {status = false, name = u8("Лопата"), take = u8"", away = u8""},
+			[7] = {status = false, name = u8("Кий"), take = u8"", away = u8""},
+			[8] = {status = false, name = u8("Катана"), take = u8"", away = u8""},
+			[9] = {status = false, name = u8("Бензопила"), take = u8"", away = u8""},
+			[10] = {status = false, name = u8("Двухсторонний дилдо"), take = u8"", away = u8""},
+			[11] = {status = false, name = u8("Дилдо"), take = u8"", away = u8""},
+			[12] = {status = false, name = u8("Вибратор"), take = u8"", away = u8""},
+			[13] = {status = false, name = u8("Серебряный вибратор"), take = u8"", away = u8""},
+			[14] = {status = false, name = u8("Букет цветов"), take = u8"", away = u8""},
+			[15] = {status = false, name = u8("Трость"), take = u8"", away = u8""}, 
+			[16] = {status = false, name = u8("Граната"), take = u8"", away = u8""},
+			[17] = {status = false, name = u8("Слезоточивый газ"), take = u8"", away = u8""},
+			[18] = {status = false, name = u8("Коктейль молотова"), take = u8"", away = u8""},
 			[19] = {status = false, name = u8"weapon_skip_new", take = u8"", away = u8""},
 			[20] = {status = false, name = u8"maybe_not_add_nil_weapon", take = u8"", away = u8""},
 			[21] = {status = false, name = u8"fuck_weapon", take = u8"", away = u8""},
-			[22] = {status = false, name = u8("Пистолет 9мм"), take = u8(""), away = u8("")},
-			[23] = {status = false, name = u8("Пистолет с глушителем"), take = u8(""), away = u8("")},
+			[22] = {status = false, name = u8("Пистолет 9мм"), take = u8"", away = u8""},
+			[23] = {status = false, name = u8("Пистолет с глушителем"), take = u8"", away = u8""},
 			[24] = {status = true, name = u8("Desert Eagle"), take = u8("схатившись правой рукой за пистолет, вытащил его из кобуры."), away = u8("убрал пистолет обратно в кобуру, попутно застягнув её.")},
 			[25] = {status = true, name = u8("Обычный дробовик"), take = u8("взявшись за ремень дробовика, снял его с плеча и взял в руки."), away = u8("повесил дробовик обратно на плечо, придерживая его за ремень.")},
-			[26] = {status = false, name = u8("Обрез"), take = u8(""), away = u8("")},
-			[27] = {status = false, name = u8("Combar shotgun"), take = u8(""), away = u8("")},
-			[28] = {status = false, name = u8("Узи"), take = u8(""), away = u8("")},
+			[26] = {status = false, name = u8("Обрез"), take = u8"", away = u8""},
+			[27] = {status = false, name = u8("Combar shotgun"), take = u8"", away = u8""},
+			[28] = {status = false, name = u8("Узи"), take = u8"", away = u8""},
 			[29] = {status = true, name = u8("MP-5"), take = u8("скинул пистолет-пулемёт MP-5 с плеча и взял его в руки."), away = u8("повесил пистолет-пулемёт MP-5 обратно на плечо.")},
-			[30] = {status = false, name = u8("Автомат Калашникова"), take = u8(""), away = u8("")},
-			[31] = {status = false, name = u8("Винтовка М4"), take = u8(""), away = u8("")},
-			[32] = {status = false, name = u8("Tec-9"), take = u8(""), away = u8("")},
-			[33] = {status = false, name = u8("Охотничье ружьё"), take = u8(""), away = u8("")},
-			[34] = {status = false, name = u8("Снайперская винтовка"), take = u8(""), away = u8("")}, 
-			[35] = {status = false, name = u8("РПГ"), take = u8(""), away = u8("")},
-			[36] = {status = false, name = u8("Ракетный комплекс"), take = u8(""), away = u8("")},
-			[37] = {status = false, name = u8("Огнемёт"), take = u8(""), away = u8("")},
-			[38] = {status = false, name = u8("Миниган"), take = u8(""), away = u8("")},
-			[39] = {status = false, name = u8("Сумка с тротилом"), take = u8(""), away = u8("")}, 
-			[40] = {status = false, name = u8("Детонатор к сумке"), take = u8(""), away = u8("")},
-			[41] = {status = false, name = u8("Баллончик с краской"), take = u8(""), away = u8("")}, 
-			[42] = {status = false, name = u8("Огнетушитель"), take = u8(""), away = u8("")},
-			[43] = {status = false, name = u8("Фотоаппарат"), take = u8(""), away = u8("")},
-			[44] = {status = false, name = u8("Прибор ночного видения"), take = u8(""), away = u8("")},
-			[45] = {status = false, name = u8("Тепловизор"), take = u8(""), away = u8("")},
-			[46] = {status = false, name = u8("Парашют"), take = u8(""), away = u8("")}
+			[30] = {status = false, name = u8("Автомат Калашникова"), take = u8"", away = u8""},
+			[31] = {status = false, name = u8("Винтовка М4"), take = u8"", away = u8""},
+			[32] = {status = false, name = u8("Tec-9"), take = u8"", away = u8""},
+			[33] = {status = false, name = u8("Охотничье ружьё"), take = u8"", away = u8""},
+			[34] = {status = false, name = u8("Снайперская винтовка"), take = u8"", away = u8""}, 
+			[35] = {status = false, name = u8("РПГ"), take = u8"", away = u8""},
+			[36] = {status = false, name = u8("Ракетный комплекс"), take = u8"", away = u8""},
+			[37] = {status = false, name = u8("Огнемёт"), take = u8"", away = u8""},
+			[38] = {status = false, name = u8("Миниган"), take = u8"", away = u8""},
+			[39] = {status = false, name = u8("Сумка с тротилом"), take = u8"", away = u8""}, 
+			[40] = {status = false, name = u8("Детонатор к сумке"), take = u8"", away = u8""},
+			[41] = {status = false, name = u8("Баллончик с краской"), take = u8"", away = u8""}, 
+			[42] = {status = false, name = u8("Огнетушитель"), take = u8"", away = u8""},
+			[43] = {status = false, name = u8("Фотоаппарат"), take = u8"", away = u8""},
+			[44] = {status = false, name = u8("Прибор ночного видения"), take = u8"", away = u8""},
+			[45] = {status = false, name = u8("Тепловизор"), take = u8"", away = u8""},
+			[46] = {status = false, name = u8("Парашют"), take = u8"", away = u8""}
 		},
 		improved_dialogues = { 
 			[1] = {status = true, name = u8("Диалог списка лидеров (/leaders)")},
@@ -587,7 +585,38 @@ if configuration_main1 then
 					}
 				}
 			}, description = u8("Усаживает подозреваемого в автомобиль с RP-отыгровками.")},
-			[46] = {name = "rights", status = true, callback = "command_rights", variations = {}, description = u8("Зачитывает задержанному права.")},
+			[46] = {name = "rights", status = true, callback = "command_rights", variations = {
+				male = {
+					[1] = {
+						u8("Вы имеете право хранить молчание. "),
+						u8("$wait 1500"),
+						u8("Всё, что вы скажете, может и будет использовано против вас в суде. "),
+						u8("$wait 1500"),
+						u8("Ваш адвокат может присутствовать при допросе. "),
+						u8("$wait 1500"),
+						u8("Если вы не можете оплатить услуги адвоката, он будет предоставлен вам государством."),
+						u8("$wait 1500"),
+						u8("Если вы не гражданин, то вы можете связаться с консулом своей страны, прежде чем отвечать на любые вопросы."),
+						u8("$wait 1500"),
+						u8("Всё ли вам понятно?")
+					}
+				},
+				female = {
+					[1] = {
+						u8("Вы имеете право хранить молчание. "),
+						u8("$wait 1500"),
+						u8("Всё, что вы скажете, может и будет использовано против вас в суде. "),
+						u8("$wait 1500"),
+						u8("Ваш адвокат может присутствовать при допросе. "),
+						u8("$wait 1500"),
+						u8("Если вы не можете оплатить услуги адвоката, он будет предоставлен вам государством."),
+						u8("$wait 1500"),
+						u8("Если вы не гражданин, то вы можете связаться с консулом своей страны, прежде чем отвечать на любые вопросы."),
+						u8("$wait 1500"),
+						u8("Всё ли вам понятно?")
+					}
+				}
+			}, description = u8("Зачитывает задержанному права.")},
 			[47] = {name = "search", status = true, callback = "command_search", variations = {
 				male = {
 					[1] = {
@@ -948,6 +977,8 @@ local found_house
 local add_house_in_base
 local add_player_to_base
 local quick_menu_list = {}
+local global_break_command
+local global_command_handler
 -- !local value
 
 -- const 
@@ -987,7 +1018,7 @@ local t_fuel_station = {
 local maximum_number_of_characters = {["me"] = 90, ["do"] = 75, ["r"] = 80, ["f"] = 80, ["g"] = 80}
 local lcons = {}
 local w, h = getScreenResolution()
-local imgui_script_name = u8"vive le vide!"
+local imgui_script_name = u8"название забыли написать"
 -- !const
  
  -- mimgui
@@ -1375,7 +1406,7 @@ function()
 							if not viewing_administrative_code then
 								if content["sanction"] == -1 then --
 								elseif content["sanction"] == -2 then command_takelic(string.format("%s %s.%s КоАП", smart_ticket_id, article, part))
-								else command_ticket(string.format("%s %s %s.%s КоАП", smart_ticket_id, (content["sanction"] > 2000) and 2000 or content["sanction"], article, part)) end
+								else command_ticket(string.format("%s %s %s.%s КоАП", smart_ticket_id, (content["sanction"] > 10000) and 10000 or content["sanction"], article, part)) end
 								smart_ticket_id = nil
 							end
 						end imgui.NextColumn()
@@ -1544,17 +1575,10 @@ function()
 						end
 					imgui.EndChild() imgui.SameLine()
 					
-					imgui.BeginTitleChild(u8"ИНФОРМАЦИЯ", imgui.ImVec2(375, 175))
+					imgui.BeginTitleChild(u8"ИНФОРМАЦИЯ", imgui.ImVec2(375, 85))
 						imgui.Text(u8"С помощью данной функции вы можете получать оружие и")
 						imgui.Text(u8"аммуницию автоматически при взятии соответсвующего")
 						imgui.Text(u8"пикапа в департаменте, офисе ФБР или здании тюрьмы.")
-						
-						imgui.NewLine()
-						
-						imgui.Text(u8"В связи с тем, что сотрудники ФБР имеют диалог отличный")
-						imgui.Text(u8"от того, что есть в ПД, M4 в этом разделе смещена ниже.")
-						imgui.Text(u8"Чтобы автоматически получать её нужно выбрать оружие,")
-						imgui.Text(u8"которое по счёту стоит на том же месте, что и M4.")
 					imgui.EndChild()
 				elseif setting_page == 3 then
 					imgui.SetCursorPosX(15)
@@ -2241,6 +2265,17 @@ function main()
 				end
 			end
 			
+			if wparam == vkeys.VK_X then
+				if isKeyCheckAvailable() then
+					consumeWindowMessage(true, false)
+					if msg == 0x101 then
+						if global_command_handler then
+							global_break_command = os.clock()
+						end
+					end
+				end
+			end
+			
 			if wparam == vkeys.VK_Z then
 				if isKeyCheckAvailable() then
 					consumeWindowMessage(true, false)
@@ -2562,11 +2597,7 @@ end
 
 -- thread
 function house_founder()
-	local type_pickup = { 
-		[1273] = {1, 0xFF17A589},
-		[19522] = {2, 0xFFE74C3C},
-		[19523] = {3, 0xFFF5B041}
-	}
+	local type_pickup = {[1273] = {1, 0xFF17A589}, [19522] = {2, 0xFFE74C3C}, [19523] = {3, 0xFFF5B041}}
 	
 	local renderFont = renderCreateFont("tahoma", 8, font_flag.BOLD + font_flag.SHADOW)
 	
@@ -3449,17 +3480,10 @@ end
 
 function command_rights()
 	lua_thread.create(function()
-		sampSendChat("Вы имеете право хранить молчание. ")
-		wait(1500)
-		sampSendChat("Всё, что вы скажете, может и будет использовано против вас в суде. ")
-		wait(1500)
-		sampSendChat("Ваш адвокат может присутствовать при допросе. ")
-		wait(1500)
-		sampSendChat("Если вы не можете оплатить услуги адвоката, он будет предоставлен вам государством.")
-		wait(1500)
-		sampSendChat("Если вы не гражданин, то вы можете связаться с консулом своей страны, прежде чем отвечать на любые вопросы.")
-		wait(1500)
-		sampSendChat("Всё ли вам понятно?")
+		local male = configuration_main["information"]["sex"] and "female" or "male"
+		local acting = configuration_main["system_commands"][46]["variations"][male]
+		local acting = acting[math.random(1, #acting)]
+		final_command_handler(acting, {id})
 	end)
 end
 
@@ -3807,7 +3831,7 @@ function command_handler(profile, command, parametrs)
 						for index = 2, cloud["parametrs_amount"] do
 							if cloud["parametrs"][index] then
 								error_message = ("%s [%s]"):format(error_message, u8:decode(cloud["parametrs"][index]))
-							else
+							else 
 								error_message = ("%s [параметр %s]"):format(error_message, index)
 							end
 						end
@@ -3824,9 +3848,15 @@ function command_handler(profile, command, parametrs)
 end
 
 function final_command_handler(array, parametrs_block, profile, command)
+	global_command_handler = true
 	for index, value in pairs(array) do
 		local code = u8:decode(value)
-		if string.match(code, "%$wait (%d+)") then wait(tonumber(string.match(code, "%$wait (%d+)")))
+		if string.match(code, "%$wait (%d+)") then
+			local delay = tonumber(string.match(code, "%$wait (%d+)")) / 1000
+			local start_time = os.clock()
+			while os.clock() - start_time < delay do wait(0)
+				if global_break_command then break end
+			end
 		elseif string.match(code, "%$chat (%S+)") then chat(string.match(code, "%$chat (%S+)"))
 		elseif string.match(code, "%$script (%S+), (%S+), (%S+)") then
 			local profile1, command1, parametrs1 = string.match(code, "%$script (.+), (.+), (.+)")
@@ -3837,16 +3867,23 @@ function final_command_handler(array, parametrs_block, profile, command)
 			if not _G[function1] then return end
 			_G[function1](parametrs1)
 		else sampSendChat(line_handler(code, parametrs_block)) end
+		
+		if global_break_command then
+			chat(string.format("Выполнение команды ({COLOR}%s{}) было приостановлено.", command or "системная команда"))
+			global_break_command = nil
+			break
+		end
 	end
+	global_command_handler = nil
 end
 
 function line_handler(input, parametrs_block)
 	local tags = {
 		["{greeting}"] = greeting_depending_on_the_time(),
-		["{name}"] = configuration_main["information"]["name"],
-		["{rang}"] = configuration_main["information"]["rang"],
-		["{fraction}"] = configuration_main["information"]["fraction"],
-		["{number}"] = configuration_main["information"]["number"],
+		["{name}"] = u8:decode(configuration_main["information"]["name"]),
+		["{rang}"] = u8:decode(configuration_main["information"]["rang"]),
+		["{fraction}"] = u8:decode(configuration_main["information"]["fraction"]),
+		["{number}"] = u8:decode(configuration_main["information"]["number"]),
 		["{targeting}"] = targeting_player,
 		["{suspect}"] = quick_suspect["playerId"] or "-1",
 		["{date}"] = os.date("%d.%m.%Y"),

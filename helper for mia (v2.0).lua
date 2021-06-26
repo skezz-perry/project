@@ -1,6 +1,6 @@
 script_name("helper-for-mia (v2.0)")
 script_author("Joachim von Ribbentrop")
-script_version("0.1.8")
+script_version("0.1.9")
 
 require "deps" {
 	"fyp:mimgui",
@@ -30,6 +30,7 @@ imgui.HotKey = mimgui_addons.HotKey
 
 -- global value 
 local update_log = {
+	{["0.1.9"] = {"Теперь быстрое меню поддерживает пользовательские команды.", "Добавлен раздел модификаций.", "В раздел модификаций была добавлена возможность авто-исправления ошибок в словах."}},
 	{["0.1.8"] = {"Добавлен прерыватель исполнения команд (клавиша X)."}},
 	{["0.1.5"] = {"В тестовом режиме добавлено быстрое меню (клавиша Z)."}},
 	{["0.1.4"] = {"В тестовом режиме добавлена база данных (в блоке 'Панель управления').", "Улучшена система определения параметров в биндере."}},
@@ -41,7 +42,7 @@ local update_log = {
 	{["0.0.4"] = {"Добавлен CamHack (c + 1).", "Улучшен разделитель строк по пробелам, теперь не кикает из игры."}},
 	{["0.0.3"] = {"Добавлена возможность печатать при прицеливании (правый ctrl)."}},
 	{["0.0.2"] = {"Добавлена система авто-обновлений."}}, 
-	{["0.0.1"] = {"Начало разработки..."}}
+	{["0.0.1"] = {"Начало разработки..."}} 
 } 
  
 local fontSuspect4 = renderCreateFont("Tahoma", 6, font_flag.BOLD + font_flag.SHADOW)
@@ -143,7 +144,9 @@ if configuration_main1 then
 			customization = false
 		},
 		modification = { 
-			id_postfix_after_nickname = true
+			id_postfix_after_nickname = true,
+			automatic_word_correction = true,
+			error_output_to_chat = true
 		},
 		quick_menu = {
 			[1] = {title = "CUFF", callback = "command_cuff"},
@@ -979,6 +982,7 @@ local add_player_to_base
 local quick_menu_list = {}
 local global_break_command
 local global_command_handler
+local last_damage_id
 -- !local value
 
 -- const 
@@ -1050,14 +1054,7 @@ imgui.OnInitialize(function()
 		end
 	end
 	
-	for index, value in pairs(configuration_main["quick_menu"]) do
-		quick_menu_list[index] = {
-			title = value["title"],
-			callback = function()
-				_G[value["callback"]](targeting_player)
-			end
-		}
-	end
+	register_quick_menu()
 end)
 
 imgui.OnFrame(function() return show_quick_menu[0] end,
@@ -1671,10 +1668,10 @@ function()
 								local found
 								for k, v in pairs(configuration_main["quick_menu"]) do if v["title"] == string.upper(value["name"]) then found = k break end end
 								if found then
-									chat(string.format("Команда {COLOR}%s{}[%s] была исключена из быстрого меню.", string.upper(value["name"]), found))
+									chat(string.format("Системная команда %s [{COLOR}%s{}] была исключена из быстрого меню.", string.upper(value["name"]), found))
 									table.remove(configuration_main["quick_menu"], found)
 								else
-									chat(string.format("Команда {COLOR}%s{} была включена в быстрое меню.", string.upper(value["name"])))
+									chat(string.format("Системная команда %s была включена в быстрое меню.", string.upper(value["name"])))
 									table.insert(configuration_main["quick_menu"], {
 										title = string.upper(value["name"]),
 										callback = value["callback"]
@@ -1683,14 +1680,7 @@ function()
 								
 								quick_menu_list = {}
 								
-								for index, value in pairs(configuration_main["quick_menu"]) do
-									quick_menu_list[index] = {
-										title = value["title"],
-										callback = function()
-											_G[value["callback"]](targeting_player)
-										end
-									}
-								end
+								register_quick_menu()
 								
 								if not need_update_configuration then need_update_configuration = os.clock() end
 							end showHelpMarker(u8"С помощью этой кнопки вы можете добавить команду в быстро меню, или же, если команда уже там есть, исключить её.") imgui.NextColumn()
@@ -1700,20 +1690,34 @@ function()
 				elseif setting_page == 7 then 
 					imgui.SetCursorPosX(15)
 					imgui.BeginTitleChild(u8"ИНФОРМАЦИЯ", imgui.ImVec2(685, 355)) 
-						imgui.Text(u8"На данный момент быстрое меню поддерживает только системные команды.")
-						imgui.Text(u8"Добавить какую-либо команду в быстрое меню вы можете из соответствующего раздела в настройках.")
-						imgui.Text(u8"Для этого вам нужно навести курсор на кнопку команды и нажать на неё.")
+						imgui.Text(u8"Быстрое меню поддерживает как системные, так и пользовательские команды.")
 						
 						imgui.NewLine()
 						
-						imgui.Text(u8"К тому же, в команду, что вы используйте в быстром меню, передаётся только ID игрока, на которого вы навелись.")
-						imgui.Text(u8"Будьте внимательны, ведь не все команды поддерживают такой набор входных параметров.")
-
+						imgui.Text(u8"Добавить системную команду в быстрое меню вы можете из соответствующего раздела в настройках.")
+						imgui.Text(u8"Для этого вам нужно навести курсор на кнопку команды и нажать на неё.")
+						
 						imgui.NewLine()
 						
 						if imgui.Button(u8"Перейти в раздел системных команд") then
 							setting_page = 6
 						end
+						
+						imgui.NewLine()
+						
+						imgui.Text(u8"Добавить пользовательскую команду в быстрое меню можно из раздела настроек команды в биндере.")
+						imgui.Text(u8"Для этого вам нужно открыть список дополнительных настроек и нажать на 'Быстрое меню'.")
+						
+						imgui.NewLine()
+						
+						if imgui.Button(u8"Перейти в раздел пользовательских команд в биндере") then
+							navigation_page = 5
+						end
+						
+						imgui.NewLine()
+						
+						imgui.Text(u8"К тому же, в команду, что вы используйте в быстром меню, передаётся только ID игрока, на которого вы навелись.")
+						imgui.Text(u8"Будьте внимательны, ведь не все команды поддерживают такой набор входных параметров.")
 					imgui.EndChild()
 				elseif setting_page == 8 then 
 					imgui.SetCursorPosX(15)
@@ -1798,8 +1802,20 @@ function()
 						imgui.Text(u8"В данном разделе настраиваются незначительные")
 						imgui.Text(u8"функции, потому он и вынесен в отдельный блок.")
 					imgui.EndChild()
-				else
-					imgui.CenterText(u8"Будет доступно в ближайщих обновлениях.")
+				elseif setting_page == 10 then 
+					imgui.SetCursorPosX(15)
+					imgui.BeginTitleChild(u8"МОДИФИКАЦИИ", imgui.ImVec2(685, 355)) -- 685
+						imgui.Text(u8"1. Добавление ID игрока в чате в том месте, где он отсутствует.")
+						imgui.ToggleButton("ID after nickname.", "modification", "id_postfix_after_nickname")
+						
+						imgui.NewLine()
+						
+						imgui.Text(u8"2. Автоматическое исправление ошибок в словах при вводе сообщения в чат.")
+						imgui.ToggleButton(u8"Speller.", "modification", "automatic_word_correction")
+						if configuration_main["modification"]["automatic_word_correction"] then
+							imgui.ToggleButton(u8"Выводить сообщение о ошибках в чат?", "modification", "error_output_to_chat")
+						end
+					imgui.EndChild()
 				end
 			elseif navigation_page == 5 then
 				imgui.SetCursorPos(imgui.ImVec2(15, 15))
@@ -1871,7 +1887,7 @@ function()
 						imgui.SetCursorPos(imgui.ImVec2(5, 45))
 						
 						local sizeY = 337
-						if imgui.TreeNodeStr(u8"Дополнительные настройки команды (описание и параметры).") then
+						if imgui.TreeNodeStr(u8"Дополнительные настройки команды (описание, параметры, быстрое меню).") then
 							imgui.CustomButton(u8"Количество параметров:", imgui.ImVec4(0.0, 0.0, 0.0, 0.0))
 							showHelpMarker(u8"Эта настройка отвечает за количество необходимых для команды параметров. В блоке редактирования они вызываются как {/number/} (например {1}).")
 							imgui.SameLine()
@@ -1893,8 +1909,29 @@ function()
 							else sizeY = 285 end
 							
 							imgui.PushItemWidth(310)
-							imgui.InputTextWithHint("##command_description", u8"Краткое описание команды", binder["description"], 80)
+							imgui.InputTextWithHint("##command_description", u8"Краткое описание команды", binder["description"], 80) imgui.SameLine()
 							
+							if imgui.Button(u8"Быстрое меню", imgui.ImVec2(130, 20)) then
+								local command_name = str(binder["command"])
+								if command_name and string.match(command_name, "(%S+)") then
+									local found
+									for k, v in pairs(configuration_main["quick_menu"]) do if v["title"] == string.upper(command_name) then found = k break end end
+									if found then
+										chat(string.format("Пользовательская команда %s [{COLOR}%s{}] была исключена из быстрого меню.", string.upper(command_name), found))
+										table.remove(configuration_main["quick_menu"], found)
+									else
+										chat(string.format("Пользовательская команда %s была включена в быстрое меню.", string.upper(command_name)))
+										table.insert(configuration_main["quick_menu"], {
+											title = string.upper(command_name),
+											callback = binder["index"]
+										})
+									end
+									
+									register_quick_menu()
+									
+									if not need_update_configuration then need_update_configuration = os.clock() end
+								end
+							end showHelpMarker(u8"С помощью этой кнопки вы можете добавить команду в быстро меню, или же, если команда уже там есть, исключить её.")
 							
 							imgui.TreePop()
 						end imgui.NewLine()
@@ -2364,6 +2401,24 @@ function main()
 	-- калибровка генератора псевдослучайных чисел
 	math.randomseed(os.time())
 	
+	sampRegisterChatCommand("convert_telephone", function()
+		if configuration_main["number"] then
+			for player_name, player_number in pairs(configuration_main["number"]) do
+				if not configuration_database["player"][player_name] then configuration_database["player"][player_name] = {} end
+				configuration_database["player"][player_name]["telephone"] = player_number
+				configuration_main["number"][player_name] = nil
+			end
+			
+			chat("Данные были успешно конвертированы.")
+			configuration_main["number"] = nil
+			if not need_update_configuration then need_update_configuration = os.clock() end
+		else chat("Вы уже конвертировали базу данных номеров.") end
+	end)
+	
+	sampRegisterChatCommand("house_founder", function()
+		found_house = not found_house
+	end)
+	
 	-- регистрация системных команд 
 	local total, successfully = 0, 0
 	for index, value in pairs(configuration_main["system_commands"]) do
@@ -2403,27 +2458,13 @@ function main()
 		end total = total + 1
 	end print(string.format("В том числе было найдено несколько пользовательских команд в числе %s, зарегистрировано было %s.", total, successfully))
 	
-	sampRegisterChatCommand("convert_telephone", function()
-		if configuration_main["number"] then
-			for player_name, player_number in pairs(configuration_main["number"]) do
-				if not configuration_database["player"][player_name] then configuration_database["player"][player_name] = {} end
-				configuration_database["player"][player_name]["telephone"] = player_number
-				configuration_main["number"][player_name] = nil
-			end
-			
-			chat("Данные были успешно конвертированы.")
-			configuration_main["number"] = nil
-			if not need_update_configuration then need_update_configuration = os.clock() end
-		else chat("Вы уже конвертировали базу данных номеров.") end
-	end)
-	
 	-- потекли потоки
 	lua_thread.create(dynamic_time_update)
 	lua_thread.create(render_player_text)
 	lua_thread.create(t_weapon_acting_out)
 	lua_thread.create(t_stroboscopes)
 	lua_thread.create(patrol_assistant)
-	-- lua_thread.create(house_founder)
+	lua_thread.create(house_founder)
 	
 	print(string.format("Общее время загрузки игрового помощника: %s\n\n", os.clock() - start_time))
 	
@@ -2450,7 +2491,7 @@ function main()
 			local mouseX, mouseY = getPcMouseMovement()
 			local mouseX = mouseX / 4.0
 			local mouseY = mouseY / 4.0
-			
+			 
 			camera["angle"]["z"] = camera["angle"]["z"] + mouseX
 			camera["angle"]["y"] = camera["angle"]["y"] + mouseY
 			
@@ -2602,7 +2643,7 @@ function house_founder()
 	local renderFont = renderCreateFont("tahoma", 8, font_flag.BOLD + font_flag.SHADOW)
 	
 	while true do wait(0)
-		if not isCharInAnyCar(playerPed) then
+		if found_house and not isCharInAnyCar(playerPed) then
 			local x, y, z = getCharCoordinates(playerPed)
 			for result, handle in pairs(getAllPickups()) do
 				if doesPickupExist(handle) then
@@ -3636,12 +3677,10 @@ end
 
 function command_speller(text)
 	if string.match(text, "(%S+)") then
-		local url = string.format("https://speller.yandex.net/services/spellservice.json/checkText?text=%s", urlencode(u8(text)))
-		local result = https.request(url)
+		local result = speller(text)
 		if result then
-			local result = decodeJson(result)
 			if #result > 0 then
-				for k, v in pairs(result) do
+				for k, v in pairs(result) do 
 					chat(string.format("%s. Ошибка в слове '{COLOR}%s{}', правильно: '{COLOR}%s{}'.", k, u8:decode(v["word"]), u8:decode(v["s"][1])))
 				end
 			else chat("Всё написано верно.") end
@@ -4830,6 +4869,22 @@ function displaying_quick_menu(input) -- original author DonHomka
 	
 	DrawList:PopClipRect()
 end
+
+function register_quick_menu()
+	quick_menu_list = {}
+	
+	for index, value in pairs(configuration_main["quick_menu"]) do
+		quick_menu_list[index] = {}
+		quick_menu_list[index]["title"] = value["title"]
+		if tonumber(value["callback"]) then
+			quick_menu_list[index]["callback"] = function() 
+				lua_thread.create(function() command_handler(global_profile, value["callback"], targeting_player) end)
+			end
+		else
+			quick_menu_list[index]["callback"] = function() _G[value["callback"]](targeting_player) end
+		end
+	end
+end
 -- !function  
 
 -- event
@@ -5143,13 +5198,22 @@ function sampev.onServerMessage(color, text)
 		if not need_update_configuration then need_update_configuration = os.clock() end
 	end
 	
+	--[[if string.match(text, "Администратор") then
+		if color == -6732289 then
+			local administrator_nickname, administrator_id, player_nickname, player_id, message = string.match(text, "Администратор (%S+)%[(%d+)%] для (%S+)%[(%d+)%]: (.+)")
+			chat(administrator_nickname, ">>", player_nickname, ">>", message)
+		else
+			-- Администратор Nikolay_Kot[22] выдал предупреждение игроку Valintin_Sobaki[73] [1|3]. Причина: NonRP nick in org • E. Murphy
+			chat(1, color)
+		end
+	end--]]
+	
 	if configuration_main["modification"]["id_postfix_after_nickname"] then
 		if string.match(text, "(%a+)_(%a+)") then
 			if not (string.match(text, "(%a+)_(%a+)%)%[(%d+)%]") or string.match(text, "(%a+)_(%a+)%[(%d+)%]")) then
 				for name, surname in text:gmatch("(%a+)_(%a+)") do
 					local allname = string.format("%s_%s", name, surname)
 					local id = sampGetPlayerIdByNickname(allname)
-				
 					if id and isPlayerConnected(id) then
 						if not string.match(text, allname .. "%[(%d+)%]") then
 							text = text:gsub(allname, string.format("%s[%s]", allname, id))
@@ -5473,12 +5537,26 @@ end
 function sampev.onSendChat(text) 
 	configuration_statistics["message"] = configuration_statistics["message"] + 1
 	if not need_update_configuration then need_update_configuration = os.clock() end
+	
+	if configuration_main["modification"]["automatic_word_correction"] then
+		local result = speller(text)
+		if result then
+			if #result > 0 then
+				for k, v in pairs(result) do text = string.gsub(text, u8:decode(v["word"]), u8:decode(v["s"][1])) end
+				if configuration_main["modification"]["error_output_to_chat"] then chat(string.format("Количество ошибок, найденных в вашем сообщении: {COLOR}%s{}.", #result)) end
+			end
+		end
+	end
 
 	if string.len(text) > 90 then
 		local l1, l2 = line_break_by_space(text, 87) 
 		sampSendChat(string.format("%s ..", l1))
 		sampSendChat(string.format(".. %s", l2))
-		return false  
+		return false
+	else 
+		if configuration_main["modification"]["automatic_word_correction"] then
+			return {text}
+		end
 	end 
 end
  
@@ -5493,7 +5571,24 @@ function sampev.onSendCommand(parametrs)
 		configuration_statistics["commands"][command] = configuration_statistics["commands"][command] + 1
 		if not need_update_configuration then need_update_configuration = os.clock() end
 	end
+	
+	if configuration_main["modification"]["automatic_word_correction"] then
+		if value then
+			local result = speller(value)
+			if result then
+				if #result > 0 then
+					for k, v in pairs(result) do value = string.gsub(value, u8:decode(v["word"]), u8:decode(v["s"][1])) end
+					if configuration_main["modification"]["error_output_to_chat"] then chat(string.format("Количество ошибок, найденных в вашем сообщении: {COLOR}%s{}.", #result)) end
+				end
+			end
+		end
+	end
 
+	if command == "su" then
+		local id, stars, reason = string.match(parametrs, "(%d+) (%d+) (.+)")
+		last_suspect_parametrs = {id, stars, reason}
+	end
+	
 	if maximum_number_of_characters[command] then
 		if maximum_number_of_characters[command] < string.len(value) then
 			if not last_on_send_value then 
@@ -5526,22 +5621,16 @@ function sampev.onSendCommand(parametrs)
 				sampSendChat(string.format("/%s %s ..", command, l1))
 				sampSendChat(string.format("/%s .. %s", command, l2))
 			end return false 
+		else
+			if configuration_main["modification"]["automatic_word_correction"] then
+				return {string.format("/%s %s", command, value)}
+			end
+		end
+	else
+		if configuration_main["modification"]["automatic_word_correction"] then
+			return {string.format("/%s %s", command, value)}
 		end
 	end
-	
-	if command == "su" then
-		local id, stars, reason = string.match(parametrs, "(%d+) (%d+) (.+)")
-		last_suspect_parametrs = {id, stars, reason}
-	end
-end
-
-function sampev.onSendDeathNotification(reason, playerId)
-	if reason then
-		delay_between_deaths = {calculateZone(), os.clock()}
-		if playerId then
-			print(("Вы были убиты игроком {%s}%s{e6e6fa}[%s] в %s:%s."):format(sampGetColorByPlayerId(playerId), sampGetPlayerName(playerId), playerId, os.date("%H"), os.date("%M")))
-		else print("Вы были убиты сервером или игроком, который покинул игру.") end
-	end 
 end
 
 function sampev.onSetPlayerColor(playerId, color)
@@ -5564,7 +5653,8 @@ function sampev.onSetPlayerColor(playerId, color)
 end 
 
 function sampev.onSendTakeDamage(playerId, damage, weapon, bodypart)
-	if isPlayerConnected(playerId) then 
+	if isPlayerConnected(playerId) then
+		last_damage_id = playerId
 		local nickname = sampGetPlayerName(playerId)
 		if sampGetDistanceToPlayer(playerId) <= 35 and sampGetPlayerColor(playerId) ~= 2236962 then
 			if quick_suspect["playerId"] ~= playerId or (quick_suspect["playerId"] == playerId and (os.clock() - quick_suspect["clock"]) / 60 > 2) then
@@ -5576,6 +5666,15 @@ function sampev.onSendTakeDamage(playerId, damage, weapon, bodypart)
 			end
 		end
 	end
+end
+
+function sampev.onSendDeathNotification(reason, playerId)
+	if reason then
+		delay_between_deaths = {calculateZone(), os.clock()}
+		if last_damage_id and isPlayerConnected(last_damage_id) then
+			print(("Вы были убиты игроком {%s}%s{e6e6fa}[%s] в %s:%s."):format(sampGetColorByPlayerId(last_damage_id), sampGetPlayerName(last_damage_id), last_damage_id, os.date("%H"), os.date("%M")))
+		else print("Вы были убиты сервером или игроком, который покинул игру.") end
+	end 
 end
 
 function sampev.onSendDialogResponse(dialogId, button, listItem, input)
@@ -5719,5 +5818,11 @@ function autoUpdate(versionUrl, updateUrl)
 			else chat("Произошла ошибка при попытке обновления игрового помощника. Код ошибки: #2.") end
 		end
 	else chat("Произошла ошибка при попытке обновления игрового помощника. Код ошибки: #1.") end
+end
+
+function speller(text)
+	local url = string.format("https://speller.yandex.net/services/spellservice.json/checkText?text=%s", urlencode(u8(text)))
+	local result = https.request(url)
+	return result and decodeJson(result)	
 end
 -- !https

@@ -1,6 +1,6 @@
 script_name("helper-for-mia (v2.0)")
 script_author("Joachim von Ribbentrop")
-script_version("0.1.9")
+script_version("0.2.1")
 
 require "deps" {
 	"fyp:mimgui",
@@ -30,7 +30,7 @@ imgui.HotKey = mimgui_addons.HotKey
 
 -- global value 
 local update_log = {
-	{["0.1.9"] = {"Теперь быстрое меню поддерживает пользовательские команды.", "Добавлен раздел модификаций.", "В раздел модификаций была добавлена возможность авто-исправления ошибок в словах."}},
+	{["0.1.9"] = {"Теперь быстрое меню поддерживает пользовательские команды.", "Добавлен раздел модификаций."}},
 	{["0.1.8"] = {"Добавлен прерыватель исполнения команд (клавиша X)."}},
 	{["0.1.5"] = {"В тестовом режиме добавлено быстрое меню (клавиша Z)."}},
 	{["0.1.4"] = {"В тестовом режиме добавлена база данных (в блоке 'Панель управления').", "Улучшена система определения параметров в биндере."}},
@@ -144,9 +144,7 @@ if configuration_main1 then
 			customization = false
 		},
 		modification = { 
-			id_postfix_after_nickname = true,
-			automatic_word_correction = true,
-			error_output_to_chat = true
+			id_postfix_after_nickname = true
 		},
 		quick_menu = {
 			[1] = {title = "CUFF", callback = "command_cuff"},
@@ -1807,14 +1805,6 @@ function()
 					imgui.BeginTitleChild(u8"МОДИФИКАЦИИ", imgui.ImVec2(685, 355)) -- 685
 						imgui.Text(u8"1. Добавление ID игрока в чате в том месте, где он отсутствует.")
 						imgui.ToggleButton("ID after nickname.", "modification", "id_postfix_after_nickname")
-						
-						imgui.NewLine()
-						
-						imgui.Text(u8"2. Автоматическое исправление ошибок в словах при вводе сообщения в чат.")
-						imgui.ToggleButton(u8"Speller.", "modification", "automatic_word_correction")
-						if configuration_main["modification"]["automatic_word_correction"] then
-							imgui.ToggleButton(u8"Выводить сообщение о ошибках в чат?", "modification", "error_output_to_chat")
-						end
 					imgui.EndChild()
 				end
 			elseif navigation_page == 5 then
@@ -5538,25 +5528,11 @@ function sampev.onSendChat(text)
 	configuration_statistics["message"] = configuration_statistics["message"] + 1
 	if not need_update_configuration then need_update_configuration = os.clock() end
 	
-	if configuration_main["modification"]["automatic_word_correction"] then
-		local result = speller(text)
-		if result then
-			if #result > 0 then
-				for k, v in pairs(result) do text = string.gsub(text, u8:decode(v["word"]), u8:decode(v["s"][1])) end
-				if configuration_main["modification"]["error_output_to_chat"] then chat(string.format("Количество ошибок, найденных в вашем сообщении: {COLOR}%s{}.", #result)) end
-			end
-		end
-	end
-
 	if string.len(text) > 90 then
 		local l1, l2 = line_break_by_space(text, 87) 
 		sampSendChat(string.format("%s ..", l1))
 		sampSendChat(string.format(".. %s", l2))
 		return false
-	else 
-		if configuration_main["modification"]["automatic_word_correction"] then
-			return {text}
-		end
 	end 
 end
  
@@ -5570,18 +5546,6 @@ function sampev.onSendCommand(parametrs)
 	else
 		configuration_statistics["commands"][command] = configuration_statistics["commands"][command] + 1
 		if not need_update_configuration then need_update_configuration = os.clock() end
-	end
-	
-	if configuration_main["modification"]["automatic_word_correction"] then
-		if value then
-			local result = speller(value)
-			if result then
-				if #result > 0 then
-					for k, v in pairs(result) do value = string.gsub(value, u8:decode(v["word"]), u8:decode(v["s"][1])) end
-					if configuration_main["modification"]["error_output_to_chat"] then chat(string.format("Количество ошибок, найденных в вашем сообщении: {COLOR}%s{}.", #result)) end
-				end
-			end
-		end
 	end
 
 	if command == "su" then
@@ -5600,7 +5564,7 @@ function sampev.onSendCommand(parametrs)
 					last_on_send_value = value
 				end
 			end
-		
+		 
 			if command == "me" then
 				local l1, l2 = line_break_by_space(value, maximum_number_of_characters[command] - 3) 
 				sampSendChat(string.format("/me %s ..", l1))
@@ -5621,14 +5585,6 @@ function sampev.onSendCommand(parametrs)
 				sampSendChat(string.format("/%s %s ..", command, l1))
 				sampSendChat(string.format("/%s .. %s", command, l2))
 			end return false 
-		else
-			if configuration_main["modification"]["automatic_word_correction"] then
-				return {string.format("/%s %s", command, value)}
-			end
-		end
-	else
-		if configuration_main["modification"]["automatic_word_correction"] then
-			return {string.format("/%s %s", command, value)}
 		end
 	end
 end

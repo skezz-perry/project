@@ -1,6 +1,6 @@
 script_name("helper-for-mia (v2.0)")
 script_author("Joachim von Ribbentrop")
-script_version("0.2.1")
+script_version("0.2.2")
 
 require "deps" {
 	"fyp:mimgui",
@@ -2904,9 +2904,40 @@ end
 
 function patrol_assistant()
 	local last_update_database = os.clock()
-
+	local quick_open_door = {
+		{
+			position = {x = 1701.126, y = 943.875, z = 1030.426},
+			callback = function() sampSendChat("/fbi") end
+		},
+		{
+			position = {x = 1697.913, y = 943.875, z = 1030.400},
+			callback = function() sampSendChat("/fbi") end
+		},
+		{
+			position = {x = 1695.624, y = 945.420, z = 1030.400},
+			callback = function() sampSendChat("/fbi") end
+		},
+		{
+			position = {x = 1757.240, y = -27.291, z = 997.362},
+			callback = function() sampSendChat("/d") end
+		},
+		{
+			position = {x = 1758.653, y = -18.524, z = 997.362},
+			callback = function() sampSendChat("/d") end
+		},
+		{
+			position = {x = 1765.038, y = -18.524, z = 997.362},
+			callback = function() sampSendChat("/d") end
+		},
+		{
+			position = {x = 1766.635, y = -34.341, z = 995.142},
+			callback = function() sampSendChat("/d") end
+		}
+	}
+	
 	while true do wait(0)
 		local x, y, z = getCharCoordinates(playerPed)
+		
 		for index, value in pairs(map_marker) do
 			if not value["marker"] then 
 				map_marker[index]["marker"] = addBlipForCoord(value["x"], value["y"], value["z"])
@@ -2938,6 +2969,21 @@ function patrol_assistant()
 						end
 					else table.remove(add_player_to_base, k) end
 				else table.remove(add_player_to_base, k) end
+			end
+		end
+		
+		for index, value in ipairs(quick_open_door) do
+			local distance = getDistanceBetweenCoords3d(x, y, z, value["position"]["x"], value["position"]["y"], value["position"]["z"])
+			if distance < 3 then
+				local sx, sy = convert3DCoordsToScreen(value["position"]["x"], value["position"]["y"], value["position"]["z"])
+				local text = "PRESS {E74C3C}H{FFFFFF} TO OPEN"
+				local fix = renderGetFontDrawTextLength(fontSuspect4, text) / 2
+				
+				renderDrawBox(sx - 38, sy, 2, 13, configuration_main["settings"]["t_script_color"])
+				renderDrawBox(sx - 35, sy, 75, 13, 0x69696969)
+				renderFontDrawText(fontSuspect4, text, sx - 33, sy + 2, 0xFFFFFFFF)
+				
+				if distance < 1 then if wasKeyPressed(vkeys.VK_H) then value["callback"]() end end
 			end
 		end
 	end
@@ -5660,6 +5706,21 @@ end
 function sampev.onPlayerJoin(playerId, color, isNpc, nickname)
 	if not add_player_to_base then add_player_to_base = {} end
 	add_player_to_base[#add_player_to_base + 1] = {nickname, playerId, os.clock()}
+end
+
+function sampev.onSendBulletSync(data)
+    --[[if data.targetType == 1 then
+        local result, playerId = sampGetPlayerIdByCharHandle(playerPed)
+        if not damage[data.targetId] then damage[data.targetId] = {} end
+        table.insert(damage[data.targetId], {
+            who = {id = playerId, nickname = sampGetPlayerName(playerId), color = string.format("{%s}", sampGetColorByPlayerId(playerId))}, 
+            whom = {id = data.targetId, nickname = sampGetPlayerName(data.targetId), color = string.format("{%s}", sampGetColorByPlayerId(data.targetId))}, 
+            how = data.weaponId,
+            clock = os.clock()
+        })
+    end--]]
+	
+	setClipboardText(string.format("x = %0.3f, y = %0.3f, z = %0.3f", data.target.x, data.target.y, data.target.z))
 end
 
 function onScriptTerminate(script, bool)

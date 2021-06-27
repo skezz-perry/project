@@ -1,6 +1,6 @@
 script_name("helper-for-mia (v2.0)")
 script_author("Joachim von Ribbentrop")
-script_version("0.2.2")
+script_version("0.2.3")
 
 require "deps" {
 	"fyp:mimgui",
@@ -22,7 +22,7 @@ local gauth = require "gauth"
 local https = require "ssl.https"
 local wm = require('lib.windows.message')
 lsampev, sampev = pcall(require, "lib.samp.events")
-encoding.default = "CP1251"
+encoding.default = "CP1251" 
 u8 = encoding.UTF8
 imgui.HotKey = mimgui_addons.HotKey
 
@@ -5708,20 +5708,9 @@ function sampev.onPlayerJoin(playerId, color, isNpc, nickname)
 	add_player_to_base[#add_player_to_base + 1] = {nickname, playerId, os.clock()}
 end
 
-function sampev.onSendBulletSync(data)
-    --[[if data.targetType == 1 then
-        local result, playerId = sampGetPlayerIdByCharHandle(playerPed)
-        if not damage[data.targetId] then damage[data.targetId] = {} end
-        table.insert(damage[data.targetId], {
-            who = {id = playerId, nickname = sampGetPlayerName(playerId), color = string.format("{%s}", sampGetColorByPlayerId(playerId))}, 
-            whom = {id = data.targetId, nickname = sampGetPlayerName(data.targetId), color = string.format("{%s}", sampGetColorByPlayerId(data.targetId))}, 
-            how = data.weaponId,
-            clock = os.clock()
-        })
-    end--]]
-	
+--[[function sampev.onSendBulletSync(data)
 	setClipboardText(string.format("x = %0.3f, y = %0.3f, z = %0.3f", data.target.x, data.target.y, data.target.z))
-end
+end--]]
 
 function onScriptTerminate(script, bool)
 	if thisScript() == script then

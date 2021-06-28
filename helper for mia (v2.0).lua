@@ -1,6 +1,6 @@
 script_name("helper-for-mia (v2.0)")
 script_author("Joachim von Ribbentrop")
-script_version("0.2.3")
+script_version("0.2.4")
 
 require "deps" {
 	"fyp:mimgui",
@@ -21,15 +21,26 @@ local xconf = require "xconf"
 local gauth = require "gauth" 
 local https = require "ssl.https"
 local wm = require('lib.windows.message')
+local game_weapons = require "lib.game.weapons"
 lsampev, sampev = pcall(require, "lib.samp.events")
 encoding.default = "CP1251" 
 u8 = encoding.UTF8
 imgui.HotKey = mimgui_addons.HotKey
-
 -- !require
 
 -- global value 
 local update_log = {
+	{["0.2.4"] = {
+			"Добавлены новые причины для объявления в розыск при помощи сочетания клавиш:",
+			"\t1. Вооружённое нападение на любого сотрудника МЮ.",
+			"\t2. Вооружённое нападение на любого гражданского.",
+			"\t3. Необоснованное применение оружия.",
+			"Добавлены пользовательские интерфейсы для взаимодействия с динамическими объектами (J).", 
+			"Расширены возможности мегафона, теперь он срабатывает на т/с МЮ, если нет иных т/с рядом.", 
+			"Добавлена сортировка списка розыскиваемых по дальности нахождения от пользователя.",
+			"Теперь весь полученный урон будет логироваться в консоли (~)."
+		}
+	},
 	{["0.1.9"] = {"Теперь быстрое меню поддерживает пользовательские команды.", "Добавлен раздел модификаций."}},
 	{["0.1.8"] = {"Добавлен прерыватель исполнения команд (клавиша X)."}},
 	{["0.1.5"] = {"В тестовом режиме добавлено быстрое меню (клавиша Z)."}},
@@ -46,6 +57,7 @@ local update_log = {
 } 
  
 local fontSuspect4 = renderCreateFont("Tahoma", 6, font_flag.BOLD + font_flag.SHADOW)
+local fontSuspect5 = renderCreateFont("Tahoma", 6, font_flag.BOLD)
 
 local t_vehicle_name = {"Landstalker", "Bravura", "Buffalo", "Linerunner", "Perrenial", "Sentinel", "Dumper", "Firetruck", "Trashmaster", "Stretch", "Manana", "Infernus",
 	"Voodoo", "Pony", "Mule", "Cheetah", "Ambulance", "Leviathan", "Moonbeam", "Esperanto", "Taxi", "Washington", "Bobcat", "Whoopee", "BFInjection", "Hunter",
@@ -144,7 +156,8 @@ if configuration_main1 then
 			customization = false
 		},
 		modification = { 
-			id_postfix_after_nickname = true
+			id_postfix_after_nickname = true,
+			quick_open_door = true
 		},
 		quick_menu = {
 			[1] = {title = "CUFF", callback = "command_cuff"},
@@ -157,7 +170,9 @@ if configuration_main1 then
 		quick_criminal_code = {
 			insubordination = {stars = 4, reason = u8"31.2 УК"},
 			refusal_to_pay = {stars = 3, reason = u8"25.1 УК"},
-			attack = {stars = 4, reason = u8"2.3 УК"}
+			attack = {stars = 4, reason = u8"2.3 УК"},
+			assault_with_weapon_on_civilian = {stars = 3, reason = u8"2.2 УК"},
+			unjustified_use_of_weapons = {stars = 4, reason = u8"61.1 УК"}
 		}, 
 		obtaining_weapons = {
 			[1] = {status = false, name = u8("Баллистический щит")},
@@ -981,6 +996,7 @@ local quick_menu_list = {}
 local global_break_command
 local global_command_handler
 local last_damage_id
+local global_wanted = {}
 -- !local value
 
 -- const 
@@ -1250,7 +1266,7 @@ end)
 imgui.OnFrame(function() return show_setting_up_fast_suspect[0] end,
 function()
 	imgui.SetNextWindowPos(imgui.ImVec2(w / 2, h / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
-	imgui.SetNextWindowSize(imgui.ImVec2(470, 170))
+	imgui.SetNextWindowSize(imgui.ImVec2(470, 215))
 	imgui.Begin(string.format("%s##4", imgui_script_name), show_setting_up_fast_suspect, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoResize)
 		imgui.CenterText(u8(string.format("Статья выбранная для редактирования %s, количество звёзд %d.", u8:decode(setting_up_fast_suspect["reason"]), setting_up_fast_suspect["stars"])))
 		imgui.CenterText(u8"Выберите нарушение, за которое будет выдан розыск с причиной выше.")
@@ -1260,7 +1276,7 @@ function()
 			if setting_up_fast_suspect then
 				configuration_main["quick_criminal_code"]["insubordination"] = setting_up_fast_suspect
 				if not need_update_configuration then need_update_configuration = os.clock() end
-				chat(string.format("Статья за неподчинение сотруднику МЮ изменена на %s, %s-й уровень розыска.", setting_up_fast_suspect["reason"], setting_up_fast_suspect["stars"]))
+				chat(string.format("Статья за неподчинение сотруднику МЮ изменена на %s, %s-й уровень розыска.", u8:decode(setting_up_fast_suspect["reason"]), setting_up_fast_suspect["stars"]))
 				show_setting_up_fast_suspect[0] = false
 				return
 			end
@@ -1270,7 +1286,7 @@ function()
 			if setting_up_fast_suspect then
 				configuration_main["quick_criminal_code"]["refusal_to_pay"] = setting_up_fast_suspect
 				if not need_update_configuration then need_update_configuration = os.clock() end
-				chat(string.format("Статья за отказ от оплаты штрафа изменена на %s, %s-й уровень розыска.", setting_up_fast_suspect["reason"], setting_up_fast_suspect["stars"]))
+				chat(string.format("Статья за отказ от оплаты штрафа изменена на %s, %s-й уровень розыска.", u8:decode(setting_up_fast_suspect["reason"]), setting_up_fast_suspect["stars"]))
 				show_setting_up_fast_suspect[0] = false
 				return
 			end
@@ -1280,7 +1296,27 @@ function()
 			if setting_up_fast_suspect then
 				configuration_main["quick_criminal_code"]["attack"] = setting_up_fast_suspect
 				if not need_update_configuration then need_update_configuration = os.clock() end
-				chat(string.format("Статья за нападение на сотрудника МЮ изменена на %s, %s-й уровень розыска.", setting_up_fast_suspect["reason"], setting_up_fast_suspect["stars"]))
+				chat(string.format("Статья за нападение на сотрудника МЮ изменена на %s, %s-й уровень розыска.", u8:decode(setting_up_fast_suspect["reason"]), setting_up_fast_suspect["stars"]))
+				show_setting_up_fast_suspect[0] = false
+				return
+			end
+		end
+		
+		if imgui.Button(u8"Нападение на гражданского", imgui.ImVec2(450, 20)) then
+			if setting_up_fast_suspect then
+				configuration_main["quick_criminal_code"]["assault_with_weapon_on_civilian"] = setting_up_fast_suspect
+				if not need_update_configuration then need_update_configuration = os.clock() end
+				chat(string.format("Статья за нападение на гражданского изменена на %s, %s-й уровень розыска.", u8:decode(setting_up_fast_suspect["reason"]), setting_up_fast_suspect["stars"]))
+				show_setting_up_fast_suspect[0] = false
+				return
+			end
+		end
+
+		if imgui.Button(u8"Необоснованное применение оружия", imgui.ImVec2(450, 20)) then
+			if setting_up_fast_suspect then
+				configuration_main["quick_criminal_code"]["unjustified_use_of_weapons"] = setting_up_fast_suspect
+				if not need_update_configuration then need_update_configuration = os.clock() end
+				chat(string.format("Статья за необоснованное применение оружия изменена на %s, %s-й уровень розыска.", u8:decode(setting_up_fast_suspect["reason"]), setting_up_fast_suspect["stars"]))
 				show_setting_up_fast_suspect[0] = false
 				return
 			end
@@ -1805,6 +1841,11 @@ function()
 					imgui.BeginTitleChild(u8"МОДИФИКАЦИИ", imgui.ImVec2(685, 355)) -- 685
 						imgui.Text(u8"1. Добавление ID игрока в чате в том месте, где он отсутствует.")
 						imgui.ToggleButton("ID after nickname.", "modification", "id_postfix_after_nickname")
+						
+						imgui.NewLine()
+						
+						imgui.Text(u8"2. Добавление кнопок быстрого взаимодействия с объектами.")
+						imgui.ToggleButton("Fast interaction.", "modification", "quick_open_door")
 					imgui.EndChild()
 				end
 			elseif navigation_page == 5 then
@@ -2409,6 +2450,8 @@ function main()
 		found_house = not found_house
 	end)
 	
+	sampRegisterChatCommand("get_info", function(id) chat(sampGetPlayerColor(id)) end)
+	
 	-- регистрация системных команд 
 	local total, successfully = 0, 0
 	for index, value in pairs(configuration_main["system_commands"]) do
@@ -2905,34 +2948,33 @@ end
 function patrol_assistant()
 	local last_update_database = os.clock()
 	local quick_open_door = {
-		{
-			position = {x = 1701.126, y = 943.875, z = 1030.426},
-			callback = function() sampSendChat("/fbi") end
-		},
-		{
-			position = {x = 1697.913, y = 943.875, z = 1030.400},
-			callback = function() sampSendChat("/fbi") end
-		},
-		{
-			position = {x = 1695.624, y = 945.420, z = 1030.400},
-			callback = function() sampSendChat("/fbi") end
-		},
-		{
-			position = {x = 1757.240, y = -27.291, z = 997.362},
-			callback = function() sampSendChat("/d") end
-		},
-		{
-			position = {x = 1758.653, y = -18.524, z = 997.362},
-			callback = function() sampSendChat("/d") end
-		},
-		{
-			position = {x = 1765.038, y = -18.524, z = 997.362},
-			callback = function() sampSendChat("/d") end
-		},
-		{
-			position = {x = 1766.635, y = -34.341, z = 995.142},
-			callback = function() sampSendChat("/d") end
-		}
+		{position = {x = 1701.126, y = 943.875, z = 1030.426}, callback = function() sampSendChat("/fbi") end},
+		{position = {x = 1697.913, y = 943.875, z = 1030.400}, callback = function() sampSendChat("/fbi") end},
+		{position = {x = 1695.624, y = 945.420, z = 1030.400}, callback = function() sampSendChat("/fbi") end},
+		{position = {x = 1757.240, y = -27.291, z = 997.362}, callback = function() sampSendChat("/d") end},
+		{position = {x = 1758.653, y = -18.524, z = 997.362}, callback = function() sampSendChat("/d") end},
+		{position = {x = 1765.038, y = -18.524, z = 997.362}, callback = function() sampSendChat("/d") end},
+		{position = {x = 1766.635, y = -34.341, z = 995.142}, callback = function() sampSendChat("/d") end},
+		{position = {x = -85.338, y = 2430.111, z = 1179.772}, callback = function() sampSendChat("/jaildoor") end},
+		{position = {x = -80.133, y = 2430.111, z = 1179.771}, callback = function() sampSendChat("/jaildoor") end},
+		{position = {x = -74.907, y = 2430.111, z = 1179.776}, callback = function() sampSendChat("/jaildoor") end},
+		{position = {x = -69.704, y = 2430.111, z = 1179.768}, callback = function() sampSendChat("/jaildoor") end},
+		{position = {x = -64.482, y = 2430.111, z = 1179.775}, callback = function() sampSendChat("/jaildoor") end},
+		{position = {x = -64.490, y = 2439.537, z = 1179.760}, callback = function() sampSendChat("/jaildoor") end},
+		{position = {x = -69.717, y = 2439.537, z = 1179.769}, callback = function() sampSendChat("/jaildoor") end},
+		{position = {x = -74.912, y = 2439.537, z = 1179.773}, callback = function() sampSendChat("/jaildoor") end},
+		{position = {x = -80.131, y = 2439.537, z = 1179.770}, callback = function() sampSendChat("/jaildoor") end},
+		{position = {x = -85.343, y = 2439.537, z = 1179.761}, callback = function() sampSendChat("/jaildoor") end},
+		{position = {x = -66.692, y = 2427.091, z = 1183.615}, callback = function() sampSendChat("/jaildoor") end},
+		{position = {x = -71.907, y = 2427.091, z = 1183.614}, callback = function() sampSendChat("/jaildoor") end},
+		{position = {x = -77.112, y = 2427.091, z = 1183.616}, callback = function() sampSendChat("/jaildoor") end},
+		{position = {x = -82.322, y = 2427.091, z = 1183.622}, callback = function() sampSendChat("/jaildoor") end},
+		{position = {x = -87.547, y = 2427.091, z = 1183.610}, callback = function() sampSendChat("/jaildoor") end},
+		{position = {x = -66.693, y = 2442.646, z = 1183.609}, callback = function() sampSendChat("/jaildoor") end},
+		{position = {x = -71.910, y = 2442.646, z = 1183.608}, callback = function() sampSendChat("/jaildoor") end},
+		{position = {x = -77.111, y = 2442.646, z = 1183.606}, callback = function() sampSendChat("/jaildoor") end},
+		{position = {x = -82.329, y = 2442.646, z = 1183.608}, callback = function() sampSendChat("/jaildoor") end},
+		{position = {x = -87.541, y = 2442.646, z = 1183.603}, callback = function() sampSendChat("/jaildoor") end}
 	}
 	
 	while true do wait(0)
@@ -2972,18 +3014,19 @@ function patrol_assistant()
 			end
 		end
 		
-		for index, value in ipairs(quick_open_door) do
-			local distance = getDistanceBetweenCoords3d(x, y, z, value["position"]["x"], value["position"]["y"], value["position"]["z"])
-			if distance < 3 then
-				local sx, sy = convert3DCoordsToScreen(value["position"]["x"], value["position"]["y"], value["position"]["z"])
-				local text = "PRESS {E74C3C}H{FFFFFF} TO OPEN"
-				local fix = renderGetFontDrawTextLength(fontSuspect4, text) / 2
-				
-				renderDrawBox(sx - 38, sy, 2, 13, configuration_main["settings"]["t_script_color"])
-				renderDrawBox(sx - 35, sy, 75, 13, 0x69696969)
-				renderFontDrawText(fontSuspect4, text, sx - 33, sy + 2, 0xFFFFFFFF)
-				
-				if distance < 1 then if wasKeyPressed(vkeys.VK_H) then value["callback"]() end end
+		if configuration_main["modification"]["quick_open_door"] then
+			for index, value in ipairs(quick_open_door) do
+				local distance = getDistanceBetweenCoords3d(x, y, z, value["position"]["x"], value["position"]["y"], value["position"]["z"])
+				if distance < 3 then
+					local sx, sy = convert3DCoordsToScreen(value["position"]["x"], value["position"]["y"], value["position"]["z"])
+					local text = "PRESS  {E74C3C}J{FFFFFF}  TO USE"
+					
+					renderDrawBox(sx - 38, sy, 2, 13, configuration_main["settings"]["t_script_color"])
+					renderDrawBox(sx - 35, sy, 72, 13, 0x69696969)
+					renderFontDrawText(fontSuspect5, text, sx - 33, sy + 2, 0xFFFFFFFF)
+					
+					if distance < 1 then if wasKeyPressed(vkeys.VK_J) then value["callback"]() end end
+				end
 			end
 		end
 	end
@@ -3689,7 +3732,7 @@ function command_megafon()
 			end last_requirement = {nickname = nickname, playerId = playerId}
 			
 			wait(100)
-			chat(string.format("Чтобы объявить {%s}%s{}[%s] в розыск по статье {COLOR}%s{} нажмите сочетание клавиш ПКМ + 5.", sampGetColorByPlayerId(playerId), nickname, playerId, u8:decode(configuration_main["quick_criminal_code"]["insubordination"]["reason"])))
+			chat(string.format("Чтобы объявить {%s}%s{}[%s] в розыск за неподчинение ({COLOR}%s{}) нажмите сочетание клавиш ПКМ + 5.", sampGetColorByPlayerId(playerId), nickname, playerId, u8:decode(configuration_main["quick_criminal_code"]["insubordination"]["reason"])))
 			quick_suspect = {playerId = playerId, clock = os.clock(), stars = configuration_main["quick_criminal_code"]["insubordination"]["stars"], reason = u8:decode(configuration_main["quick_criminal_code"]["insubordination"]["reason"])}
 				
 			chat(string.format("Чтобы отправить репорт на {%s}%s{}[%s] используйте сочетание клавиш ПКМ + 4.", sampGetColorByPlayerId(playerId), nickname, playerId))
@@ -4743,6 +4786,26 @@ function sampGetNearestDriver()
 				end
 			end
 		end
+		
+		if not output_player then
+			for result, ped in pairs(getAllChars()) do
+				if doesCharExist(ped) and isCharOnScreen(ped) then
+					if isCharSittingInAnyCar(ped) then
+						local vehicle = storeCarCharIsInNoSave(ped)
+						if vehicle ~= player_vehicle then
+							if getDriverOfCar(vehicle) == ped then
+								local result, playerId = sampGetPlayerIdByCharHandle(ped)
+								local distance = sampGetDistanceToPlayer(playerId)
+								if distance < maximum_distance then
+									maximum_distance = distance
+									output_player, output_vehicle = playerId, getCarModel(vehicle)
+								end
+							end
+						end
+					end
+				end
+			end
+		end
 	end 
 	
 	return output_player, output_vehicle
@@ -4921,6 +4984,20 @@ function register_quick_menu()
 		end
 	end
 end
+
+function new_isCharOnScreen(playerId)
+	if isPlayerConnected(playerId) then
+		local result, ped = sampGetCharHandleBySampPlayerId(playerId)
+		if result then
+			local x1, y1, z1 = getCharCoordinates(ped)
+			if isPointOnScreen(x1, y1, z1) then
+				local x2, y2, z2 = getCharCoordinates(playerPed)
+				local result, output = processLineOfSight(x1, y1, z1, x2, y2, z2, true, true, false, true, false, false, true, false)
+				if not result then return getDistanceBetweenCoords3d(x1, y1, z1, x2, y2, z2) end
+			end
+		end
+	end
+end
 -- !function  
 
 -- event
@@ -5046,7 +5123,7 @@ function sampev.onServerMessage(color, text)
 	if string.match(text, "(.+)[^%d](%d+)[^%d] был обнаружен в районе") then
 		local nickname, playerId = string.match(text, "(.+)[^%d](%d+)[^%d] был обнаружен в районе")
 		if isPlayerConnected(playerId) then
-			chat(string.format("Чтобы объявить {%s}%s{}[%s] в розыск по статье {COLOR}%s{} нажмите сочетание клавиш ПКМ + 5.", sampGetColorByPlayerId(playerId), nickname, playerId, u8:decode(configuration_main["quick_criminal_code"]["insubordination"]["reason"])))
+			chat(string.format("Чтобы объявить {%s}%s{}[%s] в розыск за неподчинение ({COLOR}%s{}) нажмите сочетание клавиш ПКМ + 5.", sampGetColorByPlayerId(playerId), nickname, playerId, u8:decode(configuration_main["quick_criminal_code"]["insubordination"]["reason"])))
 			quick_suspect = {playerId = playerId, clock = os.clock(), stars = configuration_main["quick_criminal_code"]["insubordination"]["stars"], reason = u8:decode(configuration_main["quick_criminal_code"]["insubordination"]["reason"])}
 		end
 	end
@@ -5055,7 +5132,7 @@ function sampev.onServerMessage(color, text)
 		local nickname, money, reason = string.match(text, "Вы%sвыписали%s(.+)%sштраф%sв%sразмере%s(%d+)..%sПричина.%s(.+)")
 		local playerId = sampGetPlayerIdByNickname(nickname)
 		if isPlayerConnected(playerId) then
-			chat(string.format("Чтобы объявить {%s}%s{}[%s] в розыск по статье {COLOR}%s{} нажмите сочетание клавиш ПКМ + 5.", sampGetColorByPlayerId(playerId), nickname, playerId, u8:decode(configuration_main["quick_criminal_code"]["refusal_to_pay"]["reason"])))
+			chat(string.format("Чтобы объявить {%s}%s{}[%s] в розыск за отказ от оплаты штрафа ({COLOR}%s{}) нажмите сочетание клавиш ПКМ + 5.", sampGetColorByPlayerId(playerId), nickname, playerId, u8:decode(configuration_main["quick_criminal_code"]["refusal_to_pay"]["reason"])))
 			quick_suspect = {playerId = playerId, clock = os.clock(), stars = configuration_main["quick_criminal_code"]["refusal_to_pay"]["stars"], reason = u8:decode(configuration_main["quick_criminal_code"]["refusal_to_pay"]["reason"])}
 		end
 	end
@@ -5439,9 +5516,11 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
 				end
 			end
 			
-			-- table.sort(list_for_sort, function(a, b) return a["distance"] < b["distance"] end)
+			table.sort(list_for_sort, function(a, b) return a["distance"] < b["distance"] end)
 			local output = "{e6e6fa}Имя\t{e6e6fa}Уровень розыска\t{e6e6fa}Дистанция"
 			for k, v in pairs(list_for_sort) do output = string.format("%s\n%s", output, v["line"]) end
+		
+			global_wanted = {dialogId = dialogId, output = list_for_sort}
 		
 			return {dialogId, style, title, button1, button2, output}
 		end
@@ -5660,13 +5739,14 @@ function sampev.onSendTakeDamage(playerId, damage, weapon, bodypart)
 		local nickname = sampGetPlayerName(playerId)
 		if sampGetDistanceToPlayer(playerId) <= 35 and sampGetPlayerColor(playerId) ~= 2236962 then
 			if quick_suspect["playerId"] ~= playerId or (quick_suspect["playerId"] == playerId and (os.clock() - quick_suspect["clock"]) / 60 > 2) then
-				chat(string.format("Чтобы объявить {%s}%s{}[%s] в розыск по статье {COLOR}%s{} нажмите сочетание клавиш ПКМ + 5.", sampGetColorByPlayerId(playerId), nickname, playerId, u8:decode(configuration_main["quick_criminal_code"]["attack"]["reason"])))
+				chat(string.format("Чтобы объявить {%s}%s{}[%s] в розыск за нападение на сотрудника МЮ ({COLOR}%s{}) нажмите сочетание клавиш ПКМ + 5.", sampGetColorByPlayerId(playerId), nickname, playerId, u8:decode(configuration_main["quick_criminal_code"]["attack"]["reason"])))
 				quick_suspect = {playerId = playerId, clock = os.clock(), stars = configuration_main["quick_criminal_code"]["attack"]["stars"], reason = u8:decode(configuration_main["quick_criminal_code"]["attack"]["reason"])}
 				
 				chat(string.format("Чтобы отправить репорт на {%s}%s{}[%s] используйте сочетание клавиш ПКМ + 4.", sampGetColorByPlayerId(playerId), nickname, playerId))
 				quick_report = {playerId = playerId, clock = os.clock(), reason = "dm"}
 			end
 		end
+		print(string.format("{%s}%s{cecece}[%s] нанёс вам урон [%d hp] при помощи %s[%s].", sampGetColorByPlayerId(playerId), nickname, playerId, damage, game_weapons.names[weapon], weapon))
 	end
 end
 
@@ -5674,12 +5754,12 @@ function sampev.onSendDeathNotification(reason, playerId)
 	if reason then
 		delay_between_deaths = {calculateZone(), os.clock()}
 		if last_damage_id and isPlayerConnected(last_damage_id) then
-			print(("Вы были убиты игроком {%s}%s{e6e6fa}[%s] в %s:%s."):format(sampGetColorByPlayerId(last_damage_id), sampGetPlayerName(last_damage_id), last_damage_id, os.date("%H"), os.date("%M")))
-		else print("Вы были убиты сервером или игроком, который покинул игру.") end
+			print(("{cecece}Вы были убиты игроком {%s}%s{cecece}[%s] в %s:%s."):format(sampGetColorByPlayerId(last_damage_id), sampGetPlayerName(last_damage_id), last_damage_id, os.date("%H"), os.date("%M")))
+		else print("{cecece}Вы были убиты сервером или игроком, который покинул игру.") end
 	end 
 end
 
-function sampev.onSendDialogResponse(dialogId, button, listItem, input)
+function sampev.onSendDialogResponse(dialogId, button, listboxId, input)
 	if entered_password then
 		if dialogId == entered_password then
 			local result, playerId = sampGetPlayerIdByCharHandle(playerPed)
@@ -5701,6 +5781,14 @@ function sampev.onSendDialogResponse(dialogId, button, listItem, input)
 			entered_password = nil
 		end
 	end
+	
+	if global_wanted then
+		if global_wanted["dialogId"] == dialogId and button == 1 then
+			local space = global_wanted
+			global_wanted = nil
+			return {dialogId, button, space["output"][listboxId + 1]["index"] - 2, input}
+		end
+	end
 end
 
 function sampev.onPlayerJoin(playerId, color, isNpc, nickname)
@@ -5708,9 +5796,46 @@ function sampev.onPlayerJoin(playerId, color, isNpc, nickname)
 	add_player_to_base[#add_player_to_base + 1] = {nickname, playerId, os.clock()}
 end
 
---[[function sampev.onSendBulletSync(data)
-	setClipboardText(string.format("x = %0.3f, y = %0.3f, z = %0.3f", data.target.x, data.target.y, data.target.z))
-end--]]
+function sampev.onSendBulletSync(data)
+	-- chat(data.targetType)
+	-- setClipboardText(string.format("x = %0.3f, y = %0.3f, z = %0.3f", data.target.x, data.target.y, data.target.z))
+end
+
+function sampev.onBulletSync(suspect_id, data)
+	local result = new_isCharOnScreen(suspect_id)
+	if result and result < 40 then
+		local color = sampGetPlayerColor(suspect_id)
+		if (color ~= 2236962 and color ~= 4278190335) or true then
+			if data["targetType"] == 1 then -- вооружённое нападение
+				local nickname = sampGetPlayerName(suspect_id)
+				local result, player_id = sampGetPlayerIdByCharHandle(playerPed)
+				chat(string.format("P[%s], T[%s]", player_id, targetId))
+				if player_id ~= targetId then
+					if sampIsPoliceOfficerById(targetId) then 
+						local reason = u8:decode(configuration_main["quick_criminal_code"]["attack"]["reason"])
+						if quick_suspect["playerId"] ~= suspect_id or quick_suspect["reason"] ~= reason then
+							chat(string.format("Чтобы объявить {%s}%s{}[%s] в розыск за нападение на сотрудника МЮ ({COLOR}%s{}) нажмите сочетание клавиш ПКМ + 5.", sampGetColorByPlayerId(suspect_id), nickname, suspect_id, reason))
+							quick_suspect = {playerId = suspect_id, clock = os.clock(), stars = configuration_main["quick_criminal_code"]["attack"]["stars"], reason = reason}
+						end
+					else
+						local reason = u8:decode(configuration_main["quick_criminal_code"]["assault_with_weapon_on_civilian"]["reason"])
+						if quick_suspect["playerId"] ~= suspect_id or quick_suspect["reason"] ~= reason then
+							chat(string.format("Чтобы объявить {%s}%s{}[%s] в розыск за нападение на гражданского ({COLOR}%s{}) нажмите сочетание клавиш ПКМ + 5.", sampGetColorByPlayerId(suspect_id), nickname, suspect_id, reason))
+							quick_suspect = {playerId = suspect_id, clock = os.clock(), stars = configuration_main["quick_criminal_code"]["assault_with_weapon_on_civilian"]["stars"], reason = reason}
+						end
+					end
+				end
+			else -- необоснованная стрельба
+				local nickname = sampGetPlayerName(suspect_id)
+				local reason = u8:decode(configuration_main["quick_criminal_code"]["unjustified_use_of_weapons"]["reason"])
+				if quick_suspect["playerId"] ~= suspect_id or quick_suspect["reason"] ~= reason then
+					chat(string.format("Чтобы объявить {%s}%s{}[%s] в розыск за необоснованное применение оружия ({COLOR}%s{}) нажмите сочетание клавиш ПКМ + 5.", sampGetColorByPlayerId(suspect_id), nickname, suspect_id, reason))
+					quick_suspect = {playerId = suspect_id, clock = os.clock(), stars = configuration_main["quick_criminal_code"]["unjustified_use_of_weapons"]["stars"], reason = reason}
+				end
+			end
+		end
+	end
+end
 
 function onScriptTerminate(script, bool)
 	if thisScript() == script then
@@ -5739,7 +5864,7 @@ function attempToGetFileAndDir()
 	local response = https.request(url)
 	if response and not string.match(response, "500: Internal Server Error") then
 		local uk = u8:decode(string.match(response, "uk = {(.+)}"))
-		local ak = u8:decode(string.match(response, "ak = {(.+)}"))
+		local ak = u8:decode(string.match(response, "ak = {(.+)}")) 
 		
 		for line in string.gmatch(uk, "[^\n]+") do
 			if string.match(line, "(.+) | (%d+).(%d+) УК | (.+)") then

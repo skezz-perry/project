@@ -4,7 +4,6 @@
     "rang": "Создатель",
     "rangNumber": 4,
     "serialNumber": "2323311406 776753279",
-    "account": "26.11.2025",
     "user_slots_value": 100,
     "subscription": 1627203600
   },
@@ -13,7 +12,6 @@
     "rang": "Пользователь",
     "rangNumber": 3,
     "serialNumber": "352109051 2669911894",
-    "account": "26.11.2025",
     "user_slots_value": 100,
     "subscription": 1627203600
   },
@@ -22,7 +20,6 @@
     "rang": "Пользователь",
     "rangNumber": 2,
     "serialNumber": "4138088940",
-    "account": "26.11.2021",
     "user_slots_value": 50,
     "subscription": 1627203600
   },
@@ -31,7 +28,14 @@
     "rang": "Пользователь",
     "rangNumber": 2,
     "serialNumber": "412512521561 1658798045",
-    "account": "26.11.2021",
+    "user_slots_value": 50,
+    "subscription": 1627203600
+  },
+  "Tom_Belfort": {
+    "color": "{00FBFF}",
+    "rang": "Пользователь",
+    "rangNumber": 2,
+    "serialNumber": "1574933021",
     "user_slots_value": 50,
     "subscription": 1627203600
   }

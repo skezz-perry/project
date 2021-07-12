@@ -1,6 +1,6 @@
 script_name("helper-for-mia (v2.0)")
 script_author("Joachim von Ribbentrop")
-script_version("0.2.4")
+script_version("0.2.5")
 
 require "deps" {
 	"fyp:mimgui",
@@ -30,6 +30,16 @@ imgui.HotKey = mimgui_addons.HotKey
 
 -- global value 
 local update_log = {
+	{["0.2.5"] = {
+			"Внесены следующие изменения в быстрый розыск:",
+			"\t1. Информирование вынесено в блок отдельных интерфейсов.",
+			"\t (B (англ) - включить курсор, ЛКМ - выполнить действие, ПКМ - удалить подозреваемого).",
+			"\t2. Быстрый розыск (ПКМ + 5) теперь комбинирует все нарушения подозреваемого.",
+			"\t3. Настройка местоположения доступна в разделе модификаций.",
+			"Временно удалён быстрый репорт.",
+			"Несколько изменены интерфейсы для взаимодействия с динамическими объектами."
+		}
+	},
 	{["0.2.4"] = {
 			"Добавлены новые причины для объявления в розыск при помощи сочетания клавиш:",
 			"\t1. Вооружённое нападение на любого сотрудника МЮ.",
@@ -57,7 +67,9 @@ local update_log = {
 } 
  
 local fontSuspect4 = renderCreateFont("Tahoma", 6, font_flag.BOLD + font_flag.SHADOW)
-local fontSuspect5 = renderCreateFont("Tahoma", 6, font_flag.BOLD)
+local fontSuspect5 = renderCreateFont("Tahoma", 7, font_flag.BOLD)
+local fontSuspect6 = renderCreateFont("Tahoma", 8)
+local fontSuspect7 = renderCreateFont("Tahoma", 8, font_flag.BOLD + font_flag.SHADOW)
 
 local t_vehicle_name = {"Landstalker", "Bravura", "Buffalo", "Linerunner", "Perrenial", "Sentinel", "Dumper", "Firetruck", "Trashmaster", "Stretch", "Manana", "Infernus",
 	"Voodoo", "Pony", "Mule", "Cheetah", "Ambulance", "Leviathan", "Moonbeam", "Esperanto", "Taxi", "Washington", "Bobcat", "Whoopee", "BFInjection", "Hunter",
@@ -157,7 +169,13 @@ if configuration_main1 then
 		},
 		modification = { 
 			id_postfix_after_nickname = true,
-			quick_open_door = true
+			quick_open_door = true,
+			quick_suspect_interface_y = 350,
+			quick_suspect_insubordination = true,
+			quick_suspect_refusal_to_pay = true,
+			quick_suspect_attack = true,
+			quick_suspect_assault_with_weapon_on_civilian = true,
+			quick_suspect_unjustified_use_of_weapons = true
 		},
 		quick_menu = {
 			[1] = {title = "CUFF", callback = "command_cuff"},
@@ -948,7 +966,6 @@ local lookup_table_a = {}
 local list_users = {}
 local need_to_purchase = {}
 local b_stroboscopes = false
-local quick_suspect = {}
 local quick_report = {}
 local last_suspect_parametrs = {}
 local viewing_criminal_code = false
@@ -997,6 +1014,7 @@ local global_break_command
 local global_command_handler
 local last_damage_id
 local global_wanted = {}
+local t_suspect_list = {}
 -- !local value
 
 -- const 
@@ -1101,7 +1119,7 @@ function()
 			{"{fraction}", "Ваше подразделение из конфигурации.", configuration_main["information"]["fraction"]},
 			{"{number}", "Ваш номер из конфигурации.", configuration_main["information"]["number"]},
 			{"{targeting}", "ID игрока, в которого вы целитесь.", targeting_player},
-			{"{suspect}", "ID игрока, добавленного в быстрый розыск.", quick_suspect["playerId"] or "-1"},
+			{"{suspect}", "ID игрока, добавленного в быстрый розыск.", t_suspect_list[1] and t_suspect_list[1]["playerId"] or "-1"},
 			{"{date}", "Дата.", os.date("%d.%m.%Y")},
 			{"{day}", "День месяца.", os.date("%d")},
 			{"{month}", "Месяц.", os.date("%m")},
@@ -1846,6 +1864,32 @@ function()
 						
 						imgui.Text(u8"2. Добавление кнопок быстрого взаимодействия с объектами.")
 						imgui.ToggleButton("Fast interaction.", "modification", "quick_open_door")
+						
+						imgui.NewLine()
+						
+						imgui.Text(u8"3. Интерфейс быстрой выдачи розыска.")
+						if imgui.Button(u8"Изменить местоположение") then
+							chat("Изменяйте местоположение при помощи курсора, для сохранения нажмите {COLOR}ЛКМ{}.")
+							
+							local result, playerId = sampGetPlayerIdByCharHandle(playerPed)
+							add_suspect_to_list(playerId, 1)
+							
+							lua_thread.create(function()
+								while not wasKeyReleased(vkeys.VK_LBUTTON) do wait(0)
+									sampSetCursorMode(3)
+									local x, y = getCursorPos()
+									configuration_main["modification"]["quick_suspect_interface_y"] = y
+								end sampSetCursorMode(0)
+								
+								chat("Изменения были успешно сохранены.")
+								if not need_update_configuration then need_update_configuration = os.clock() end
+							end)
+						end
+						imgui.ToggleButton(u8"Розыск при неисполнении законных требований.", "modification", "quick_suspect_insubordination")
+						imgui.ToggleButton(u8"Розыск при отказе от оплаты штрафы.", "modification", "quick_suspect_refusal_to_pay")
+						imgui.ToggleButton(u8"Розыск при нападении на сотрудника МЮ.", "modification", "quick_suspect_attack")
+						imgui.ToggleButton(u8"Розыск при вооружённом нападении на гражданского.", "modification", "quick_suspect_assault_with_weapon_on_civilian")
+						imgui.ToggleButton(u8"Розыск при необоснованном применении оружия.", "modification", "quick_suspect_unjustified_use_of_weapons")
 					imgui.EndChild()
 				end
 			elseif navigation_page == 5 then
@@ -2093,7 +2137,7 @@ function()
 										binder["content"] = new.char[9999](binder["content"])
 									end showHelpMarker(u8"Нажмите, чтобы редактировать данную команду.")
 									imgui.NextColumn() 
-									if type(buffer["key"]) == "table" then 
+									if type(buffer["key"]) == "table" and type(buffer["key"]["v"]) then 
 										if imgui.HotKey(string.format("##hk%s", index), configuration_custom[global_profile][index]["key"], 130) then
 											if not rkeys.isHotKeyDefined(buffer["key"]["v"]) then
 												hotkey_id = rkeys.registerHotKey(buffer["key"]["v"], true, function()
@@ -2371,8 +2415,31 @@ function main()
 						end 
 					elseif wasKeyPressed(vkeys.VK_5) then
 						consumeWindowMessage(true, false)
-						if quick_suspect["playerId"] then
-							command_su(string.format("%s %s %s", quick_suspect["playerId"], quick_suspect["stars"], quick_suspect["reason"]))
+						if #t_suspect_list > 0 then
+							local suspect_id = t_suspect_list[1]["playerId"]
+							local stars = 0
+							local reason
+
+							for index, value in ipairs(t_suspect_list) do
+								if value["playerId"] == suspect_id then
+									if not reason then reason = value["reason"] else reason = string.format("%s, %s", reason, value["reason"]) end
+									stars = stars + value["stars"]
+									t_suspect_list[index] = nil
+								end
+							end
+							
+							local stars = (stars > 6) and 6 or stars
+							local reason = string.format("%s УК", string.gsub(reason, " УК", ""))
+							
+							local buffer = t_suspect_list
+							t_suspect_list = {}
+							add_suspect_to_list(suspect_id, 1, stars, reason)
+							for index, value in pairs(buffer) do
+								if value then table.insert(t_suspect_list, value) end
+							end
+							
+							command_su(string.format("%s %s %s", suspect_id, stars, reason))
+							-- table.remove(t_suspect_list, 1)
 						end
 					elseif wasKeyPressed(vkeys.VK_H) then
 						b_stroboscopes = not b_stroboscopes
@@ -2498,6 +2565,7 @@ function main()
 	lua_thread.create(t_stroboscopes)
 	lua_thread.create(patrol_assistant)
 	lua_thread.create(house_founder)
+	lua_thread.create(t_quick_suspect)
 	
 	print(string.format("Общее время загрузки игрового помощника: %s\n\n", os.clock() - start_time))
 	
@@ -2657,10 +2725,10 @@ function main()
 		if need_update_configuration then
 			if os.clock() - need_update_configuration > 15 then
 				configuration_main1:set(configuration_main)
-				configuration_custom1:set(configuration_custom)
-				configuration_manager1:set(configuration_manager)
-				configuration_statistics1:set(configuration_statistics)
-				configuration_database1:set(configuration_database)
+				configuration_custom1:set(configuration_custom or {})
+				configuration_manager1:set(configuration_manager or {})
+				configuration_statistics1:set(configuration_statistics or {})
+				configuration_database1:set(configuration_database or {})
 				
 				need_update_configuration = nil
 			end
@@ -3019,13 +3087,123 @@ function patrol_assistant()
 				local distance = getDistanceBetweenCoords3d(x, y, z, value["position"]["x"], value["position"]["y"], value["position"]["z"])
 				if distance < 3 then
 					local sx, sy = convert3DCoordsToScreen(value["position"]["x"], value["position"]["y"], value["position"]["z"])
-					local text = "PRESS  {E74C3C}J{FFFFFF}  TO USE"
+					local text = string.format("press  %sJ{FFFFFF}  to use", configuration_main["settings"]["script_color"])
 					
-					renderDrawBox(sx - 38, sy, 2, 13, configuration_main["settings"]["t_script_color"])
-					renderDrawBox(sx - 35, sy, 72, 13, 0x69696969)
-					renderFontDrawText(fontSuspect5, text, sx - 33, sy + 2, 0xFFFFFFFF)
+					-- renderDrawBox(sx - 38, sy, 2, 13, configuration_main["settings"]["t_script_color"])
+					renderDrawBox(sx - 35, sy, 80, 15, 0x69696969)
+					renderFontDrawText(fontSuspect5, text, sx - 32, sy + 1, 0xFFFFFFFF)
 					
 					if distance < 1 then if wasKeyPressed(vkeys.VK_J) then value["callback"]() end end
+				end
+			end
+		end
+	end
+end
+
+function t_quick_suspect()
+	local is_cursor = false
+	
+	local criminal_type_list = {
+		{"insubordination", "Неисполнение законных требований"},
+		{"refusal_to_pay", "Отказ от оплаты штрафы"},
+		{"attack", "Нападение на сотрудника МЮ"},
+		{"assault_with_weapon_on_civilian", "Вооружённое нападение на гражданского"},
+		{"unjustified_use_of_weapons", "Необоснованное применение оружия"}
+	}
+	
+	function add_suspect_to_list(playerId, criminal_type, __stars, __reason)
+		local information = criminal_type_list[tonumber(criminal_type)]
+		if information then
+			local index = string.format("quick_suspect_%s", information[1])
+			if not configuration_main["modification"][index] then return end
+			
+			if isPlayerConnected(playerId) then
+				local suspect = string.format("%s, id %s", string.gsub(sampGetPlayerName(playerId), "_", " "), playerId)
+				local suspect_color = string.format("0xFF%s", sampGetColorByPlayerId(playerId))
+				local reason = __reason and __reason or u8:decode(configuration_main["quick_criminal_code"][information[1]]["reason"])
+				local stars = __stars and __stars or configuration_main["quick_criminal_code"][information[1]]["stars"]
+				local criminal_code = string.format("Статья: %s%s{EFEFEF}, уровень розыска: %s%s", configuration_main["settings"]["script_color"], reason, configuration_main["settings"]["script_color"], stars)
+				local fix1 = renderGetFontDrawTextLength(fontSuspect7, information[2]) + 18
+				local fix2 = renderGetFontDrawTextLength(fontSuspect7, criminal_code) + 18
+				local is_found = false
+				
+				for index, value in ipairs(t_suspect_list) do
+					if value["playerId"] == playerId and value["reason"] == __reason then is_found = true end
+				end
+				
+				if not is_found then
+					table.insert(t_suspect_list, 1, {
+						playerId = playerId,
+						suspect = suspect,
+						suspect_color = suspect_color,
+						criminal_code = criminal_code,
+						criminal_type = criminal_type,
+						reason = reason,
+						stars = stars,
+						criminal = __stars and "Совокупность правонарушений" or information[2],
+						fix = (fix1 > fix2) and fix1 or fix2, 
+						clock = os.clock()
+					})
+				end
+			end
+		end
+	end
+	
+	while true do wait(0)
+		if true then
+			if #t_suspect_list > 0 then
+				local y = configuration_main["modification"]["quick_suspect_interface_y"]
+				local mx, my = getCursorPos()
+				
+				if is_cursor then
+					if not isKeyDown(VK_B) then 
+						sampSetCursorMode(0) 
+						is_cursor = false
+					end
+				else
+					if isKeyDown(VK_B) then 
+						sampSetCursorMode(3) 
+						is_cursor = true
+					end
+				end
+				
+				renderDrawBox(10, y - 20, 15, 15, is_cursor and 0x699a9a9a or 0x69696969)
+				renderDrawBox(30, y - 20, 52, 15, 0x69696969)
+				
+				renderFontDrawText(fontSuspect7, "B", 14, y - 19, 0xFFEFEFEF)
+				renderFontDrawText(fontSuspect7, "ПКМ + 5", 33, y - 19, 0xFFEFEFEF)
+				
+				for index, value in ipairs(t_suspect_list) do
+					if os.clock() - value["clock"] < 120 then
+						if isPlayerConnected(value["playerId"]) then
+							local y = y + (index - 1) * 42
+							local hovered = (mx >= 10 and mx <= 10 + value["fix"]) and (my >= y and my <= y + 40)
+							renderDrawBox(10, y, value["fix"], 40, hovered and 0x699a9a9a or 0x69696969)
+							renderDrawBox(13, y + 3, 3, 34, value["suspect_color"])
+							renderFontDrawText(fontSuspect7, value["suspect"], 21, y + 2, 0xFFEFEFEF)
+							renderFontDrawText(fontSuspect7, value["criminal"], 21, y + 13, 0xFFEFEFEF)
+							renderFontDrawText(fontSuspect7, value["criminal_code"], 21, y + 24, 0xFFEFEFEF)
+							if hovered then
+								if wasKeyPressed(vkeys.VK_LBUTTON) then
+									command_su(string.format("%s %s %s", value["playerId"], value["stars"], value["reason"]))
+								elseif wasKeyPressed(vkeys.VK_RBUTTON) then
+									chat(string.format("Подозреваемый {COLOR}#%s{} был исключён из быстрого розыска.", value["playerId"]))
+									table.remove(t_suspect_list, index) 
+								end
+							end
+						else 
+							chat(string.format("Подозреваемый {COLOR}#%s{} был исключён из быстрого розыска. Причина: выход из игры.", value["playerId"]))
+							table.remove(t_suspect_list, index) 
+						end
+					else 
+						chat(string.format("Подозреваемый {COLOR}#%s{} был исключён из быстрого розыска. Причина: прошло более 2х минут.", value["playerId"]))
+						table.remove(t_suspect_list, index) 
+					end
+				end
+			else
+				if is_cursor then 
+					sampSetCursorMode(0) 
+					is_cursor = false
 				end
 			end
 		end
@@ -3731,12 +3909,12 @@ function command_megafon()
 				end
 			end last_requirement = {nickname = nickname, playerId = playerId}
 			
-			wait(100)
-			chat(string.format("Чтобы объявить {%s}%s{}[%s] в розыск за неподчинение ({COLOR}%s{}) нажмите сочетание клавиш ПКМ + 5.", sampGetColorByPlayerId(playerId), nickname, playerId, u8:decode(configuration_main["quick_criminal_code"]["insubordination"]["reason"])))
-			quick_suspect = {playerId = playerId, clock = os.clock(), stars = configuration_main["quick_criminal_code"]["insubordination"]["stars"], reason = u8:decode(configuration_main["quick_criminal_code"]["insubordination"]["reason"])}
-				
-			chat(string.format("Чтобы отправить репорт на {%s}%s{}[%s] используйте сочетание клавиш ПКМ + 4.", sampGetColorByPlayerId(playerId), nickname, playerId))
-			quick_report = {playerId = playerId, clock = os.clock(), reason = "последите пожалуйста, может оффнуться / суицид."}
+			wait(250)
+			add_suspect_to_list(playerId, 1)
+			-- chat(string.format("Чтобы объявить {%s}%s{}[%s] в розыск за неподчинение ({COLOR}%s{}) нажмите сочетание клавиш ПКМ + 5.", sampGetColorByPlayerId(playerId), nickname, playerId, u8:decode(configuration_main["quick_criminal_code"]["insubordination"]["reason"])))
+			-- quick_suspect = {playerId = playerId, clock = os.clock(), stars = configuration_main["quick_criminal_code"]["insubordination"]["stars"], reason = u8:decode(configuration_main["quick_criminal_code"]["insubordination"]["reason"])}
+			-- chat(string.format("Чтобы отправить репорт на {%s}%s{}[%s] используйте сочетание клавиш ПКМ + 4.", sampGetColorByPlayerId(playerId), nickname, playerId))
+			-- quick_report = {playerId = playerId, clock = os.clock(), reason = "последите пожалуйста, может оффнуться / суицид."}
 		else sampSendChat("/m Немедленно остановите ваше транспортное средство и прижмитесь к обочине.") end
 	end)
 end
@@ -4003,7 +4181,7 @@ function line_handler(input, parametrs_block)
 		["{fraction}"] = u8:decode(configuration_main["information"]["fraction"]),
 		["{number}"] = u8:decode(configuration_main["information"]["number"]),
 		["{targeting}"] = targeting_player,
-		["{suspect}"] = quick_suspect["playerId"] or "-1",
+		["{suspect}"] = t_suspect_list[1] and t_suspect_list[1]["playerId"] or "-1",
 		["{date}"] = os.date("%d.%m.%Y"),
 		["{day}"] = os.date("%d"),
 		["{month}"] = os.date("%m"),
@@ -4998,61 +5176,95 @@ function new_isCharOnScreen(playerId)
 		end
 	end
 end
+
+function renderBoxRounded(x, y, w, h, r, color)
+    renderDrawBox(x + r, y, w - r, h - 1, color)
+
+    renderCircle(x + r, y, r * 4, math.pi, 3 * math.pi / 2, color)
+    renderDrawBox(x - r + 1, y + r * 2 - 1, r * 2 - 1, h - r * 4, color)
+    renderRound(x + r, y + h - r * 4, r * 4, math.pi / 2, math.pi, color)
+
+    renderCircle(x + w, y, r * 4, 3 * math.pi / 2, 2 * math.pi, color)
+    renderDrawBox(x + w, y + r * 2 - 1, r * 2, h - r * 4, color)
+    renderCircle(x + w, y + h - r * 4, r * 4, 0, math.pi / 2, color)
+
+end
+
+function renderCircle(x, y, d, s, e, color)
+    local r = math.ceil( d / 2 )
+    y = y - 1.0
+    renderBegin(6)
+
+    local step = math.abs(((e < 0) and (2 * math.pi + e) or e) - ((s < 0) and (2 * math.pi + s) or s)) / r
+    renderColor(color)
+    renderVertex(x, y + r)
+    for i = s, e, step do
+        renderVertex(x + r * math.cos( i ), y + r * math.sin( i ) + r)
+    end
+    renderVertex(x + r * math.cos( e ), y + r * math.sin( e ) + r)
+
+
+    renderEnd()
+end
+
+function renderRound(x, y, d, s, e, color)
+    local r = math.ceil( d / 2 )
+    y = y - 1.0
+    renderBegin(6)
+
+    local step = e / (d - 1)
+    renderColor(color)
+    renderVertex(x, y + r)
+    for i = s, e, step do
+        renderVertex(x + r * math.cos( i ), y + r * math.sin( i ) + r)
+    end
+    r = r - 1
+    renderVertex(x + r * math.cos( e ), y + r * math.sin( e ) + r)
+
+    renderEnd()
+end
 -- !function  
 
 -- event
 function sampev.onServerMessage(color, text)
-	if string.match(text, "(.+) %| Отправил%s(%S+)%[(%d+)%] %(тел%. (%d+)%)") then
-		local ad, player_name, playerId, player_number = text:match('(.+) %| Отправил%s(%S+)%[(%d+)%] %(тел%. (%d+)%)')
+	if color == 13369599 then
+		if string.match(text, "(.+) %| Отправил%s(%S+)%[(%d+)%] %(тел%. (%d+)%)") then
+			local ad, player_name, playerId, player_number = text:match('(.+) %| Отправил%s(%S+)%[(%d+)%] %(тел%. (%d+)%)')
 
-		if not configuration_database["player"][player_name] then configuration_database["player"][player_name] = {} end
-		configuration_database["player"][player_name]["telephone"] = player_number
-		
-		if not need_update_configuration then need_update_configuration = os.clock() end
-		if configuration_main["settings"]["ad_blocker"] then print(text) return false end
-	end  
-	 
-	if string.match(text, "  Объявление проверил сотрудник СМИ") then
-		if configuration_main["settings"]["ad_blocker"] then print(text, "\n") return false end
-	end
-
-	if string.match(text, "SMS.[%s](.+)[%s].[%s]Отправитель.[%s](%S+)[%s].т.(%d+).") then
-		local ftext, player_name, player_number = string.match(text, "SMS.[%s](.+)[%s].[%s]Отправитель.[%s](%S+)[%s].т.(%d+).") 
-
-		if not configuration_database["player"][player_name] then configuration_database["player"][player_name] = {} end
-		configuration_database["player"][player_name]["telephone"] = player_number
-		
-		last_sms_number = player_number
-		if not need_update_configuration then need_update_configuration = os.clock() end
-		if configuration_main["blacklist"][player_name] then return false end
+			if not configuration_database["player"][player_name] then configuration_database["player"][player_name] = {} end
+			configuration_database["player"][player_name]["telephone"] = player_number
+			
+			if not need_update_configuration then need_update_configuration = os.clock() end
+			if configuration_main["settings"]["ad_blocker"] then print(text) return false end
+		end  
 	end
 	
-	if string.match(text, "Входящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Вызывает[%s](.+)") then
-		local player_number, player_name = text:match('Входящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Вызывает[%s](.+)')
-
-		if not configuration_database["player"][player_name] then configuration_database["player"][player_name] = {} end
-		configuration_database["player"][player_name]["telephone"] = player_number
-		
-		if not need_update_configuration then need_update_configuration = os.clock() end
-		if configuration_main["blacklist"][player_name] then return false end
+	if color == 10027263 then
+		if string.match(text, "  Объявление проверил сотрудник СМИ") then
+			if configuration_main["settings"]["ad_blocker"] then print(text, "\n") return false end
+		end
 	end
 
-	if string.match(text, "SMS.[%s](.+)[%s].[%s]Получатель.[%s](%S+)[%s].т.(%d+).") then
-		local ftext, player_name, player_number = string.match(text, "SMS.[%s](.+)[%s].[%s]Получатель.[%s](%S+)[%s].т.(%d+).")
+	if color == -65281 then
+		if string.match(text, "SMS.[%s](.+)[%s].[%s]Отправитель.[%s](%S+)[%s].т.(%d+).") then
+			local ftext, player_name, player_number = string.match(text, "SMS.[%s](.+)[%s].[%s]Отправитель.[%s](%S+)[%s].т.(%d+).") 
 
-		if not configuration_database["player"][player_name] then configuration_database["player"][player_name] = {} end
-		configuration_database["player"][player_name]["telephone"] = player_number
+			if not configuration_database["player"][player_name] then configuration_database["player"][player_name] = {} end
+			configuration_database["player"][player_name]["telephone"] = player_number
+			
+			last_sms_number = player_number
+			if not need_update_configuration then need_update_configuration = os.clock() end
+			if configuration_main["blacklist"][player_name] then return false end
+		end
 		
-		if not need_update_configuration then need_update_configuration = os.clock() end
-	end
-	
-	if string.match(text, "Исходящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Ожидание[%s]ответа[%s]от[%s](.+)...") then
-		local player_number, player_name = string.match(text, "Исходящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Ожидание[%s]ответа[%s]от[%s](.+)...")
+		if string.match(text, "SMS.[%s](.+)[%s].[%s]Получатель.[%s](%S+)[%s].т.(%d+).") then
+			local ftext, player_name, player_number = string.match(text, "SMS.[%s](.+)[%s].[%s]Получатель.[%s](%S+)[%s].т.(%d+).")
 
-		if not configuration_database["player"][player_name] then configuration_database["player"][player_name] = {} end
-		configuration_database["player"][player_name]["telephone"] = player_number
-		
-		if not need_update_configuration then need_update_configuration = os.clock() end
+			if not configuration_database["player"][player_name] then configuration_database["player"][player_name] = {} end
+			configuration_database["player"][player_name]["telephone"] = player_number
+			
+			if not need_update_configuration then need_update_configuration = os.clock() end
+		end
 	end
 	
 	if color == 869033727 and string.match(text, "[R]") then
@@ -5096,6 +5308,15 @@ function sampev.onServerMessage(color, text)
 	end
 
 	if last_suspect_parametrs then
+		if string.match(text, "Вы объявили (%S+)%[(%d+)%] в розыск. Причина: (.+). Текущий уровень розыска (%d+)") then
+			local suspect_name, suspect_id, reason, stars = string.match(text, "Вы объявили (%S+)%[(%d+)%] в розыск. Причина: (.+). Текущий уровень розыска (%d+)")
+			if t_suspect_list[1] then
+				if suspect_id == t_suspect_list[1]["playerId"] and tonumber(stars) == t_suspect_list[1]["stars"] then
+					table.remove(t_suspect_list, 1)
+				end
+			end
+		end
+	 
 		if string.match(text, "Сейчас у игрока (%d) уровень розыска. Вы можете его увеличить на (%d)") then
 			local lstars, nstars = string.match(text, "Сейчас у игрока (%d) уровень розыска. Вы можете его увеличить на (%d)")
 			lua_thread.create(function()
@@ -5111,153 +5332,173 @@ function sampev.onServerMessage(color, text)
 		end
 	end
 	
-	if string.match(text, "(.+) (%S+)%[(%d+)%] посадил (%S+)%[(%d+)%] в машину") then
-		local officer_rang, officer_name, officer_id, suspect_name, suspect_id = string.match(text, "(.+) (%S+)%[(%d+)%] посадил (%S+)%[(%d+)%] в машину")
-		local result, playerId = sampGetPlayerIdByCharHandle(playerPed)
-		if tonumber(playerId) == tonumber(officer_id) then
-			chat("Если желаете объвить о том, что доставляете подозреваемого в департамент, нажмите {COLOR}Y{}.")
-			accept_the_offer = 1
-		end
-	end
-	
-	if string.match(text, "(.+)[^%d](%d+)[^%d] был обнаружен в районе") then
-		local nickname, playerId = string.match(text, "(.+)[^%d](%d+)[^%d] был обнаружен в районе")
-		if isPlayerConnected(playerId) then
-			chat(string.format("Чтобы объявить {%s}%s{}[%s] в розыск за неподчинение ({COLOR}%s{}) нажмите сочетание клавиш ПКМ + 5.", sampGetColorByPlayerId(playerId), nickname, playerId, u8:decode(configuration_main["quick_criminal_code"]["insubordination"]["reason"])))
-			quick_suspect = {playerId = playerId, clock = os.clock(), stars = configuration_main["quick_criminal_code"]["insubordination"]["stars"], reason = u8:decode(configuration_main["quick_criminal_code"]["insubordination"]["reason"])}
-		end
-	end
-	
-	if string.match(text, "Вы%sвыписали%s(.+)%sштраф%sв%sразмере%s(%d+)..%sПричина.%s(.+)") then
-		local nickname, money, reason = string.match(text, "Вы%sвыписали%s(.+)%sштраф%sв%sразмере%s(%d+)..%sПричина.%s(.+)")
-		local playerId = sampGetPlayerIdByNickname(nickname)
-		if isPlayerConnected(playerId) then
-			chat(string.format("Чтобы объявить {%s}%s{}[%s] в розыск за отказ от оплаты штрафа ({COLOR}%s{}) нажмите сочетание клавиш ПКМ + 5.", sampGetColorByPlayerId(playerId), nickname, playerId, u8:decode(configuration_main["quick_criminal_code"]["refusal_to_pay"]["reason"])))
-			quick_suspect = {playerId = playerId, clock = os.clock(), stars = configuration_main["quick_criminal_code"]["refusal_to_pay"]["stars"], reason = u8:decode(configuration_main["quick_criminal_code"]["refusal_to_pay"]["reason"])}
-		end
-	end
-	
-	if string.match(text, "(.+)[%s+](.+)[%s+]изъял[%s+]у[%s+](.+)[%s+]патроны[%s+].(%d+)[%s+]шт..") then
-		local rang, name, pname, bull = string.match(text, "(.+)[%s+](.+)[%s+]изъял[%s+]у[%s+](.+)[%s+]патроны[%s+].(%d+)[%s+]шт..")
-		local _, id = sampGetPlayerIdByCharHandle(playerPed)
-		if name == sampGetPlayerName(id) then
-			lua_thread.create(function()
-				wait(850)
-				if not configuration_main["information"]["sex"] then
-					sampSendChat("/me достал ZIP-пакет и чёрный маркер, открыл zip-пакет и сложил туда изъятые боеприпасы.")
-					wait(1500); sampSendChat("/me закрыв zip-пакет, написал информацию на нём с помощью чёрного маркера, после убрал их обратно.")
-				else
-					sampSendChat("/me достала zip-пакет и чёрный маркер, открыла zip-пакет и сложила туда изъятые боеприпасы.")
-					wait(1500); sampSendChat("/me закрыв zip-пакет, написала информацию на нём с помощью чёрного маркера, после убрала их обратно.")
-				end
-			end)
-		end
-	end
-	
-	if string.match(text, "(.+)[%s+](.+)[%s+]изъял[%s+]у[%s+](.+)[%s+](%d+)[%s+]г[%s+]наркотиков") then
-		local rang, name, pname, drugs = string.match(text, "(.+)[%s+](.+)[%s+]изъял[%s+]у[%s+](.+)[%s+](%d+)[%s+]г[%s+]наркотиков")
-		local _, id = sampGetPlayerIdByCharHandle(playerPed)
-		if name == sampGetPlayerName(id) then
-			lua_thread.create(function()
-				wait(850)
-				if not configuration_main["information"]["sex"] then
-					sampSendChat("/me достал zip-пакет и чёрный маркер, затем раскрыл zip-пакет и положил туда изъятые неизвестнные в-ва.")
-					wait(1500); sampSendChat("/me держа в левой руке маркер, правой рукой закрыл пакет и промаркировал его.")
-					wait(1500); sampSendChat("/me убрал zip-пакет и чёрный маркер обратно.")
-				else
-					sampSendChat("/me достала zip-пакет и чёрный маркер, затем раскрыла zip-пакет и положила туда изъятые неизвестнные в-ва.")
-					wait(1500); sampSendChat("/me держа в левой руке маркер, правой рукой закрыла пакет и промаркировала его.")
-					wait(1500); sampSendChat("/me убрала zip-пакет и чёрный маркер обратно.")
-				end
-			end)
-		end
-	end
-	
-	if string.match(text, "Вы оглушили (%S+) на 15 секунд") then
-		lua_thread.create(function() wait(150)
-			if not configuration_main["information"]["sex"] then
-				if getCurrentCharWeapon(playerPed) == 3 then
-					local acting = {
-						[1] = {u8("/me удерживая дубинку в руке, размахнулся и нанёс удар по нарушителю.")},
-						[2] = {u8("/me снял дубинку с пояса и нанёс удар достаточной силы, чтобы оглушить подозреваемого.")}
-					}
-					local acting = acting[math.random(1, #acting)]
-					final_command_handler(acting, {id, stars, reason})
-				else
-					sampSendChat("/me выхватил тэйзер из держателя, навёлся на нарушителя и нажал на кнопку спуска.")
-				end
-			else
-				if getCurrentCharWeapon(playerPed) == 3 then
-					local acting = {
-						[1] = {u8("/me удерживая дубинку в руке, размахнулась и нанесла удар по нарушителю.")},
-						[2] = {u8("/me сняла дубинку с пояса и нанесла удар достаточной силы, чтобы оглушить подозреваемого.")}
-					}
-					local acting = acting[math.random(1, #acting)]
-					final_command_handler(acting, {id, stars, reason})
-				else
-					sampSendChat("/me выхватила тэйзер из держателя, навелась на нарушителя и нажала на кнопку спуска.")
-				end
-			end
-		end)
-	end
-	
-	if invite_playerId then 
-		if string.match(text, "(.+) принимает Ваше предложение") then 
-			if tonumber(invite_rang) > 1 then
+	if color == -577699841 then
+		if string.match(text, "(.+)[%s+](.+)[%s+]изъял[%s+]у[%s+](.+)[%s+]патроны[%s+].(%d+)[%s+]шт..") then
+			local rang, name, pname, bull = string.match(text, "(.+)[%s+](.+)[%s+]изъял[%s+]у[%s+](.+)[%s+]патроны[%s+].(%d+)[%s+]шт..")
+			local _, id = sampGetPlayerIdByCharHandle(playerPed)
+			if name == sampGetPlayerName(id) then
 				lua_thread.create(function()
-					for i = 2, tonumber(invite_rang) do
-						sampSendChat(string.format("/rang %s +", invite_playerId))
-						wait(900)
-					end invite_playerId, invite_rang = nil, nil
+					wait(850)
+					if not configuration_main["information"]["sex"] then
+						sampSendChat("/me достал пакет для вещдоков, раскрыл его и сложил изъятые боеприпасы, затем закрыл пакет.")
+						wait(1500); sampSendChat("/me достал чёрный маркер, записал на этикетке информацию о изъятых предметах.")
+						wait(1500); sampSendChat("/me отложил пакет и убрал маркер обратно в карман.")
+					else
+						sampSendChat("/me достала пакет для вещдоков, раскрыла его и сложила изъятые боеприпасы, затем закрыла пакет.")
+						wait(1500); sampSendChat("/me достала чёрный маркер, записала на этикетке информацию о изъятых предметах.")
+						wait(1500); sampSendChat("/me отложила пакет и убрала маркер обратно в карман.")
+					end
 				end)
 			end
 		end
+		
+		if string.match(text, "(.+)[%s+](.+)[%s+]изъял[%s+]у[%s+](.+)[%s+](%d+)[%s+]г[%s+]наркотиков") then
+			local rang, name, pname, drugs = string.match(text, "(.+)[%s+](.+)[%s+]изъял[%s+]у[%s+](.+)[%s+](%d+)[%s+]г[%s+]наркотиков")
+			local _, id = sampGetPlayerIdByCharHandle(playerPed)
+			if name == sampGetPlayerName(id) then
+				lua_thread.create(function()
+					wait(850)
+					if not configuration_main["information"]["sex"] then
+						sampSendChat("/me достал пакет для вещдоков, раскрыл его и сложил изъятые вещества, затем закрыл пакет.")
+						wait(1500); sampSendChat("/me достал чёрный маркер, записал на этикетке информацию о изъятых предметах.")
+						wait(1500); sampSendChat("/me отложил пакет и убрал маркер обратно в карман.")
+					else
+						sampSendChat("/me достала пакет для вещдоков, раскрыла его и сложила изъятые вещества, затем закрыла пакет.")
+						wait(1500); sampSendChat("/me достала чёрный маркер, записала на этикетке информацию о изъятых предметах.")
+						wait(1500); sampSendChat("/me отложила пакет и убрала маркер обратно в карман.")
+					end
+				end)
+			end
+		end
+		
+		if configuration_main["settings"]["auto_buy_mandh"] then
+			if string.match(text, "Сейчас[%s]у[%s]Вас[%s]аптечек:[%s]{33cc33}(%d)[%s]шт.") then
+				local aid = tonumber(string.match(text, "Сейчас[%s]у[%s]Вас[%s]аптечек:[%s]{33cc33}(%d+)[%s]шт."))
+				local aid = 5 - aid
+				need_to_purchase["aid"] = aid
+			end
+
+			if string.match(text, "Сейчас[%s]у[%s]Вас[%s]масок:[%s]{33cc33}(%d)[%s]шт.") then
+				local mask = tonumber(string.match(text, "Сейчас[%s]у[%s]Вас[%s]масок:[%s]{33cc33}(%d+)[%s]шт."))
+				local mask = 3 - mask
+				need_to_purchase["mask"] = mask
+			end
+		end
+		
+		--[[if string.match(text, "(.+) (%S+) посадил (%S+) в машину") then
+			local officer_rang, officer_name, officer_id, suspect_name, suspect_id = string.match(text, "(.+) (%S+) посадил (%S+) в машину")
+			local result, playerId = sampGetPlayerIdByCharHandle(playerPed)
+			if tonumber(playerId) == tonumber(officer_id) then
+				chat("Если желаете объвить о том, что доставляете подозреваемого в департамент, нажмите {COLOR}Y{}.")
+				accept_the_offer = 1
+			end
+		end--]]
 	end
 	
-	if configuration_main["settings"]["aid_timer"] then
-		if string.match(text, "Вы использовали аптечку. Здоровье пополнено на 60 единиц") then
-			if not aid_timer then
-				configuration_statistics["time_using_aid_kits"] = configuration_statistics["time_using_aid_kits"] + 5.5
-				if not need_update_configuration then need_update_configuration = os.clock() end
-				aid_timer = os.clock()
+	if color == 865730559 then
+		if string.match(text, "Вы оглушили (%S+) на 15 секунд") then
+			lua_thread.create(function() wait(150)
+				if not configuration_main["information"]["sex"] then
+					if getCurrentCharWeapon(playerPed) == 3 then
+						local acting = {
+							[1] = {u8("/me удерживая дубинку в руке, размахнулся и нанёс удар по нарушителю.")},
+							[2] = {u8("/me снял дубинку с пояса и нанёс удар достаточной силы, чтобы оглушить подозреваемого.")}
+						}
+						local acting = acting[math.random(1, #acting)]
+						final_command_handler(acting, {id, stars, reason})
+					else
+						sampSendChat("/me выхватил тэйзер из держателя, навёлся на нарушителя и нажал на кнопку спуска.")
+					end
+				else
+					if getCurrentCharWeapon(playerPed) == 3 then
+						local acting = {
+							[1] = {u8("/me удерживая дубинку в руке, размахнулась и нанесла удар по нарушителю.")},
+							[2] = {u8("/me сняла дубинку с пояса и нанесла удар достаточной силы, чтобы оглушить подозреваемого.")}
+						}
+						local acting = acting[math.random(1, #acting)]
+						final_command_handler(acting, {id, stars, reason})
+					else
+						sampSendChat("/me выхватила тэйзер из держателя, навелась на нарушителя и нажала на кнопку спуска.")
+					end
+				end
+			end)
+		end
+		
+		if invite_playerId then 
+			if string.match(text, "(.+) принимает Ваше предложение") then 
+				if tonumber(invite_rang) > 1 then
+					lua_thread.create(function()
+						for i = 2, tonumber(invite_rang) do
+							sampSendChat(string.format("/rang %s +", invite_playerId))
+							wait(900)
+						end invite_playerId, invite_rang = nil, nil
+					end)
+				end
+			end
+		end
+		
+		if configuration_main["settings"]["aid_timer"] then
+			if string.match(text, "Вы использовали аптечку. Здоровье пополнено на 60 единиц") then
+				if not aid_timer then
+					configuration_statistics["time_using_aid_kits"] = configuration_statistics["time_using_aid_kits"] + 5.5
+					if not need_update_configuration then need_update_configuration = os.clock() end
+					aid_timer = os.clock()
+				end
+			end
+		end
+		
+		if string.match(text, "Вы объявили (%S+)%[(%d+)%] в розыск%. Причина: (.+)%. Текущий уровень розыска (%d+)") then
+			local suspect_nickname, suspect_id, reason, wanted = string.match(text, "Вы объявили (%S+)%[(%d+)%] в розыск%. Причина: (.+)%. Текущий уровень розыска (%d+)")
+			local result, officer_id = sampGetPlayerIdByCharHandle(playerPed)
+			local officer_nickname = sampGetPlayerName(officer_id)
+			if not configuration_database["player"][suspect_nickname] then configuration_database["player"][suspect_nickname] = {} end
+			if not configuration_database["player"][suspect_nickname]["wanted_log"] then configuration_database["player"][suspect_nickname]["wanted_log"] = {} end
+			
+			table.insert(configuration_database["player"][suspect_nickname]["wanted_log"], {
+				officer_rang = rang,
+				officer_nickname = officer_nickname,
+				suspect_nickname = suspect_nickname,
+				wanted = 0,
+				time = os.time(),
+				ok = was_pause
+			})
+			
+			if not need_update_configuration then need_update_configuration = os.clock() end
+		end
+		
+		if string.match(text, "Вы%sвыписали%s(.+)%sштраф%sв%sразмере%s(%d+)..%sПричина.%s(.+)") then
+			local nickname, money, reason = string.match(text, "Вы%sвыписали%s(.+)%sштраф%sв%sразмере%s(%d+)..%sПричина.%s(.+)")
+			local playerId = sampGetPlayerIdByNickname(nickname)
+			if isPlayerConnected(playerId) then
+				add_suspect_to_list(playerId, 2)
+				-- chat(string.format("Чтобы объявить {%s}%s{}[%s] в розыск за отказ от оплаты штрафа ({COLOR}%s{}) нажмите сочетание клавиш ПКМ + 5.", sampGetColorByPlayerId(playerId), nickname, playerId, u8:decode(configuration_main["quick_criminal_code"]["refusal_to_pay"]["reason"])))
+				-- quick_suspect = {playerId = playerId, clock = os.clock(), stars = configuration_main["quick_criminal_code"]["refusal_to_pay"]["stars"], reason = u8:decode(configuration_main["quick_criminal_code"]["refusal_to_pay"]["reason"])}
 			end
 		end
 	end
 	
-	if configuration_main["settings"]["auto_buy_mandh"] then
-		if string.match(text, "Сейчас[%s]у[%s]Вас[%s]аптечек:[%s]{33cc33}(%d)[%s]шт.") then
-			local aid = tonumber(string.match(text, "Сейчас[%s]у[%s]Вас[%s]аптечек:[%s]{33cc33}(%d+)[%s]шт."))
-			local aid = 5 - aid
-			need_to_purchase["aid"] = aid
-		end
-
-		if string.match(text, "Сейчас[%s]у[%s]Вас[%s]масок:[%s]{33cc33}(%d)[%s]шт.") then
-			local mask = tonumber(string.match(text, "Сейчас[%s]у[%s]Вас[%s]масок:[%s]{33cc33}(%d+)[%s]шт."))
-			local mask = 3 - mask
-			need_to_purchase["mask"] = mask
-		end
-	end
-	
-	if string.match(text, "Гос%. новости: (%S+)%[(%d+)%]: (.+)") then
-		local nickname, player_id, t_text = string.match(text, "Гос%. новости: (%S+)%[(%d+)%]: (.+)") 
-		if #goverment_news > 0 then
-			local max_index = #goverment_news
-			if goverment_news[max_index]["nickname"] == nickname then
-				if os.clock() - goverment_news[max_index]["clock"] < 4 then
-					goverment_news[max_index]["clock"], goverment_news[max_index]["time"] = os.clock(), os.time()
-					table.insert(goverment_news[max_index]["value"], t_text)
+	if color == 1147587839 then
+		if string.match(text, "Гос%. новости: (%S+)%[(%d+)%]: (.+)") then
+			local nickname, player_id, t_text = string.match(text, "Гос%. новости: (%S+)%[(%d+)%]: (.+)") 
+			if #goverment_news > 0 then
+				local max_index = #goverment_news
+				if goverment_news[max_index]["nickname"] == nickname then
+					if os.clock() - goverment_news[max_index]["clock"] < 4 then
+						goverment_news[max_index]["clock"], goverment_news[max_index]["time"] = os.clock(), os.time()
+						table.insert(goverment_news[max_index]["value"], t_text)
+					else
+						goverment_news[max_index + 1] = {nickname = nickname, value = {t_text}, clock = os.clock(), time = os.time(), ok = was_pause}
+					end
 				else
 					goverment_news[max_index + 1] = {nickname = nickname, value = {t_text}, clock = os.clock(), time = os.time(), ok = was_pause}
 				end
 			else
-				goverment_news[max_index + 1] = {nickname = nickname, value = {t_text}, clock = os.clock(), time = os.time(), ok = was_pause}
+				goverment_news[1] = {nickname = nickname, value = {t_text}, clock = os.clock(), time = os.time(), ok = was_pause}
 			end
-		else
-			goverment_news[1] = {nickname = nickname, value = {t_text}, clock = os.clock(), time = os.time(), ok = was_pause}
 		end
 	end
 	
-	if string.match(text, "(.+) (%S+)%[(%d+)%] объявил (%S+)%[(%d+)%] в розыск %[(%d+)%/6], причина: (.+)") then
+	if string.match(text, "(.+) (%S+)%[(%d+)%] объявил (%S+)%[(%d+)%] в розыск %[(%d+)%/6], причина: (.+)") then -- -3342081
 		local rang, officer_nickname, officer_id, suspect_nickname, suspect_id, wanted, reason = string.match(text, "(.+) (%S+)%[(%d+)%] объявил (%S+)%[(%d+)%] в розыск %[(%d+)%/6], причина: (.+)")
 		if not configuration_database["player"][suspect_nickname] then configuration_database["player"][suspect_nickname] = {} end
 		if not configuration_database["player"][suspect_nickname]["wanted_log"] then configuration_database["player"][suspect_nickname]["wanted_log"] = {} end
@@ -5268,25 +5509,6 @@ function sampev.onServerMessage(color, text)
 			suspect_nickname = suspect_nickname, 
 			wanted = tonumber(wanted), 
 			reason = u8(reason),
-			time = os.time(),
-			ok = was_pause
-		})
-		
-		if not need_update_configuration then need_update_configuration = os.clock() end
-	end
-	
-	if string.match(text, "Вы объявили (%S+)%[(%d+)%] в розыск%. Причина: (.+)%. Текущий уровень розыска (%d+)") then
-		local suspect_nickname, suspect_id, reason, wanted = string.match(text, "Вы объявили (%S+)%[(%d+)%] в розыск%. Причина: (.+)%. Текущий уровень розыска (%d+)")
-		local result, officer_id = sampGetPlayerIdByCharHandle(playerPed)
-		local officer_nickname = sampGetPlayerName(officer_id)
-		if not configuration_database["player"][suspect_nickname] then configuration_database["player"][suspect_nickname] = {} end
-		if not configuration_database["player"][suspect_nickname]["wanted_log"] then configuration_database["player"][suspect_nickname]["wanted_log"] = {} end
-		
-		table.insert(configuration_database["player"][suspect_nickname]["wanted_log"], {
-			officer_rang = rang,
-			officer_nickname = officer_nickname,
-			suspect_nickname = suspect_nickname,
-			wanted = 0,
 			time = os.time(),
 			ok = was_pause
 		})
@@ -5311,15 +5533,33 @@ function sampev.onServerMessage(color, text)
 		if not need_update_configuration then need_update_configuration = os.clock() end
 	end
 	
-	--[[if string.match(text, "Администратор") then
-		if color == -6732289 then
-			local administrator_nickname, administrator_id, player_nickname, player_id, message = string.match(text, "Администратор (%S+)%[(%d+)%] для (%S+)%[(%d+)%]: (.+)")
-			chat(administrator_nickname, ">>", player_nickname, ">>", message)
-		else
-			-- Администратор Nikolay_Kot[22] выдал предупреждение игроку Valintin_Sobaki[73] [1|3]. Причина: NonRP nick in org • E. Murphy
-			chat(1, color)
+	if string.match(text, "(.+)[^%d](%d+)[^%d] был обнаружен в районе") then
+		local nickname, playerId = string.match(text, "(.+)[^%d](%d+)[^%d] был обнаружен в районе")
+		if isPlayerConnected(playerId) then
+			add_suspect_to_list(playerId, 1)
+			-- chat(string.format("Чтобы объявить {%s}%s{}[%s] в розыск за неподчинение ({COLOR}%s{}) нажмите сочетание клавиш ПКМ + 5.", sampGetColorByPlayerId(playerId), nickname, playerId, u8:decode(configuration_main["quick_criminal_code"]["insubordination"]["reason"])))
+			-- quick_suspect = {playerId = playerId, clock = os.clock(), stars = configuration_main["quick_criminal_code"]["insubordination"]["stars"], reason = u8:decode(configuration_main["quick_criminal_code"]["insubordination"]["reason"])}
 		end
-	end--]]
+	end
+	
+	if string.match(text, "Входящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Вызывает[%s](.+)") then
+		local player_number, player_name = text:match('Входящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Вызывает[%s](.+)')
+
+		if not configuration_database["player"][player_name] then configuration_database["player"][player_name] = {} end
+		configuration_database["player"][player_name]["telephone"] = player_number
+		
+		if not need_update_configuration then need_update_configuration = os.clock() end
+		if configuration_main["blacklist"][player_name] then return false end
+	end
+	
+	if string.match(text, "Исходящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Ожидание[%s]ответа[%s]от[%s](.+)...") then
+		local player_number, player_name = string.match(text, "Исходящий[%s]звонок[%s].[%s]Номер.[%s](%d+)[%s]{FFCD00}.[%s]Ожидание[%s]ответа[%s]от[%s](.+)...")
+
+		if not configuration_database["player"][player_name] then configuration_database["player"][player_name] = {} end
+		configuration_database["player"][player_name]["telephone"] = player_number
+		
+		if not need_update_configuration then need_update_configuration = os.clock() end
+	end
 	
 	if configuration_main["modification"]["id_postfix_after_nickname"] then
 		if string.match(text, "(%a+)_(%a+)") then
@@ -5738,13 +5978,7 @@ function sampev.onSendTakeDamage(playerId, damage, weapon, bodypart)
 		last_damage_id = playerId
 		local nickname = sampGetPlayerName(playerId)
 		if sampGetDistanceToPlayer(playerId) <= 35 and sampGetPlayerColor(playerId) ~= 2236962 then
-			if quick_suspect["playerId"] ~= playerId or (quick_suspect["playerId"] == playerId and (os.clock() - quick_suspect["clock"]) / 60 > 2) then
-				chat(string.format("Чтобы объявить {%s}%s{}[%s] в розыск за нападение на сотрудника МЮ ({COLOR}%s{}) нажмите сочетание клавиш ПКМ + 5.", sampGetColorByPlayerId(playerId), nickname, playerId, u8:decode(configuration_main["quick_criminal_code"]["attack"]["reason"])))
-				quick_suspect = {playerId = playerId, clock = os.clock(), stars = configuration_main["quick_criminal_code"]["attack"]["stars"], reason = u8:decode(configuration_main["quick_criminal_code"]["attack"]["reason"])}
-				
-				chat(string.format("Чтобы отправить репорт на {%s}%s{}[%s] используйте сочетание клавиш ПКМ + 4.", sampGetColorByPlayerId(playerId), nickname, playerId))
-				quick_report = {playerId = playerId, clock = os.clock(), reason = "dm"}
-			end
+			add_suspect_to_list(playerId, 3)
 		end
 		print(string.format("{%s}%s{cecece}[%s] нанёс вам урон [%d hp] при помощи %s[%s].", sampGetColorByPlayerId(playerId), nickname, playerId, damage, game_weapons.names[weapon], weapon))
 	end
@@ -5805,46 +6039,77 @@ function sampev.onBulletSync(suspect_id, data)
 	local result = new_isCharOnScreen(suspect_id)
 	if result and result < 40 then
 		local color = sampGetPlayerColor(suspect_id)
-		if (color ~= 2236962 and color ~= 4278190335) or true then
+		if color ~= 2236962 and color ~= 4278190335 then
 			if data["targetType"] == 1 then -- вооружённое нападение
 				local nickname = sampGetPlayerName(suspect_id)
 				local result, player_id = sampGetPlayerIdByCharHandle(playerPed)
-				chat(string.format("P[%s], T[%s]", player_id, targetId))
+				-- chat(string.format("P[%s], T[%s]", player_id, targetId))
 				if player_id ~= targetId then
 					if sampIsPoliceOfficerById(targetId) then 
-						local reason = u8:decode(configuration_main["quick_criminal_code"]["attack"]["reason"])
-						if quick_suspect["playerId"] ~= suspect_id or quick_suspect["reason"] ~= reason then
-							chat(string.format("Чтобы объявить {%s}%s{}[%s] в розыск за нападение на сотрудника МЮ ({COLOR}%s{}) нажмите сочетание клавиш ПКМ + 5.", sampGetColorByPlayerId(suspect_id), nickname, suspect_id, reason))
-							quick_suspect = {playerId = suspect_id, clock = os.clock(), stars = configuration_main["quick_criminal_code"]["attack"]["stars"], reason = reason}
-						end
+						add_suspect_to_list(suspect_id, 3)
 					else
-						local reason = u8:decode(configuration_main["quick_criminal_code"]["assault_with_weapon_on_civilian"]["reason"])
-						if quick_suspect["playerId"] ~= suspect_id or quick_suspect["reason"] ~= reason then
-							chat(string.format("Чтобы объявить {%s}%s{}[%s] в розыск за нападение на гражданского ({COLOR}%s{}) нажмите сочетание клавиш ПКМ + 5.", sampGetColorByPlayerId(suspect_id), nickname, suspect_id, reason))
-							quick_suspect = {playerId = suspect_id, clock = os.clock(), stars = configuration_main["quick_criminal_code"]["assault_with_weapon_on_civilian"]["stars"], reason = reason}
-						end
+						add_suspect_to_list(suspect_id, 4)
 					end
 				end
 			else -- необоснованная стрельба
-				local nickname = sampGetPlayerName(suspect_id)
-				local reason = u8:decode(configuration_main["quick_criminal_code"]["unjustified_use_of_weapons"]["reason"])
-				if quick_suspect["playerId"] ~= suspect_id or quick_suspect["reason"] ~= reason then
-					chat(string.format("Чтобы объявить {%s}%s{}[%s] в розыск за необоснованное применение оружия ({COLOR}%s{}) нажмите сочетание клавиш ПКМ + 5.", sampGetColorByPlayerId(suspect_id), nickname, suspect_id, reason))
-					quick_suspect = {playerId = suspect_id, clock = os.clock(), stars = configuration_main["quick_criminal_code"]["unjustified_use_of_weapons"]["stars"], reason = reason}
-				end
+				add_suspect_to_list(suspect_id, 5)
 			end
 		end
 	end
 end
 
+--[[
+function sampev.onSetGravity(gravity)
+	-- if gravity == 0.0024999999441206 then chat("skip") return false end
+	return false
+end
+
+function sampev.onDisplayGameText(style, time, text)
+	if string.match(text, "%+300") then
+		lua_thread.create(function()
+			setVirtualKeyDown(vkeys.VK_F, true)
+			wait(150)
+			setVirtualKeyDown(vkeys.VK_F, false)
+		end)
+	end
+end
+
+function sampev.onShowTextDraw(id, data)
+	sampSendClickTextdraw(id)
+end
+
+function sampev.onApplyPlayerAnimation(playerId, lib, name, loop, lockX, lockY, freeze, time) 
+	local result, player_id = sampGetPlayerIdByCharHandle(playerPed)
+	if player_id == playerId then
+		-- chat(lib, name)
+		if lib == "BOMBER" and name == "BOM_Plant" then return false end
+		if lib == "PED" and name == "WALK_fat" then return false end
+	end
+end
+
+function sampev.onShowTextDraw(id, data)
+	sampSendClickTextdraw(id)
+end
+
+function sampev.onDisplayGameText(style, time, text)
+	if string.match(text, "%+300") then
+		lua_thread.create(function()
+			setVirtualKeyDown(vkeys.VK_F, true)
+			wait(150)
+			setVirtualKeyDown(vkeys.VK_F, false)
+		end)
+	end
+end
+--]]
+
 function onScriptTerminate(script, bool)
 	if thisScript() == script then
 		if configuration_main1 then
 			local result, index = configuration_main1:set(configuration_main)
-			local result, index = configuration_custom1:set(configuration_custom)
-			local result, index = configuration_manager1:set(configuration_manager)
-			local result, index = configuration_statistics1:set(configuration_statistics)
-			local result, index = configuration_database1:set(configuration_database)
+			local result, index = configuration_custom1:set(configuration_custom or {})
+			local result, index = configuration_manager1:set(configuration_manager or {})
+			local result, index = configuration_statistics1:set(configuration_statistics or {})
+			local result, index = configuration_database1:set(configuration_database or {})
 			configuration_main1:close() 
 			configuration_custom1:close()
 			configuration_manager1:close()
